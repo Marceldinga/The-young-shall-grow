@@ -1,0 +1,889 @@
+<script>
+  // ===== SUPABASE CONFIG =====
+  const supabaseUrl = "https://dkxqzxvqwabxmlhyyvak.supabase.co";
+  const supabaseKey =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRreHF6eHZxd2FieG1saHl5dmFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwNjI4NDgsImV4cCI6MjA4MDYzODg0OH0.pRqdu2S_wH_SoGzEGCFYS44TQX3ZISv7qp8gmW7Ve7M";
+  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+  // ===== ADMIN MODE (FRONT-END ONLY) =====
+  const ADMIN_PASSWORD = "Macdini_Admin_2025";
+  let isAdmin = false;
+
+  function toggleAdminLogin() {
+    if (!isAdmin) {
+      const pwd = window.prompt("Enter admin password:");
+      if (pwd === null) return;
+      if (pwd === ADMIN_PASSWORD) {
+        isAdmin = true;
+        alert("✅ Admin mode enabled.");
+      } else {
+        alert("❌ Incorrect password.");
+        isAdmin = false;
+      }
+    } else {
+      const confirmLogout = window.confirm("Log out of admin mode?");
+      if (confirmLogout) {
+        isAdmin = false;
+        alert("You are now in view-only mode.");
+      }
+    }
+    updateAdminUI();
+  }
+
+  function updateAdminUI() {
+    const statusEl = document.getElementById("adminStatus");
+    const toggleBtn = document.getElementById("adminToggleBtn");
+    const interestNote = document.getElementById("interestNote");
+
+    if (statusEl) {
+      statusEl.textContent = isAdmin ? "Mode: Admin" : "Mode: View-only";
+    }
+    if (toggleBtn) {
+      toggleBtn.textContent = isAdmin ? "Logout Admin" : "Admin Login";
+    }
+
+    // Only admin can see total interest
+    if (interestNote) {
+      interestNote.style.display = isAdmin ? "block" : "none";
+    }
+
+    document
+      .querySelectorAll("[data-admin-only='true']")
+      .forEach((btn) => {
+        btn.disabled = !isAdmin;
+        if (!isAdmin) {
+          btn.classList.add("disabled-btn");
+        } else {
+          btn.classList.remove("disabled-btn");
+        }
+      });
+  }
+
+  function ensureAdmin() {
+    if (!isAdmin) {
+      alert("Admin only action. Please log in as admin.");
+      return false;
+    }
+    return true;
+  }
+
+  // ===== STATE =====
+  let njangiPot = 0;
+  let foundation = 0;
+  const interestRate = 0.05; // 5%
+
+  // members[id] = { id, name, phone, contributed, foundationContrib, loanDue, position }
+  let members = {};
+  let payoutOrder = [];
+  let nextPayoutIndex = 0;
+
+  let history = [];
+  let totalInterestAllTime = 0;
+
+  // Charts
+  let contribChart = null;
+  let totalsChart = null;
+
+  function formatMoney(x) {
+    return (x || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  }
+
+  // ===== APP STATE (Supabase) =====
+  async function syncAppState() {
+    try {
+      const { error } = await supabaseClient
+        .from("app_state")
+        .update({
+          foundation,
+          next_payout_index: nextPayoutIndex,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", 1);
+
+      if (error) {
+        console.error("app_state update error:", error);
+      }
+    } catch (e) {
+      console.error("app_state sync error:", e);
+    }
+  }
+
+  // ===== HISTORY (DB + LOCAL UI) =====
+  function renderHistory() {
+    const body = document.getElementById("historyBody");
+    if (!body) return;
+    body.innerHTML = "";
+    history.forEach((h) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${h.time || ""}</td>
+        <td>${h.type || ""}</td>
+        <td>${h.member || ""}</td>
+        <td>$${formatMoney(h.amount || 0)}</td>
+        <td>${h.interestPercent ? h.interestPercent + "%" : "-"}</td>
+        <td>${h.totalDue != null ? "$" + formatMoney(h.totalDue) : "-"}</td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+
+  function recomputeTotalInterest() {
+    totalInterestAllTime = history
+      .filter((h) => h.type === "Loan" && h.totalDue != null)
+      .reduce((sum, h) => {
+        const interestAmount = (h.totalDue || 0) - (h.amount || 0);
+        return sum + (interestAmount > 0 ? interestAmount : 0);
+      }, 0);
+    const lbl = document.getElementById("interestTotalLabel");
+    if (lbl) lbl.textContent = "$" + formatMoney(totalInterestAllTime);
+  }
+
+  function addHistoryLocal(type, member, amount, interestPercent, totalDue, timeStr) {
+    const now = timeStr || new Date().toLocaleString();
+    history.unshift({
+      type,
+      member,
+      amount,
+      interestPercent,
+      totalDue,
+      time: now,
+    });
+    recomputeTotalInterest();
+    renderHistory();
+    updateCharts();
+  }
+
+  async function addHistory(type, member, amount, interestPercent, totalDue) {
+    try {
+      const { data, error } = await supabaseClient
+        .from("history")
+        .insert([
+          {
+            type,
+            member,
+            amount,
+            interest_percent: interestPercent,
+            total_due: totalDue,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("History insert error:", error);
+        addHistoryLocal(type, member, amount, interestPercent, totalDue);
+        return;
+      }
+
+      addHistoryLocal(
+        type,
+        member,
+        amount,
+        interestPercent,
+        totalDue,
+        data.created_at ? new Date(data.created_at).toLocaleString() : undefined
+      );
+    } catch (e) {
+      console.error("Supabase history error:", e);
+      addHistoryLocal(type, member, amount, interestPercent, totalDue);
+    }
+  }
+
+  // ===== UI HELPERS =====
+  function showSection(id) {
+    const ids = ["contributionForm", "loanForm", "foundationForm", "historySection"];
+    ids.forEach((sec) => {
+      const el = document.getElementById(sec);
+      if (el) el.style.display = sec === id ? "block" : "none";
+    });
+  }
+
+  function setActiveNav(which) {
+    const map = {
+      contrib: "nav-contrib",
+      loans: "nav-loans",
+      found: "nav-found",
+      history: "nav-history",
+    };
+    Object.values(map).forEach((id) => {
+      const btn = document.getElementById(id);
+      if (btn) btn.classList.remove("active");
+    });
+    const activeId = map[which];
+    const activeBtn = document.getElementById(activeId);
+    if (activeBtn) activeBtn.classList.add("active");
+  }
+
+  function updateNjangiPot() {
+    njangiPot = Object.values(members).reduce(
+      (sum, m) => sum + (m.contributed || 0),
+      0
+    );
+  }
+
+  function updateSummaryCards() {
+    const njangiEl = document.getElementById("njangiBalance");
+    const foundEl = document.getElementById("foundationBalance");
+    if (njangiEl) njangiEl.textContent = "$" + formatMoney(njangiPot);
+    if (foundEl) foundEl.textContent = "$" + formatMoney(foundation);
+    const interestEl = document.getElementById("interestTotalLabel");
+    if (interestEl)
+      interestEl.textContent = "$" + formatMoney(totalInterestAllTime);
+  }
+
+  function renderMemberList() {
+    const list = document.getElementById("memberList");
+    if (!list) return;
+    list.innerHTML = "";
+    const arr = Object.values(members).sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "")
+    );
+    arr.forEach((m) => {
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <div>
+          <div class="name">${m.name}</div>
+          <div class="meta">
+            Njangi: $${formatMoney(m.contributed || 0)}
+            • Foundation: $${formatMoney(m.foundationContrib || 0)}
+            • Loan due: $${formatMoney(m.loanDue || 0)}
+            ${m.phone ? `<br/>Phone: ${m.phone}` : ""}
+          </div>
+        </div>
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  function populateMemberSelects() {
+    const memberArray = Object.values(members).sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "")
+    );
+    const selectIds = [
+      "memberSelect",
+      "loanMember",
+      "loanRepayMember",
+      "foundationMember",
+    ];
+    selectIds.forEach((id) => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = "";
+      memberArray.forEach((m) => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.name;
+        sel.appendChild(opt);
+      });
+    });
+  }
+
+  function updateNextPayoutDisplay() {
+    const nameEl = document.getElementById("nextPayoutName");
+    const infoEl = document.getElementById("nextPayoutInfo");
+    if (!nameEl || !infoEl) return;
+
+    if (!payoutOrder.length) {
+      nameEl.textContent = "No members";
+      infoEl.textContent = "Add members to start rotation";
+      return;
+    }
+
+    if (nextPayoutIndex >= payoutOrder.length) {
+      nextPayoutIndex = 0;
+    }
+    const memberId = payoutOrder[nextPayoutIndex];
+    const member = members[memberId];
+    if (!member) {
+      nameEl.textContent = "Unknown member";
+      infoEl.textContent = "Check rotation";
+      return;
+    }
+
+    nameEl.textContent = member.name;
+    infoEl.textContent = `Position ${nextPayoutIndex + 1} of ${payoutOrder.length}`;
+  }
+
+  function updateCharts() {
+    const labels = Object.values(members).map((m) => m.name);
+    const contribVals = Object.values(members).map(
+      (m) => m.contributed || 0
+    );
+    const loanVals = Object.values(members).map((m) => m.loanDue || 0);
+    const totalLoans = loanVals.reduce((a, b) => a + b, 0);
+
+    const contribCtx = document
+      .getElementById("contribChart")
+      ?.getContext("2d");
+    if (contribCtx) {
+      if (!contribChart) {
+        contribChart = new Chart(contribCtx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Contributions",
+                data: contribVals,
+              },
+              {
+                label: "Outstanding Loans",
+                data: loanVals,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                labels: {
+                  color: "#e5e7eb",
+                  font: { size: 10 },
+                },
+              },
+            },
+            scales: {
+              x: {
+                ticks: { color: "#9ca3af", font: { size: 10 } },
+                grid: { color: "#111827" },
+              },
+              y: {
+                ticks: { color: "#9ca3af", font: { size: 10 } },
+                grid: { color: "#111827" },
+              },
+            },
+          },
+        });
+      } else {
+        contribChart.data.labels = labels;
+        contribChart.data.datasets[0].data = contribVals;
+        contribChart.data.datasets[1].data = loanVals;
+        contribChart.update();
+      }
+    }
+
+    const totalsCtx = document
+      .getElementById("totalsChart")
+      ?.getContext("2d");
+    if (totalsCtx) {
+      const data = [njangiPot, foundation, totalLoans];
+      if (!totalsChart) {
+        totalsChart = new Chart(totalsCtx, {
+          type: "doughnut",
+          data: {
+            labels: ["Njangi Pot", "Foundation", "Outstanding Loans"],
+            datasets: [
+              {
+                data,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                labels: {
+                  color: "#e5e7eb",
+                  font: { size: 10 },
+                },
+              },
+            },
+          },
+        });
+      } else {
+        totalsChart.data.datasets[0].data = data;
+        totalsChart.update();
+      }
+    }
+  }
+
+  // ===== SUPABASE LOAD =====
+  async function loadFromSupabase() {
+    try {
+      // app_state (create row if missing)
+      let { data: appRows, error: appErr } = await supabaseClient
+        .from("app_state")
+        .select("*")
+        .eq("id", 1);
+
+      if (appErr) {
+        console.error("app_state error:", appErr);
+      }
+
+      let appRow = appRows && appRows[0];
+
+      if (!appRow) {
+        const { data: inserted, error: insertErr } = await supabaseClient
+          .from("app_state")
+          .insert([{ id: 1 }])
+          .select()
+          .single();
+        if (insertErr) {
+          console.error("app_state insert error:", insertErr);
+        }
+        appRow = inserted;
+      }
+
+      foundation = Number(appRow.foundation) || 0;
+      nextPayoutIndex = appRow.next_payout_index || 0;
+
+      // Members
+      const { data: membersData, error: memErr } = await supabaseClient
+        .from("members")
+        .select("*")
+        .order("position", { ascending: true });
+
+      if (memErr) {
+        console.error("members error:", memErr);
+      }
+
+      members = {};
+      payoutOrder = [];
+      (membersData || []).forEach((m) => {
+        const id = String(m.id);
+        members[id] = {
+          id,
+          name: m.name,
+          phone: m.phone,
+          contributed: Number(m.contributed) || 0,
+          foundationContrib: Number(m.foundation_contrib) || 0,
+          loanDue: Number(m.loan_due) || 0,
+          position: m.position,
+        };
+        payoutOrder.push(id);
+      });
+
+      // History
+      const { data: histData, error: histErr } = await supabaseClient
+        .from("history")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (histErr) {
+        console.error("history error:", histErr);
+      }
+
+      history = (histData || []).map((h) => ({
+        type: h.type,
+        member: h.member,
+        amount: Number(h.amount) || 0,
+        interestPercent:
+          h.interest_percent != null ? Number(h.interest_percent) : 0,
+        totalDue: h.total_due != null ? Number(h.total_due) : null,
+        time: h.created_at ? new Date(h.created_at).toLocaleString() : "",
+      }));
+
+      recomputeTotalInterest();
+      updateNjangiPot();
+    } catch (e) {
+      console.error("Error loading from Supabase:", e);
+    }
+  }
+
+  // ===== CONTRIBUTIONS =====
+  async function addContribution() {
+    if (!ensureAdmin()) return;
+
+    const memberId = document.getElementById("memberSelect").value;
+    const amount = Number(document.getElementById("amountAdd").value || 0);
+
+    if (!memberId) {
+      alert("Please select a member.");
+      return;
+    }
+    if (!amount || amount <= 0) {
+      alert("Please enter a valid contribution amount.");
+      return;
+    }
+    if (amount % 500 !== 0) {
+      alert("Amount must be in multiples of 500.");
+      return;
+    }
+
+    const m = members[memberId];
+    if (!m) {
+      alert("Member not found.");
+      return;
+    }
+
+    m.contributed = (m.contributed || 0) + amount;
+    updateNjangiPot();
+    updateSummaryCards();
+    renderMemberList();
+    updateCharts();
+
+    try {
+      const { error } = await supabaseClient
+        .from("members")
+        .update({ contributed: m.contributed })
+        .eq("id", memberId);
+      if (error) console.error("members update error:", error);
+    } catch (e) {
+      console.error("members update exception:", e);
+    }
+
+    await addHistory("Contribution", m.name, amount, 0, m.contributed);
+
+    document.getElementById("amountAdd").value = "";
+  }
+
+  async function setContribution() {
+    if (!ensureAdmin()) return;
+
+    const memberId = document.getElementById("memberSelect").value;
+    const amount = Number(document.getElementById("amountSet").value || 0);
+
+    if (!memberId) {
+      alert("Please select a member.");
+      return;
+    }
+    if (amount < 0) {
+      alert("Contribution cannot be negative.");
+      return;
+    }
+
+    const m = members[memberId];
+    if (!m) {
+      alert("Member not found.");
+      return;
+    }
+
+    m.contributed = amount;
+    updateNjangiPot();
+    updateSummaryCards();
+    renderMemberList();
+    updateCharts();
+
+    try {
+      const { error } = await supabaseClient
+        .from("members")
+        .update({ contributed: m.contributed })
+        .eq("id", memberId);
+      if (error) console.error("members update error:", error);
+    } catch (e) {
+      console.error("members update exception:", e);
+    }
+
+    await addHistory("Set Contribution", m.name, amount, 0, amount);
+
+    document.getElementById("amountSet").value = "";
+  }
+
+  // ===== FOUNDATION =====
+  async function addToFoundation() {
+    if (!ensureAdmin()) return;
+
+    const amount = Number(
+      document.getElementById("foundationAddAmount").value || 0
+    );
+    if (!amount || amount <= 0) {
+      alert("Enter a valid amount to add.");
+      return;
+    }
+    foundation += amount;
+    updateSummaryCards();
+    updateCharts();
+
+    await syncAppState();
+    await addHistory("Foundation Add", "Admin", amount, 0, foundation);
+
+    document.getElementById("foundationAddAmount").value = "";
+  }
+
+  async function setFoundation() {
+    if (!ensureAdmin()) return;
+
+    const amount = Number(
+      document.getElementById("foundationSetAmount").value || 0
+    );
+    if (amount < 0) {
+      alert("Foundation total cannot be negative.");
+      return;
+    }
+    foundation = amount;
+    updateSummaryCards();
+    updateCharts();
+
+    await syncAppState();
+    await addHistory("Foundation Set", "Admin", amount, 0, foundation);
+
+    document.getElementById("foundationSetAmount").value = "";
+  }
+
+  async function addMemberFoundationContribution() {
+    if (!ensureAdmin()) return;
+
+    const memberId = document.getElementById("foundationMember").value;
+    const amount = Number(
+      document.getElementById("foundationMemberAmount").value || 0
+    );
+
+    if (!memberId) {
+      alert("Select a member.");
+      return;
+    }
+    if (!amount || amount <= 0) {
+      alert("Enter a valid amount.");
+      return;
+    }
+
+    const m = members[memberId];
+    if (!m) {
+      alert("Member not found.");
+      return;
+    }
+
+    m.foundationContrib = (m.foundationContrib || 0) + amount;
+    foundation += amount;
+    updateSummaryCards();
+    renderMemberList();
+    updateCharts();
+
+    try {
+      const { error } = await supabaseClient
+        .from("members")
+        .update({ foundation_contrib: m.foundationContrib })
+        .eq("id", memberId);
+      if (error) console.error("members update error:", error);
+    } catch (e) {
+      console.error("members update exception:", e);
+    }
+
+    await syncAppState();
+    await addHistory(
+      "Foundation Member",
+      m.name,
+      amount,
+      0,
+      m.foundationContrib
+    );
+
+    document.getElementById("foundationMemberAmount").value = "";
+  }
+
+  // ===== LOANS & REPAYMENTS =====
+  async function saveLoan() {
+    if (!ensureAdmin()) return;
+
+    const memberId = document.getElementById("loanMember").value;
+    const amount = Number(
+      document.getElementById("loanAmount").value || 0
+    );
+
+    if (!memberId) {
+      alert("Select a member.");
+      return;
+    }
+    if (!amount || amount <= 0) {
+      alert("Enter a valid loan amount.");
+      return;
+    }
+    if (amount > foundation) {
+      alert("Loan amount cannot be more than foundation balance.");
+      return;
+    }
+
+    const m = members[memberId];
+    if (!m) {
+      alert("Member not found.");
+      return;
+    }
+
+    const interest = Math.round(amount * interestRate); // 5%
+    const totalDue = amount + interest;
+
+    foundation -= amount;
+    m.loanDue = (m.loanDue || 0) + totalDue;
+
+    updateSummaryCards();
+    renderMemberList();
+    updateCharts();
+
+    try {
+      const { error } = await supabaseClient
+        .from("members")
+        .update({ loan_due: m.loanDue })
+        .eq("id", memberId);
+      if (error) console.error("members update error:", error);
+    } catch (e) {
+      console.error("members update exception:", e);
+    }
+
+    await syncAppState();
+    await addHistory("Loan", m.name, amount, 5, totalDue);
+
+    document.getElementById("loanAmount").value = "";
+    alert(
+      `Loan saved.\nPrincipal: $${formatMoney(
+        amount
+      )}\nInterest (5%): $${formatMoney(
+        interest
+      )}\nTotal due now: $${formatMoney(totalDue)}`
+    );
+  }
+
+  async function recordRepayment() {
+    if (!ensureAdmin()) return;
+
+    const memberId = document.getElementById("loanRepayMember").value;
+    const amount = Number(
+      document.getElementById("loanRepayAmount").value || 0
+    );
+
+    if (!memberId) {
+      alert("Select a member.");
+      return;
+    }
+    if (!amount || amount <= 0) {
+      alert("Enter a valid repayment amount.");
+      return;
+    }
+
+    const m = members[memberId];
+    if (!m) {
+      alert("Member not found.");
+      return;
+    }
+
+    const currentDue = m.loanDue || 0;
+    if (currentDue <= 0) {
+      alert("This member has no outstanding loan.");
+      return;
+    }
+
+    const pay = amount > currentDue ? currentDue : amount;
+    const newDue = currentDue - pay;
+
+    m.loanDue = newDue;
+    foundation += pay;
+
+    updateSummaryCards();
+    renderMemberList();
+    updateCharts();
+
+    try {
+      const { error } = await supabaseClient
+        .from("members")
+        .update({ loan_due: m.loanDue })
+        .eq("id", memberId);
+      if (error) console.error("members update error:", error);
+    } catch (e) {
+      console.error("members update exception:", e);
+    }
+
+    await syncAppState();
+    await addHistory("Repayment", m.name, pay, 0, newDue);
+
+    document.getElementById("loanRepayAmount").value = "";
+    alert(
+      `Repayment recorded.\nPaid: $${formatMoney(
+        pay
+      )}\nRemaining due: $${formatMoney(newDue)}`
+    );
+  }
+
+  // ===== PAYOUT ROTATION =====
+  async function rotatePayout() {
+    if (!ensureAdmin()) return;
+
+    if (!payoutOrder.length) {
+      alert("No members in rotation.");
+      return;
+    }
+    nextPayoutIndex = (nextPayoutIndex + 1) % payoutOrder.length;
+    updateNextPayoutDisplay();
+    await syncAppState();
+  }
+
+  // ===== MEMBERS =====
+  async function addMember() {
+    if (!ensureAdmin()) return;
+
+    const name = (document.getElementById("newMemberName").value || "").trim();
+    const phone = (document.getElementById("newMemberPhone").value || "").trim();
+
+    if (!name) {
+      alert("Enter member full name.");
+      return;
+    }
+
+    const maxPos = Object.values(members).reduce(
+      (max, m) => Math.max(max, m.position || 0),
+      0
+    );
+    const newPos = maxPos + 1;
+
+    try {
+      const { data, error } = await supabaseClient
+        .from("members")
+        .insert([
+          {
+            name,
+            phone,
+            contributed: 0,
+            foundation_contrib: 0,
+            loan_due: 0,
+            position: newPos,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("addMember error:", error);
+        alert("Could not save member in database.");
+        return;
+      }
+
+      const id = String(data.id);
+      members[id] = {
+        id,
+        name: data.name,
+        phone: data.phone,
+        contributed: 0,
+        foundationContrib: 0,
+        loanDue: 0,
+        position: data.position,
+      };
+      payoutOrder.push(id);
+
+      document.getElementById("newMemberName").value = "";
+      document.getElementById("newMemberPhone").value = "";
+
+      populateMemberSelects();
+      renderMemberList();
+      updateNextPayoutDisplay();
+    } catch (e) {
+      console.error("addMember exception:", e);
+      alert("Error while saving member.");
+    }
+  }
+
+  // ===== INIT =====
+  async function init() {
+    const todayEl = document.getElementById("todayDate");
+    if (todayEl) {
+      todayEl.textContent = new Date().toLocaleDateString();
+    }
+
+    await loadFromSupabase();
+
+    updateSummaryCards();
+    populateMemberSelects();
+    renderMemberList();
+    renderHistory();
+    updateNextPayoutDisplay();
+    updateCharts();
+    updateAdminUI(); // start in view-only mode
+
+    showSection("contributionForm");
+    setActiveNav("contrib");
+  }
+
+  window.addEventListener("load", () => {
+    init();
+  });
+</script>
