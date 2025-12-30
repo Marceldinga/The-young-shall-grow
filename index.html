@@ -1,617 +1,355 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>The Young Shall Grow - Njangi Dashboard</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>The Young Shall Grow – Njangi Dashboard</title>
 
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #020617;
-      color: #e5e7eb;
-    }
-
-    a { text-decoration: none; color: inherit; }
-
-    .app { display: flex; min-height: 100vh; }
-
-    /* Sidebar */
-    .sidebar {
-      width: 260px;
-      background: #020617;
-      color: #e5e7eb;
-      display: flex;
-      flex-direction: column;
-      padding: 20px 16px;
-      border-right: 1px solid #1f2937;
-    }
-    .sidebar-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 24px;
-    }
-    .logo-icon {
-      width: 38px; height: 38px;
-      border-radius: 14px;
-      background: linear-gradient(135deg,#3b82f6,#0ea5e9);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; color: white; font-size: 18px;
-    }
-    .logo-text { display: flex; flex-direction: column; }
-    .logo-text .title { font-weight: 700; font-size: 15px; }
-    .logo-text .subtitle { font-size: 11px; color: #9ca3af; }
-
-    .sidebar-section-title {
-      font-size: 11px; text-transform: uppercase;
-      letter-spacing: 0.08em; color: #6b7280;
-      margin-bottom: 6px; margin-top: 10px;
-    }
-    .nav-group { margin-bottom: 10px; }
-    .nav-button {
-      width: 100%; padding: 9px 10px; border-radius: 10px;
-      border: 1px solid transparent;
-      background: transparent; color: #e5e7eb;
-      text-align: left; font-size: 13px;
-      display: flex; align-items: center; gap: 8px;
-      cursor: pointer; margin-bottom: 4px;
-      transition: background 0.15s, transform 0.1s, border-color 0.15s;
-    }
-    .nav-button span.icon { font-size: 15px; }
-    .nav-button:hover {
-      background: #0b1220;
-      border-color: #1f2937;
-      transform: translateY(-1px);
-    }
-    .nav-button.active {
-      background: #020617;
-      border: 1px solid #4b5563;
-    }
-
-    .sidebar-footer {
-      margin-top: auto;
-      font-size: 11px;
-      color: #6b7280;
-      border-top: 1px solid #111827;
-      padding-top: 10px;
-    }
-
-    /* Main */
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-    .topbar {
-      padding: 16px 24px;
-      border-bottom: 1px solid #1e293b;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      background: #020617;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .topbar-left { display: flex; flex-direction: column; gap: 3px; }
-    .topbar-title { font-size: 18px; font-weight: 600; }
-    .topbar-subtitle { font-size: 11px; color: #9ca3af; }
-
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #9ca3af;
-    }
-    .topbar-pill {
-      padding: 4px 10px;
-      border-radius: 999px;
-      border: 1px solid #1d4ed8;
-      background: #020617;
-    }
-    .admin-status {
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid #4b5563;
-      font-size: 11px;
-    }
-
-    .content {
-      padding: 16px 24px 20px;
-      flex: 1;
-      overflow-y: auto;
-    }
-
-    /* Cards */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      margin-bottom: 18px;
-    }
-    .card {
-      background: #020617;
-      border-radius: 16px;
-      padding: 14px 16px;
-      box-shadow: 0 14px 30px rgba(15,23,42,0.8);
-      border: 1px solid #1f2937;
-    }
-    .card-header {
-      display: flex; align-items: center;
-      justify-content: space-between; margin-bottom: 8px;
-    }
-    .card-title {
-      font-size: 12px; color: #9ca3af;
-      text-transform: uppercase; letter-spacing: 0.13em;
-    }
-    .card-pill {
-      font-size: 10px; border-radius: 999px;
-      padding: 4px 8px; border: 1px solid #374151;
-      color: #9ca3af;
-    }
-    .card-value { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
-    .card-footer { font-size: 11px; color: #9ca3af; }
-
-    .card-red button {
-      margin-top: 8px; padding: 4px 10px;
-      font-size: 11px; border-radius: 999px;
-      border: none;
-      background: linear-gradient(135deg, #ef4444, #f97316);
-      color: white; cursor: pointer;
-    }
-
-    /* Layout */
-    .layout-columns {
-      display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.1fr);
-      gap: 16px;
-    }
-    .form-stack { display: flex; flex-direction: column; gap: 12px; }
-    .right-stack { display: flex; flex-direction: column; gap: 12px; }
-
-    .box {
-      background: #020617;
-      border-radius: 16px;
-      padding: 14px 16px;
-      border: 1px solid #1f2937;
-      box-shadow: 0 10px 25px rgba(15,23,42,0.85);
-    }
-    .box-header {
-      display: flex; justify-content: space-between;
-      align-items: center; margin-bottom: 10px;
-    }
-    .box-title { font-size: 14px; font-weight: 600; }
-    .box-subtitle { font-size: 11px; color: #9ca3af; }
-    .box-tag {
-      font-size: 11px; border-radius: 999px;
-      border: 1px solid #374151; padding: 3px 8px;
-      color: #9ca3af;
-    }
-
-    label {
-      font-size: 12px; font-weight: 500;
-      color: #d1d5db; display: block; margin-bottom: 3px;
-    }
-    input, select {
-      width: 100%; padding: 7px 9px; border-radius: 10px;
-      border: 1px solid #374151; background: #020617;
-      color: #e5e7eb; font-size: 13px; margin-bottom: 10px;
-      outline: none;
-    }
-
-    .btn-primary {
-      padding: 7px 12px; border-radius: 999px;
-      border: none;
-      background: linear-gradient(135deg, #3b82f6, #0ea5e9);
-      color: white; font-size: 13px; cursor: pointer;
-      margin-right: 6px; margin-top: 2px;
-    }
-    .btn-ghost {
-      padding: 7px 12px; border-radius: 999px;
-      border: 1px solid #4b5563;
-      background: transparent; color: #e5e7eb;
-      font-size: 12px; cursor: pointer; margin-top: 2px;
-    }
-
-    .disabled-btn {
-      opacity: 0.4;
-      cursor: not-allowed !important;
-    }
-
-    /* Members */
-    .members-header {
-      display: flex; justify-content: space-between;
-      align-items: center; margin-bottom: 8px;
-    }
-    .members h2 { font-size: 14px; font-weight: 600; }
-    .members ul {
-      list-style: none; padding: 0; margin: 0 0 10px 0;
-      max-height: 220px; overflow-y: auto;
-    }
-    .members li {
-      background: #020617; padding: 9px 10px;
-      margin-bottom: 6px; border-radius: 10px;
-      border: 1px solid #1f2937;
-      display: flex; justify-content: space-between;
-      align-items: center; font-size: 12px;
-    }
-    .members .name { font-weight: 500; }
-    .members .meta { font-size: 11px; color: #9ca3af; }
-
-    /* Analytics */
-    .analytics .charts-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-      gap: 10px;
-    }
-    .chart-card {
-      background: #020617;
-      border-radius: 12px;
-      padding: 8px 10px;
-      border: 1px solid #1f2937;
-    }
-    .chart-title {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-bottom: 4px;
-    }
-    .chart-note {
-      font-size: 11px;
-      color: #9ca3af;
-      margin-top: 4px;
-    }
-
-    /* History */
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th, td {
-      padding: 6px 6px;
-      border-bottom: 1px solid #111827;
-      text-align: left;
-    }
-    th { background: #020617; position: sticky; top: 0; z-index: 1; }
-
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-thumb { background: #1f2933; border-radius: 999px; }
-
-    footer {
-      text-align: center; padding: 8px 16px 12px;
-      font-size: 11px; color: #6b7280;
-      border-top: 1px solid #1e293b;
-      background: #020617;
-    }
-
-    @media (max-width: 900px) {
-      .app { flex-direction: column; }
-      .sidebar {
-        width: 100%; flex-direction: row;
-        align-items: center; justify-content: space-between;
-        padding: 10px 16px;
-      }
-      .sidebar-logo { margin-bottom: 0; }
-      .sidebar-footer, .sidebar-section-title { display: none; }
-      .nav-group { display: flex; gap: 4px; }
-      .nav-button { font-size: 11px; padding: 7px 9px; justify-content: center; }
-      .cards { grid-template-columns: 1fr; }
-      .layout-columns { grid-template-columns: 1fr; }
-      .analytics .charts-grid { grid-template-columns: 1fr; }
-    }
-  </style>
-
-  <!-- Supabase client -->
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    body { margin:0; font-family: Arial, sans-serif; background:#0b1220; color:#e5e7eb; }
+    .app { display:flex; min-height:100vh; }
+    .sidebar { width:260px; background:#0f172a; padding:16px; border-right:1px solid #111827; }
+    .brand { font-weight:700; font-size:16px; margin-bottom:10px; }
+    .small { color:#9ca3af; font-size:12px; }
+    .nav { display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+    .nav button { width:100%; text-align:left; padding:10px 12px; border-radius:10px; border:1px solid #111827; background:#0b1220; color:#e5e7eb; cursor:pointer; }
+    .nav button.active { background:#111827; border-color:#1f2937; }
+    .topcard { margin-top:14px; padding:12px; border:1px solid #111827; border-radius:12px; background:#0b1220; }
+    .topcard .row { display:flex; justify-content:space-between; margin:6px 0; }
+    .main { flex:1; padding:18px; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .card { background:#0f172a; border:1px solid #111827; border-radius:14px; padding:14px; box-shadow: 0 8px 18px rgba(0,0,0,.25); }
+    .card h3 { margin:0 0 10px 0; font-size:16px; }
+    label { display:block; margin-top:10px; color:#9ca3af; font-size:12px; }
+    input, select { width:100%; padding:10px; margin-top:6px; border-radius:10px; border:1px solid #111827; background:#0b1220; color:#e5e7eb; }
+    button.action { margin-top:10px; padding:10px 12px; border-radius:10px; border:1px solid #111827; background:#111827; color:#e5e7eb; cursor:pointer; }
+    button.action:hover { filter:brightness(1.06); }
+    .disabled-btn { opacity:.55; cursor:not-allowed; }
+    .section { display:none; }
+    .section.active { display:block; }
+    .list { list-style:none; padding:0; margin:0; }
+    .list li { padding:10px; border:1px solid #111827; background:#0b1220; border-radius:12px; margin-bottom:10px; }
+    .name { font-weight:700; margin-bottom:4px; }
+    .meta { color:#9ca3af; font-size:12px; line-height:1.4; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th, td { border-bottom:1px solid #111827; padding:10px; text-align:left; font-size:12px; }
+    th { color:#9ca3af; font-weight:600; }
+    .rowBtns { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#111827; border:1px solid #1f2937; font-size:12px; }
+    .chkRow { display:flex; align-items:center; gap:8px; margin-top:10px; }
+    .chkRow input { width:auto; margin:0; }
+    code.inline { background:#111827; padding:2px 6px; border-radius:8px; }
+  </style>
 </head>
+
 <body>
   <div class="app">
     <!-- SIDEBAR -->
     <aside class="sidebar">
-      <div class="sidebar-logo">
-        <div class="logo-icon">Y</div>
-        <div class="logo-text">
-          <span class="title">The Young Shall Grow</span>
-          <span class="subtitle">Njangi Dashboard</span>
+      <div class="brand">The Young Shall Grow – Njangi</div>
+      <div class="small">Today: <span id="todayDate"></span></div>
+
+      <div class="topcard">
+        <div class="row"><span class="small">Njangi Pot</span><span id="njangiBalance">$0</span></div>
+        <div class="row"><span class="small">Foundation</span><span id="foundationBalance">$0</span></div>
+
+        <!-- Interest total: only visible to admin -->
+        <div id="interestNote" class="row" style="display:none;">
+          <span class="small">Total Interest</span><span id="interestTotalLabel">$0</span>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div class="small" id="adminStatus">Mode: View-only</div>
+          <button id="adminToggleBtn" class="action" onclick="toggleAdminLogin()">Admin Login</button>
         </div>
       </div>
 
-      <div class="sidebar-section-title">Navigation</div>
-      <div class="nav-group">
-        <button class="nav-button active" id="nav-contrib" onclick="setActiveNav('contrib'); showSection('contributionForm')">
-          <span class="icon">📥</span> Contributions
-        </button>
-        <button class="nav-button" id="nav-loans" onclick="setActiveNav('loans'); showSection('loanForm')">
-          <span class="icon">💳</span> Loans
-        </button>
-        <button class="nav-button" id="nav-found" onclick="setActiveNav('found'); showSection('foundationForm')">
-          <span class="icon">🏦</span> Foundation
-        </button>
-        <button class="nav-button" id="nav-history" onclick="setActiveNav('history'); showSection('historySection')">
-          <span class="icon">📊</span> History
-        </button>
+      <div class="nav">
+        <button id="nav-contrib" class="active" onclick="showSection('contributionForm'); setActiveNav('contrib')">Contributions</button>
+        <button id="nav-loans" onclick="showSection('loanForm'); setActiveNav('loans')">Loans</button>
+        <button id="nav-found" onclick="showSection('foundationForm'); setActiveNav('found')">Foundation</button>
+        <button id="nav-history" onclick="showSection('historySection'); setActiveNav('history')">History</button>
+        <button id="nav-fines" onclick="showSection('fineSection'); setActiveNav('fines')">Fines</button>
       </div>
 
-      <div class="sidebar-footer">
-        Admin Panel • v2.0<br/>Powered by Macdini / NJANGI
+      <div class="topcard" style="margin-top:14px;">
+        <div class="small">Next Payout</div>
+        <div style="margin-top:8px; font-weight:700;" id="nextPayoutName">—</div>
+        <div class="small" id="nextPayoutInfo">—</div>
+        <button class="action" data-admin-only="true" onclick="rotatePayout()">Rotate Payout</button>
+      </div>
+
+      <div class="topcard" style="margin-top:14px;">
+        <div class="small" style="line-height:1.4;">
+          <b>Borrow rule:</b><br/>
+          If <span class="pill">Benefits = Yes</span> and foundation ≤ 70% of loan request → <b>NOT qualified</b>.
+        </div>
       </div>
     </aside>
 
     <!-- MAIN -->
-    <div class="main">
-      <div class="topbar">
-        <div class="topbar-left">
-          <div class="topbar-title">Njangi Control Center</div>
-          <div class="topbar-subtitle">
-            Season 1 • Dec 28 Start • Bi-weekly contributions
+    <main class="main">
+      <div class="grid">
+        <div class="card">
+          <h3>Members</h3>
+          <div class="rowBtns">
+            <span class="pill">Sorted A–Z</span>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label>New Member Full Name</label>
+            <input id="newMemberName" placeholder="e.g. John Doe" />
+
+            <label>Phone (optional)</label>
+            <input id="newMemberPhone" placeholder="e.g. 301-000-0000" />
+
+            <div class="chkRow">
+              <input id="newMemberBenefits" type="checkbox" />
+              <label for="newMemberBenefits" style="margin:0; color:#e5e7eb;">Has benefits</label>
+            </div>
+
+            <button class="action" data-admin-only="true" onclick="addMember()">Add Member</button>
+          </div>
+
+          <div style="margin-top:12px;">
+            <ul id="memberList" class="list"></ul>
           </div>
         </div>
-        <div class="topbar-right">
-          <div class="topbar-pill">
-            Today: <span id="todayDate"></span>
-          </div>
-          <div id="adminStatus" class="admin-status">
-            Mode: View-only
-          </div>
-          <button class="btn-ghost" id="adminToggleBtn" onclick="toggleAdminLogin()">
-            Admin Login
-          </button>
-        </div>
-      </div>
 
-      <div class="content">
-        <!-- CARDS -->
-        <section class="cards">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Njangi Pot</div>
-              <div class="card-pill">Contributions</div>
-            </div>
-            <div class="card-value" id="njangiBalance">$0</div>
-            <div class="card-footer">Total Njangi contributions available for payouts</div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Foundation Balance</div>
-              <div class="card-pill">Loan Pool</div>
-            </div>
-            <div class="card-value" id="foundationBalance">$0</div>
-            <div class="card-footer">Loans allowed when balance ≥ $1,500</div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Next Payout</div>
-              <div class="card-pill">Rotation</div>
-            </div>
-            <div class="card-value" id="nextPayoutName">No members</div>
-            <div class="card-footer" id="nextPayoutInfo">Add members to start rotation</div>
-            <button class="btn-ghost" data-admin-only="true" onclick="rotatePayout()">Mark Paid &amp; Rotate</button>
-          </div>
-        </section>
-
-        <!-- LAYOUT -->
-        <div class="layout-columns">
-          <!-- LEFT: FORMS -->
-          <div class="form-stack">
-            <!-- Contributions -->
-            <section id="contributionForm" class="box">
-              <div class="box-header">
-                <div>
-                  <div class="box-title">Contributions (Njangi Pot)</div>
-                  <div class="box-subtitle">Add or adjust member Njangi totals</div>
-                </div>
-                <div class="box-tag">Multiples of 500</div>
-              </div>
-
-              <label for="memberSelect">Member</label>
-              <select id="memberSelect"></select>
-
-              <div style="margin-top:6px;">
-                <div class="box-subtitle" style="margin-bottom:4px;">Add Contribution</div>
-                <label for="amountAdd">Amount to add</label>
-                <input type="number" id="amountAdd" placeholder="500, 1000, 1500 ..." />
-                <button class="btn-primary" data-admin-only="true" onclick="addContribution()">Add Contribution</button>
-              </div>
-
-              <div style="margin-top:12px;">
-                <div class="box-subtitle" style="margin-bottom:4px;">Edit Total Contribution</div>
-                <label for="amountSet">Set total contribution for this member</label>
-                <input type="number" id="amountSet" placeholder="e.g., 0, 500, 2000 ..." />
-                <button class="btn-ghost" data-admin-only="true" onclick="setContribution()">Set Contribution Total</button>
-              </div>
-            </section>
-
-            <!-- Loans -->
-            <section id="loanForm" class="box" style="display:none;">
-              <div class="box-header">
-                <div>
-                  <div class="box-title">New Loan (Foundation)</div>
-                  <div class="box-subtitle">
-                    Interest rate <strong id="interestLabel">5%</strong> • Loan amount must be ≤ foundation
-                  </div>
-                </div>
-                <div class="box-tag">Loans</div>
-              </div>
-
-              <label for="loanMember">Member</label>
-              <select id="loanMember"></select>
-
-              <label for="loanAmount">Loan amount</label>
-              <input type="number" id="loanAmount" placeholder="Enter loan amount" />
-
-              <button class="btn-primary" data-admin-only="true" onclick="saveLoan()">Save Loan</button>
-
-              <hr style="border-color:#111827; margin:12px 0;">
-              <div class="box-subtitle" style="margin-bottom:4px;">Loan Repayment</div>
-
-              <label for="loanRepayMember">Member</label>
-              <select id="loanRepayMember"></select>
-
-              <label for="loanRepayAmount">Repayment amount</label>
-              <input type="number" id="loanRepayAmount" placeholder="Enter repayment amount" />
-
-              <button class="btn-ghost" data-admin-only="true" onclick="recordRepayment()">Record Repayment</button>
-            </section>
-
-            <!-- Foundation -->
-            <section id="foundationForm" class="box" style="display:none;">
-              <div class="box-header">
-                <div>
-                  <div class="box-title">Manage Foundation</div>
-                  <div class="box-subtitle">
-                    This pool is only for loans. Does not change Njangi contributions.
-                  </div>
-                </div>
-                <div class="box-tag">Foundation</div>
-              </div>
-
-              <div>
-                <div class="box-subtitle" style="margin-bottom:4px;">Add to Foundation</div>
-                <label for="foundationAddAmount">Amount to add</label>
-                <input type="number" id="foundationAddAmount" placeholder="e.g., 1500, 2000..." />
-                <button class="btn-primary" data-admin-only="true" onclick="addToFoundation()">Add to Foundation</button>
-              </div>
-
-              <div style="margin-top:12px;">
-                <div class="box-subtitle" style="margin-bottom:4px;">Edit Foundation Total</div>
-                <label for="foundationSetAmount">Set foundation total to</label>
-                <input type="number" id="foundationSetAmount" placeholder="e.g., 0, 5000..." />
-                <button class="btn-ghost" data-admin-only="true" onclick="setFoundation()">Set Foundation Total</button>
-              </div>
-
-              <div style="margin-top:12px; border-top:1px solid #111827; padding-top:10px;">
-                <div class="box-subtitle" style="margin-bottom:4px;">Member Foundation Contribution</div>
-
-                <label for="foundationMember">Member</label>
-                <select id="foundationMember"></select>
-
-                <label for="foundationMemberAmount">Contribution amount</label>
-                <input type="number" id="foundationMemberAmount" placeholder="e.g., 500, 1000..." />
-
-                <button class="btn-primary" data-admin-only="true" onclick="addMemberFoundationContribution()">
-                  Add Member Foundation Contribution
-                </button>
-              </div>
-            </section>
-
-            <!-- History -->
-            <section id="historySection" class="box" style="display:none;">
-              <div class="box-header">
-                <div>
-                  <div class="box-title">Payment, Loan &amp; Foundation History</div>
-                  <div class="box-subtitle">
-                    Track every transaction affecting Njangi or Foundation.
-                  </div>
-                </div>
-                <div class="box-tag">Audit Log</div>
-              </div>
-
-              <div style="max-height:250px; overflow-y:auto;">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Date/Time</th>
-                      <th>Type</th>
-                      <th>Member</th>
-                      <th>Amount</th>
-                      <th>Interest</th>
-                      <th>Total Due</th>
-                    </tr>
-                  </thead>
-                  <tbody id="historyBody"></tbody>
-                </table>
-              </div>
-            </section>
-          </div>
-
-          <!-- RIGHT: ANALYTICS + MEMBERS -->
-          <div class="right-stack">
-            <!-- Analytics -->
-            <section class="box analytics">
-              <div class="box-header">
-                <div>
-                  <div class="box-title">Visual Analytics</div>
-                  <div class="box-subtitle">Contributions, loans &amp; total interest</div>
-                </div>
-                <div class="box-tag">Charts</div>
-              </div>
-              <div class="charts-grid">
-                <div class="chart-card">
-                  <div class="chart-title">Contributions vs Outstanding Loans (by Member)</div>
-                  <canvas id="contribChart" height="170"></canvas>
-                </div>
-                <div class="chart-card">
-                  <div class="chart-title">Overall Balances</div>
-                  <canvas id="totalsChart" height="170"></canvas>
-                  <div class="chart-note" id="interestNote">
-                    All-time interest charged on loans: <span id="interestTotalLabel">$0</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- Members -->
-            <section class="box members">
-              <div class="members-header">
-                <div>
-                  <h2>Members</h2>
-                  <div class="box-subtitle">Njangi, Foundation &amp; loan positions</div>
-                </div>
-              </div>
-
-              <ul id="memberList"></ul>
-
-              <div style="border-top:1px solid #111827; padding-top:10px; margin-top:8px;">
-                <div class="box-subtitle" style="margin-bottom:4px;">Add New Member</div>
-                <label for="newMemberName">Full name</label>
-                <input type="text" id="newMemberName" placeholder="e.g., Jane Doe" />
-                <label for="newMemberPhone">Phone number</label>
-                <input type="text" id="newMemberPhone" placeholder="e.g., 301-555-1234" />
-                <button class="btn-primary" data-admin-only="true" onclick="addMember()">Add Member</button>
-              </div>
-            </section>
+        <div class="card">
+          <h3>Charts</h3>
+          <div style="display:grid; gap:10px;">
+            <canvas id="contribChart" height="180"></canvas>
+            <canvas id="totalsChart" height="180"></canvas>
           </div>
         </div>
       </div>
 
-      <footer>
-        The Young Shall Grow • Internal Njangi Dashboard • © 2025
-      </footer>
-    </div>
+      <!-- CONTRIBUTIONS -->
+      <section id="contributionForm" class="section active" style="margin-top:14px;">
+        <div class="grid">
+          <div class="card">
+            <h3>Contributions</h3>
+            <label>Member</label>
+            <select id="memberSelect"></select>
+
+            <label>Add Amount (multiple of 500)</label>
+            <input id="amountAdd" type="number" placeholder="e.g. 500" />
+            <button class="action" data-admin-only="true" onclick="addContribution()">Add Contribution</button>
+
+            <hr style="border:0; border-top:1px solid #111827; margin:14px 0;" />
+
+            <label>Set Contribution Total (override)</label>
+            <input id="amountSet" type="number" placeholder="e.g. 2000" />
+            <button class="action" data-admin-only="true" onclick="setContribution()">Set Contribution</button>
+          </div>
+
+          <div class="card">
+            <h3>Quick Notes</h3>
+            <div class="small">
+              • Njangi pot = sum of all member contributions<br/>
+              • Contributions must be multiples of 500<br/>
+              • Loans charge 5% interest<br/>
+              • Admin actions are locked unless logged in as admin<br/>
+              • <b>Borrow rule</b> applies only when <code class="inline">has_benefits = true</code>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LOANS -->
+      <section id="loanForm" class="section" style="margin-top:14px;">
+        <div class="grid">
+          <div class="card">
+            <h3>Issue Loan (5% Interest)</h3>
+            <label>Member</label>
+            <select id="loanMember"></select>
+
+            <label>Loan Amount</label>
+            <input id="loanAmount" type="number" placeholder="e.g. 1000" />
+
+            <button class="action" data-admin-only="true" onclick="saveLoan()">Save Loan</button>
+          </div>
+
+          <div class="card">
+            <h3>Record Repayment</h3>
+            <label>Member</label>
+            <select id="loanRepayMember"></select>
+
+            <label>Repayment Amount</label>
+            <input id="loanRepayAmount" type="number" placeholder="e.g. 500" />
+
+            <button class="action" data-admin-only="true" onclick="recordRepayment()">Record Repayment</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOUNDATION -->
+      <section id="foundationForm" class="section" style="margin-top:14px;">
+        <div class="grid">
+          <div class="card">
+            <h3>Foundation (Admin)</h3>
+            <label>Add to Foundation</label>
+            <input id="foundationAddAmount" type="number" placeholder="e.g. 500" />
+            <button class="action" data-admin-only="true" onclick="addToFoundation()">Add Foundation</button>
+
+            <hr style="border:0; border-top:1px solid #111827; margin:14px 0;" />
+
+            <label>Set Foundation Total (override)</label>
+            <input id="foundationSetAmount" type="number" placeholder="e.g. 5000" />
+            <button class="action" data-admin-only="true" onclick="setFoundation()">Set Foundation</button>
+          </div>
+
+          <div class="card">
+            <h3>Member Foundation Contribution</h3>
+            <label>Member</label>
+            <select id="foundationMember"></select>
+
+            <label>Amount</label>
+            <input id="foundationMemberAmount" type="number" placeholder="e.g. 500" />
+
+            <button class="action" data-admin-only="true" onclick="addMemberFoundationContribution()">
+              Add Member Foundation Contribution
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- HISTORY -->
+      <section id="historySection" class="section" style="margin-top:14px;">
+        <div class="card">
+          <h3>History</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Type</th>
+                <th>Member</th>
+                <th>Amount</th>
+                <th>Interest</th>
+                <th>Total Due</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- FINES -->
+      <section id="fineSection" class="section" style="margin-top:14px;">
+        <div class="grid">
+          <div class="card">
+            <h3>Add Fine</h3>
+            <label>Member</label>
+            <select id="fineMember"></select>
+
+            <label>Fine Amount</label>
+            <input id="fineAmount" type="number" placeholder="e.g. 500" />
+
+            <label>Reason (optional)</label>
+            <input id="fineReason" type="text" placeholder="Late payment, missed meeting..." />
+
+            <button class="action" data-admin-only="true" onclick="addFine()">Add Fine</button>
+          </div>
+
+          <div class="card">
+            <h3>Fine List</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Member</th>
+                  <th>Amount</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th data-admin-only="true">Action</th>
+                </tr>
+              </thead>
+              <tbody id="fineBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
-  <!-- ==== BIG SCRIPT (Supabase + logic) ==== -->
   <script>
+    // ============================
+    // SUPABASE CONFIG
+    // ============================
     const supabaseUrl = "https://dkxqzxvqwabxmlhyyvak.supabase.co";
     const supabaseKey =
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRreHF6eHZxd2FieG1saHl5dmFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwNjI4NDgsImV4cCI6MjA4MDYzODg0OH0.pRqdu2S_wH_SoGzEGCFYS44TQX3ZISv7qp8gmW7Ve7M";
     const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-    const ADMIN_PASSWORD = "Macdini_Admin_2025";
+    // ============================
+    // ADMIN MODE (SUPABASE AUTH)
+    // ============================
     let isAdmin = false;
 
-    function toggleAdminLogin() {
-      if (!isAdmin) {
-        const pwd = window.prompt("Enter admin password:");
-        if (pwd === null) return;
-        if (pwd === ADMIN_PASSWORD) {
-          isAdmin = true;
-          alert("✅ Admin mode enabled.");
-        } else {
-          alert("❌ Incorrect password.");
-          isAdmin = false;
-        }
-      } else {
-        const confirmLogout = window.confirm("Log out of admin mode?");
-        if (confirmLogout) {
-          isAdmin = false;
-          alert("You are now in view-only mode.");
-        }
-      }
+    async function adminLogin() {
+      const email = window.prompt("Admin email:");
+      if (!email) return;
+      const password = window.prompt("Password:");
+      if (!password) return;
+
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) return alert("❌ Login failed: " + error.message);
+
+      alert("✅ Logged in.");
+      await refreshAdminStatus();
+    }
+
+    async function adminLogout() {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) return alert("❌ Logout failed: " + error.message);
+
+      isAdmin = false;
       updateAdminUI();
+      alert("You are now in view-only mode.");
+    }
+
+    function toggleAdminLogin() {
+      if (!isAdmin) adminLogin();
+      else adminLogout();
+    }
+
+    async function refreshAdminStatus() {
+      try {
+        const { data: userData } = await supabaseClient.auth.getUser();
+        const user = userData?.user;
+
+        if (!user) {
+          isAdmin = false;
+          updateAdminUI();
+          return;
+        }
+
+        const { data: profile, error: profErr } = await supabaseClient
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        if (profErr) {
+          console.error("profiles read error:", profErr);
+          isAdmin = false;
+          updateAdminUI();
+          return;
+        }
+
+        isAdmin = profile?.role === "admin";
+        updateAdminUI();
+      } catch (e) {
+        console.error("refreshAdminStatus error:", e);
+        isAdmin = false;
+        updateAdminUI();
+      }
     }
 
     function updateAdminUI() {
@@ -619,27 +357,17 @@
       const toggleBtn = document.getElementById("adminToggleBtn");
       const interestNote = document.getElementById("interestNote");
 
-      if (statusEl) {
-        statusEl.textContent = isAdmin ? "Mode: Admin" : "Mode: View-only";
-      }
-      if (toggleBtn) {
-        toggleBtn.textContent = isAdmin ? "Logout Admin" : "Admin Login";
-      }
+      if (statusEl) statusEl.textContent = isAdmin ? "Mode: Admin" : "Mode: View-only";
+      if (toggleBtn) toggleBtn.textContent = isAdmin ? "Logout Admin" : "Admin Login";
+      if (interestNote) interestNote.style.display = isAdmin ? "flex" : "none";
 
-      if (interestNote) {
-        interestNote.style.display = isAdmin ? "block" : "none";
-      }
+      document.querySelectorAll("[data-admin-only='true']").forEach((btn) => {
+        btn.disabled = !isAdmin;
+        if (!isAdmin) btn.classList.add("disabled-btn");
+        else btn.classList.remove("disabled-btn");
+      });
 
-      document
-        .querySelectorAll("[data-admin-only='true']")
-        .forEach((btn) => {
-          btn.disabled = !isAdmin;
-          if (!isAdmin) {
-            btn.classList.add("disabled-btn");
-          } else {
-            btn.classList.remove("disabled-btn");
-          }
-        });
+      renderFines();
     }
 
     function ensureAdmin() {
@@ -650,6 +378,9 @@
       return true;
     }
 
+    // ============================
+    // STATE
+    // ============================
     let njangiPot = 0;
     let foundation = 0;
     const interestRate = 0.05;
@@ -661,35 +392,55 @@
     let history = [];
     let totalInterestAllTime = 0;
 
+    let fines = [];
+
+    // Charts
     let contribChart = null;
     let totalsChart = null;
 
     function formatMoney(x) {
-      return (Number(x) || 0).toLocaleString(undefined, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      });
+      return (x || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
 
+    // ============================
+    // NAV / SECTIONS
+    // ============================
+    function showSection(id) {
+      document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
+      const el = document.getElementById(id);
+      if (el) el.classList.add("active");
+    }
+
+    function setActiveNav(which) {
+      const map = {
+        contrib: "nav-contrib",
+        loans: "nav-loans",
+        found: "nav-found",
+        history: "nav-history",
+        fines: "nav-fines",
+      };
+      Object.values(map).forEach((id) => document.getElementById(id)?.classList.remove("active"));
+      document.getElementById(map[which])?.classList.add("active");
+    }
+
+    // ============================
+    // APP STATE (Supabase)
+    // ============================
     async function syncAppState() {
       try {
         const { error } = await supabaseClient
           .from("app_state")
-          .update({
-            foundation,
-            next_payout_index: nextPayoutIndex,
-            updated_at: new Date().toISOString(),
-          })
+          .update({ foundation, next_payout_index: nextPayoutIndex, updated_at: new Date().toISOString() })
           .eq("id", 1);
-
-        if (error) {
-          console.error("app_state update error:", error);
-        }
+        if (error) console.error("app_state update error:", error);
       } catch (e) {
         console.error("app_state sync error:", e);
       }
     }
 
+    // ============================
+    // HISTORY
+    // ============================
     function renderHistory() {
       const body = document.getElementById("historyBody");
       if (!body) return;
@@ -715,20 +466,14 @@
           const interestAmount = (h.totalDue || 0) - (h.amount || 0);
           return sum + (interestAmount > 0 ? interestAmount : 0);
         }, 0);
+
       const lbl = document.getElementById("interestTotalLabel");
       if (lbl) lbl.textContent = "$" + formatMoney(totalInterestAllTime);
     }
 
     function addHistoryLocal(type, member, amount, interestPercent, totalDue, timeStr) {
       const now = timeStr || new Date().toLocaleString();
-      history.unshift({
-        type,
-        member,
-        amount,
-        interestPercent,
-        totalDue,
-        time: now,
-      });
+      history.unshift({ type, member, amount, interestPercent, totalDue, time: now });
       recomputeTotalInterest();
       renderHistory();
       updateCharts();
@@ -738,15 +483,7 @@
       try {
         const { data, error } = await supabaseClient
           .from("history")
-          .insert([
-            {
-              type,
-              member,
-              amount,
-              interest_percent: interestPercent,
-              total_due: totalDue,
-            },
-          ])
+          .insert([{ type, member, amount, interest_percent: interestPercent, total_due: totalDue }])
           .select()
           .single();
 
@@ -770,68 +507,35 @@
       }
     }
 
-    function showSection(id) {
-      const ids = ["contributionForm", "loanForm", "foundationForm", "historySection"];
-      ids.forEach((sec) => {
-        const el = document.getElementById(sec);
-        if (el) el.style.display = sec === id ? "block" : "none";
-      });
-    }
-
-    function setActiveNav(which) {
-      const map = {
-        contrib: "nav-contrib",
-        loans: "nav-loans",
-        found: "nav-found",
-        history: "nav-history",
-      };
-      Object.values(map).forEach((id) => {
-        const btn = document.getElementById(id);
-        if (btn) btn.classList.remove("active");
-      });
-      const activeId = map[which];
-      const activeBtn = document.getElementById(activeId);
-      if (activeBtn) activeBtn.classList.add("active");
-    }
-
+    // ============================
+    // MEMBERS / SUMMARY
+    // ============================
     function updateNjangiPot() {
-      njangiPot = Object.values(members).reduce(
-        (sum, m) => sum + (Number(m.contributed) || 0),
-        0
-      );
+      njangiPot = Object.values(members).reduce((sum, m) => sum + (m.contributed || 0), 0);
     }
 
     function updateSummaryCards() {
-      const njangiEl = document.getElementById("njangiBalance");
-      const foundEl = document.getElementById("foundationBalance");
-      const interestEl = document.getElementById("interestTotalLabel");
-
-      updateNjangiPot();
-
-      if (njangiEl) njangiEl.textContent = "$" + formatMoney(njangiPot);
-      if (foundEl) foundEl.textContent = "$" + formatMoney(foundation);
-      if (interestEl)
-        interestEl.textContent = "$" + formatMoney(totalInterestAllTime);
+      document.getElementById("njangiBalance").textContent = "$" + formatMoney(njangiPot);
+      document.getElementById("foundationBalance").textContent = "$" + formatMoney(foundation);
+      document.getElementById("interestTotalLabel").textContent = "$" + formatMoney(totalInterestAllTime);
     }
 
     function renderMemberList() {
       const list = document.getElementById("memberList");
       if (!list) return;
       list.innerHTML = "";
-      const arr = Object.values(members).sort((a, b) =>
-        (a.name || "").localeCompare(b.name || "")
-      );
+
+      const arr = Object.values(members).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       arr.forEach((m) => {
         const li = document.createElement("li");
         li.innerHTML = `
-          <div>
-            <div class="name">${m.name}</div>
-            <div class="meta">
-              Njangi: $${formatMoney(m.contributed || 0)}
-              • Foundation: $${formatMoney(m.foundationContrib || 0)}
-              • Loan due: $${formatMoney(m.loanDue || 0)}
-              ${m.phone ? `<br/>Phone: ${m.phone}` : ""}
-            </div>
+          <div class="name">${m.name}</div>
+          <div class="meta">
+            Njangi: $${formatMoney(m.contributed || 0)}
+            • Foundation: $${formatMoney(m.foundationContrib || 0)}
+            • Loan due: $${formatMoney(m.loanDue || 0)}
+            • Benefits: ${m.hasBenefits ? "Yes" : "No"}
+            ${m.phone ? `<br/>Phone: ${m.phone}` : ""}
           </div>
         `;
         list.appendChild(li);
@@ -839,15 +543,8 @@
     }
 
     function populateMemberSelects() {
-      const memberArray = Object.values(members).sort((a, b) =>
-        (a.name || "").localeCompare(b.name || "")
-      );
-      const selectIds = [
-        "memberSelect",
-        "loanMember",
-        "loanRepayMember",
-        "foundationMember",
-      ];
+      const memberArray = Object.values(members).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      const selectIds = ["memberSelect", "loanMember", "loanRepayMember", "foundationMember", "fineMember"];
       selectIds.forEach((id) => {
         const sel = document.getElementById(id);
         if (!sel) return;
@@ -861,6 +558,9 @@
       });
     }
 
+    // ============================
+    // PAYOUT
+    // ============================
     function updateNextPayoutDisplay() {
       const nameEl = document.getElementById("nextPayoutName");
       const infoEl = document.getElementById("nextPayoutInfo");
@@ -872,9 +572,8 @@
         return;
       }
 
-      if (nextPayoutIndex >= payoutOrder.length) {
-        nextPayoutIndex = 0;
-      }
+      if (nextPayoutIndex >= payoutOrder.length) nextPayoutIndex = 0;
+
       const memberId = payoutOrder[nextPayoutIndex];
       const member = members[memberId];
       if (!member) {
@@ -887,17 +586,25 @@
       infoEl.textContent = `Position ${nextPayoutIndex + 1} of ${payoutOrder.length}`;
     }
 
+    async function rotatePayout() {
+      if (!ensureAdmin()) return;
+      if (!payoutOrder.length) return alert("No members in rotation.");
+
+      nextPayoutIndex = (nextPayoutIndex + 1) % payoutOrder.length;
+      updateNextPayoutDisplay();
+      await syncAppState();
+    }
+
+    // ============================
+    // CHARTS
+    // ============================
     function updateCharts() {
       const labels = Object.values(members).map((m) => m.name);
-      const contribVals = Object.values(members).map(
-        (m) => Number(m.contributed) || 0
-      );
-      const loanVals = Object.values(members).map((m) => Number(m.loanDue) || 0);
+      const contribVals = Object.values(members).map((m) => m.contributed || 0);
+      const loanVals = Object.values(members).map((m) => m.loanDue || 0);
       const totalLoans = loanVals.reduce((a, b) => a + b, 0);
 
-      const contribCtx = document
-        .getElementById("contribChart")
-        ?.getContext("2d");
+      const contribCtx = document.getElementById("contribChart")?.getContext("2d");
       if (contribCtx) {
         if (!contribChart) {
           contribChart = new Chart(contribCtx, {
@@ -905,35 +612,16 @@
             data: {
               labels,
               datasets: [
-                {
-                  label: "Contributions",
-                  data: contribVals,
-                },
-                {
-                  label: "Outstanding Loans",
-                  data: loanVals,
-                },
+                { label: "Contributions", data: contribVals },
+                { label: "Outstanding Loans", data: loanVals },
               ],
             },
             options: {
               responsive: true,
-              plugins: {
-                legend: {
-                  labels: {
-                    color: "#e5e7eb",
-                    font: { size: 10 },
-                  },
-                },
-              },
+              plugins: { legend: { labels: { color: "#e5e7eb", font: { size: 10 } } } },
               scales: {
-                x: {
-                  ticks: { color: "#9ca3af", font: { size: 10 } },
-                  grid: { color: "#111827" },
-                },
-                y: {
-                  ticks: { color: "#9ca3af", font: { size: 10 } },
-                  grid: { color: "#111827" },
-                },
+                x: { ticks: { color: "#9ca3af", font: { size: 10 } }, grid: { color: "#111827" } },
+                y: { ticks: { color: "#9ca3af", font: { size: 10 } }, grid: { color: "#111827" } },
               },
             },
           });
@@ -945,33 +633,14 @@
         }
       }
 
-      const totalsCtx = document
-        .getElementById("totalsChart")
-        ?.getContext("2d");
+      const totalsCtx = document.getElementById("totalsChart")?.getContext("2d");
       if (totalsCtx) {
         const data = [njangiPot, foundation, totalLoans];
         if (!totalsChart) {
           totalsChart = new Chart(totalsCtx, {
             type: "doughnut",
-            data: {
-              labels: ["Njangi Pot", "Foundation", "Outstanding Loans"],
-              datasets: [
-                {
-                  data,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: {
-                  labels: {
-                    color: "#e5e7eb",
-                    font: { size: 10 },
-                  },
-                },
-              },
-            },
+            data: { labels: ["Njangi Pot", "Foundation", "Outstanding Loans"], datasets: [{ data }] },
+            options: { responsive: true, plugins: { legend: { labels: { color: "#e5e7eb", font: { size: 10 } } } } },
           });
         } else {
           totalsChart.data.datasets[0].data = data;
@@ -980,42 +649,40 @@
       }
     }
 
+    // ============================
+    // SUPABASE LOAD
+    // ============================
     async function loadFromSupabase() {
       try {
+        // app_state
         let { data: appRows, error: appErr } = await supabaseClient
           .from("app_state")
           .select("*")
           .eq("id", 1);
 
-        if (appErr) {
-          console.error("app_state error:", appErr);
-        }
+        if (appErr) console.error("app_state error:", appErr);
 
         let appRow = appRows && appRows[0];
-
         if (!appRow) {
           const { data: inserted, error: insertErr } = await supabaseClient
             .from("app_state")
             .insert([{ id: 1 }])
             .select()
             .single();
-          if (insertErr) {
-            console.error("app_state insert error:", insertErr);
-          }
+          if (insertErr) console.error("app_state insert error:", insertErr);
           appRow = inserted;
         }
 
         foundation = Number(appRow.foundation) || 0;
         nextPayoutIndex = appRow.next_payout_index || 0;
 
+        // Members
         const { data: membersData, error: memErr } = await supabaseClient
           .from("members")
           .select("*")
           .order("position", { ascending: true });
 
-        if (memErr) {
-          console.error("members error:", memErr);
-        }
+        if (memErr) console.error("members error:", memErr);
 
         members = {};
         payoutOrder = [];
@@ -1029,25 +696,24 @@
             foundationContrib: Number(m.foundation_contrib) || 0,
             loanDue: Number(m.loan_due) || 0,
             position: m.position,
+            hasBenefits: !!m.has_benefits, // ✅ NEW
           };
           payoutOrder.push(id);
         });
 
+        // History
         const { data: histData, error: histErr } = await supabaseClient
           .from("history")
           .select("*")
           .order("created_at", { ascending: false });
 
-        if (histErr) {
-          console.error("history error:", histErr);
-        }
+        if (histErr) console.error("history error:", histErr);
 
         history = (histData || []).map((h) => ({
           type: h.type,
           member: h.member,
           amount: Number(h.amount) || 0,
-          interestPercent:
-            h.interest_percent != null ? Number(h.interest_percent) : 0,
+          interestPercent: h.interest_percent != null ? Number(h.interest_percent) : 0,
           totalDue: h.total_due != null ? Number(h.total_due) : null,
           time: h.created_at ? new Date(h.created_at).toLocaleString() : "",
         }));
@@ -1059,48 +725,36 @@
       }
     }
 
+    // ============================
+    // CONTRIBUTIONS
+    // ============================
     async function addContribution() {
       if (!ensureAdmin()) return;
 
       const memberId = document.getElementById("memberSelect").value;
       const amount = Number(document.getElementById("amountAdd").value || 0);
 
-      if (!memberId) {
-        alert("Please select a member.");
-        return;
-      }
-      if (!amount || amount <= 0) {
-        alert("Please enter a valid contribution amount.");
-        return;
-      }
-      if (amount % 500 !== 0) {
-        alert("Amount must be in multiples of 500.");
-        return;
-      }
+      if (!memberId) return alert("Please select a member.");
+      if (!amount || amount <= 0) return alert("Please enter a valid contribution amount.");
+      if (amount % 500 !== 0) return alert("Amount must be in multiples of 500.");
 
       const m = members[memberId];
-      if (!m) {
-        alert("Member not found.");
-        return;
-      }
+      if (!m) return alert("Member not found.");
 
-      m.contributed = (Number(m.contributed) || 0) + amount;
+      m.contributed = (m.contributed || 0) + amount;
+      updateNjangiPot();
       updateSummaryCards();
       renderMemberList();
       updateCharts();
 
       try {
-        const { error } = await supabaseClient
-          .from("members")
-          .update({ contributed: m.contributed })
-          .eq("id", memberId);
+        const { error } = await supabaseClient.from("members").update({ contributed: m.contributed }).eq("id", memberId);
         if (error) console.error("members update error:", error);
       } catch (e) {
         console.error("members update exception:", e);
       }
 
       await addHistory("Contribution", m.name, amount, 0, m.contributed);
-
       document.getElementById("amountAdd").value = "";
     }
 
@@ -1110,51 +764,38 @@
       const memberId = document.getElementById("memberSelect").value;
       const amount = Number(document.getElementById("amountSet").value || 0);
 
-      if (!memberId) {
-        alert("Please select a member.");
-        return;
-      }
-      if (amount < 0) {
-        alert("Contribution cannot be negative.");
-        return;
-      }
+      if (!memberId) return alert("Please select a member.");
+      if (amount < 0) return alert("Contribution cannot be negative.");
 
       const m = members[memberId];
-      if (!m) {
-        alert("Member not found.");
-        return;
-      }
+      if (!m) return alert("Member not found.");
 
       m.contributed = amount;
+      updateNjangiPot();
       updateSummaryCards();
       renderMemberList();
       updateCharts();
 
       try {
-        const { error } = await supabaseClient
-          .from("members")
-          .update({ contributed: m.contributed })
-          .eq("id", memberId);
+        const { error } = await supabaseClient.from("members").update({ contributed: m.contributed }).eq("id", memberId);
         if (error) console.error("members update error:", error);
       } catch (e) {
         console.error("members update exception:", e);
       }
 
       await addHistory("Set Contribution", m.name, amount, 0, amount);
-
       document.getElementById("amountSet").value = "";
     }
 
+    // ============================
+    // FOUNDATION
+    // ============================
     async function addToFoundation() {
       if (!ensureAdmin()) return;
 
-      const amount = Number(
-        document.getElementById("foundationAddAmount").value || 0
-      );
-      if (!amount || amount <= 0) {
-        alert("Enter a valid amount to add.");
-        return;
-      }
+      const amount = Number(document.getElementById("foundationAddAmount").value || 0);
+      if (!amount || amount <= 0) return alert("Enter a valid amount to add.");
+
       foundation += amount;
       updateSummaryCards();
       updateCharts();
@@ -1168,13 +809,9 @@
     async function setFoundation() {
       if (!ensureAdmin()) return;
 
-      const amount = Number(
-        document.getElementById("foundationSetAmount").value || 0
-      );
-      if (amount < 0) {
-        alert("Foundation total cannot be negative.");
-        return;
-      }
+      const amount = Number(document.getElementById("foundationSetAmount").value || 0);
+      if (amount < 0) return alert("Foundation total cannot be negative.");
+
       foundation = amount;
       updateSummaryCards();
       updateCharts();
@@ -1189,27 +826,17 @@
       if (!ensureAdmin()) return;
 
       const memberId = document.getElementById("foundationMember").value;
-      const amount = Number(
-        document.getElementById("foundationMemberAmount").value || 0
-      );
+      const amount = Number(document.getElementById("foundationMemberAmount").value || 0);
 
-      if (!memberId) {
-        alert("Select a member.");
-        return;
-      }
-      if (!amount || amount <= 0) {
-        alert("Enter a valid amount.");
-        return;
-      }
+      if (!memberId) return alert("Select a member.");
+      if (!amount || amount <= 0) return alert("Enter a valid amount.");
 
       const m = members[memberId];
-      if (!m) {
-        alert("Member not found.");
-        return;
-      }
+      if (!m) return alert("Member not found.");
 
-      m.foundationContrib = (Number(m.foundationContrib) || 0) + amount;
+      m.foundationContrib = (m.foundationContrib || 0) + amount;
       foundation += amount;
+
       updateSummaryCards();
       renderMemberList();
       updateCharts();
@@ -1225,59 +852,54 @@
       }
 
       await syncAppState();
-      await addHistory(
-        "Foundation Member",
-        m.name,
-        amount,
-        0,
-        m.foundationContrib
-      );
+      await addHistory("Foundation Member", m.name, amount, 0, m.foundationContrib);
 
       document.getElementById("foundationMemberAmount").value = "";
     }
 
+    // ============================
+    // LOANS (WITH YOUR NEW RULE)
+    // ============================
     async function saveLoan() {
       if (!ensureAdmin()) return;
 
       const memberId = document.getElementById("loanMember").value;
-      const amount = Number(
-        document.getElementById("loanAmount").value || 0
-      );
+      const amount = Number(document.getElementById("loanAmount").value || 0);
 
-      if (!memberId) {
-        alert("Select a member.");
-        return;
-      }
-      if (!amount || amount <= 0) {
-        alert("Enter a valid loan amount.");
-        return;
-      }
-      if (amount > foundation) {
-        alert("Loan amount cannot be more than foundation balance.");
-        return;
-      }
+      if (!memberId) return alert("Select a member.");
+      if (!amount || amount <= 0) return alert("Enter a valid loan amount.");
+      if (amount > foundation) return alert("Loan amount cannot be more than foundation balance.");
 
       const m = members[memberId];
-      if (!m) {
-        alert("Member not found.");
-        return;
+      if (!m) return alert("Member not found.");
+
+      // ✅ NEW RULE:
+      // Not qualified if member has benefits AND foundation contribution <= 70% of requested loan amount
+      const minFoundationRequired = 0.70 * amount;
+      const memberFoundation = Number(m.foundationContrib || 0);
+
+      if (m.hasBenefits && memberFoundation <= minFoundationRequired) {
+        return alert(
+          "NOT QUALIFIED TO BORROW\n\n" +
+          "Reason: Member has benefits and foundation contribution is <= 70% of the loan request.\n\n" +
+          `Loan requested: $${formatMoney(amount)}\n` +
+          `70% required:  $${formatMoney(minFoundationRequired)}\n` +
+          `Member foundation: $${formatMoney(memberFoundation)}`
+        );
       }
 
       const interest = Math.round(amount * interestRate);
       const totalDue = amount + interest;
 
       foundation -= amount;
-      m.loanDue = (Number(m.loanDue) || 0) + totalDue;
+      m.loanDue = (m.loanDue || 0) + totalDue;
 
       updateSummaryCards();
       renderMemberList();
       updateCharts();
 
       try {
-        const { error } = await supabaseClient
-          .from("members")
-          .update({ loan_due: m.loanDue })
-          .eq("id", memberId);
+        const { error } = await supabaseClient.from("members").update({ loan_due: m.loanDue }).eq("id", memberId);
         if (error) console.error("members update error:", error);
       } catch (e) {
         console.error("members update exception:", e);
@@ -1288,11 +910,7 @@
 
       document.getElementById("loanAmount").value = "";
       alert(
-        `Loan saved.\nPrincipal: $${formatMoney(
-          amount
-        )}\nInterest (5%): $${formatMoney(
-          interest
-        )}\nTotal due now: $${formatMoney(totalDue)}`
+        `Loan saved.\nPrincipal: $${formatMoney(amount)}\nInterest (5%): $${formatMoney(interest)}\nTotal due now: $${formatMoney(totalDue)}`
       );
     }
 
@@ -1300,30 +918,16 @@
       if (!ensureAdmin()) return;
 
       const memberId = document.getElementById("loanRepayMember").value;
-      const amount = Number(
-        document.getElementById("loanRepayAmount").value || 0
-      );
+      const amount = Number(document.getElementById("loanRepayAmount").value || 0);
 
-      if (!memberId) {
-        alert("Select a member.");
-        return;
-      }
-      if (!amount || amount <= 0) {
-        alert("Enter a valid repayment amount.");
-        return;
-      }
+      if (!memberId) return alert("Select a member.");
+      if (!amount || amount <= 0) return alert("Enter a valid repayment amount.");
 
       const m = members[memberId];
-      if (!m) {
-        alert("Member not found.");
-        return;
-      }
+      if (!m) return alert("Member not found.");
 
-      const currentDue = Number(m.loanDue) || 0;
-      if (currentDue <= 0) {
-        alert("This member has no outstanding loan.");
-        return;
-      }
+      const currentDue = m.loanDue || 0;
+      if (currentDue <= 0) return alert("This member has no outstanding loan.");
 
       const pay = amount > currentDue ? currentDue : amount;
       const newDue = currentDue - pay;
@@ -1336,10 +940,7 @@
       updateCharts();
 
       try {
-        const { error } = await supabaseClient
-          .from("members")
-          .update({ loan_due: m.loanDue })
-          .eq("id", memberId);
+        const { error } = await supabaseClient.from("members").update({ loan_due: m.loanDue }).eq("id", memberId);
         if (error) console.error("members update error:", error);
       } catch (e) {
         console.error("members update exception:", e);
@@ -1349,55 +950,36 @@
       await addHistory("Repayment", m.name, pay, 0, newDue);
 
       document.getElementById("loanRepayAmount").value = "";
-      alert(
-        `Repayment recorded.\nPaid: $${formatMoney(
-          pay
-        )}\nRemaining due: $${formatMoney(newDue)}`
-      );
+      alert(`Repayment recorded.\nPaid: $${formatMoney(pay)}\nRemaining due: $${formatMoney(newDue)}`);
     }
 
-    async function rotatePayout() {
-      if (!ensureAdmin()) return;
-
-      if (!payoutOrder.length) {
-        alert("No members in rotation.");
-        return;
-      }
-      nextPayoutIndex = (nextPayoutIndex + 1) % payoutOrder.length;
-      updateNextPayoutDisplay();
-      await syncAppState();
-    }
-
+    // ============================
+    // MEMBERS
+    // ============================
     async function addMember() {
       if (!ensureAdmin()) return;
 
       const name = (document.getElementById("newMemberName").value || "").trim();
       const phone = (document.getElementById("newMemberPhone").value || "").trim();
+      const hasBenefits = !!document.getElementById("newMemberBenefits").checked;
 
-      if (!name) {
-        alert("Enter member full name.");
-        return;
-      }
+      if (!name) return alert("Enter member full name.");
 
-      const maxPos = Object.values(members).reduce(
-        (max, m) => Math.max(max, m.position || 0),
-        0
-      );
+      const maxPos = Object.values(members).reduce((max, m) => Math.max(max, m.position || 0), 0);
       const newPos = maxPos + 1;
 
       try {
         const { data, error } = await supabaseClient
           .from("members")
-          .insert([
-            {
-              name,
-              phone,
-              contributed: 0,
-              foundation_contrib: 0,
-              loan_due: 0,
-              position: newPos,
-            },
-          ])
+          .insert([{
+            name,
+            phone,
+            contributed: 0,
+            foundation_contrib: 0,
+            loan_due: 0,
+            position: newPos,
+            has_benefits: hasBenefits, // ✅ NEW
+          }])
           .select()
           .single();
 
@@ -1416,11 +998,13 @@
           foundationContrib: 0,
           loanDue: 0,
           position: data.position,
+          hasBenefits: !!data.has_benefits, // ✅ NEW
         };
         payoutOrder.push(id);
 
         document.getElementById("newMemberName").value = "";
         document.getElementById("newMemberPhone").value = "";
+        document.getElementById("newMemberBenefits").checked = false;
 
         populateMemberSelects();
         renderMemberList();
@@ -1431,11 +1015,116 @@
       }
     }
 
-    async function init() {
-      const todayEl = document.getElementById("todayDate");
-      if (todayEl) {
-        todayEl.textContent = new Date().toLocaleDateString();
+    // ============================
+    // FINES
+    // ============================
+    async function loadFinesFromSupabase() {
+      try {
+        const { data, error } = await supabaseClient
+          .from("fines")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("fines load error:", error);
+          return;
+        }
+
+        fines = (data || []).map((f) => ({
+          id: f.id,
+          memberId: f.member_id,
+          memberName: f.member_name,
+          amount: Number(f.amount) || 0,
+          reason: f.reason || "",
+          status: f.status || "unpaid",
+          createdAt: f.created_at ? new Date(f.created_at).toLocaleString() : "",
+        }));
+
+        renderFines();
+      } catch (e) {
+        console.error("loadFinesFromSupabase exception:", e);
       }
+    }
+
+    function renderFines() {
+      const body = document.getElementById("fineBody");
+      if (!body) return;
+
+      body.innerHTML = "";
+      fines.forEach((f) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${f.createdAt}</td>
+          <td>${f.memberName}</td>
+          <td>$${formatMoney(f.amount)}</td>
+          <td>${f.reason || "-"}</td>
+          <td>${f.status}</td>
+          <td ${isAdmin ? "" : 'style="display:none"'} data-admin-only="true">
+            ${f.status === "unpaid" ? `<button class="action" onclick="markFinePaid(${f.id})">Mark Paid</button>` : "-"}
+          </td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    async function addFine() {
+      if (!ensureAdmin()) return;
+
+      const memberId = document.getElementById("fineMember").value;
+      const amount = Number(document.getElementById("fineAmount").value || 0);
+      const reason = (document.getElementById("fineReason").value || "").trim();
+
+      if (!memberId) return alert("Select a member.");
+      if (!amount || amount <= 0) return alert("Enter a valid fine amount.");
+
+      const m = members[memberId];
+      if (!m) return alert("Member not found.");
+
+      const payload = {
+        member_id: Number(memberId), // assumes members.id is numeric
+        member_name: m.name,
+        amount,
+        reason,
+        status: "unpaid",
+      };
+
+      const { error } = await supabaseClient.from("fines").insert([payload]);
+      if (error) {
+        console.error("addFine error:", error);
+        alert("Could not add fine.");
+        return;
+      }
+
+      await addHistory("Fine", m.name, amount, 0, null);
+
+      document.getElementById("fineAmount").value = "";
+      document.getElementById("fineReason").value = "";
+
+      await loadFinesFromSupabase();
+    }
+
+    async function markFinePaid(fineId) {
+      if (!ensureAdmin()) return;
+
+      const { error } = await supabaseClient
+        .from("fines")
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("id", fineId);
+
+      if (error) {
+        console.error("markFinePaid error:", error);
+        alert("Could not mark fine as paid.");
+        return;
+      }
+
+      await loadFinesFromSupabase();
+    }
+
+    // ============================
+    // INIT
+    // ============================
+    async function init() {
+      document.getElementById("todayDate").textContent = new Date().toLocaleDateString();
 
       await loadFromSupabase();
 
@@ -1445,15 +1134,19 @@
       renderHistory();
       updateNextPayoutDisplay();
       updateCharts();
-      updateAdminUI();
+
+      await refreshAdminStatus();
+      await loadFinesFromSupabase();
 
       showSection("contributionForm");
       setActiveNav("contrib");
     }
 
-    window.addEventListener("load", () => {
-      init();
-    });
+    window.addEventListener("load", () => init());
   </script>
+
+  <!-- ✅ IMPORTANT DB NOTE (run once in Supabase SQL Editor):
+    alter table members add column if not exists has_benefits boolean not null default false;
+  -->
 </body>
 </html>
