@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>The Young Shall Grow – Njangi | Business Dashboard</title>
+  <title>The Young Shall Grow – Njangi</title>
 
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -14,13 +14,13 @@
     :root{
       --bg:#0b1220; --panel:#0f172a; --panel2:#0b1220;
       --border:#111827; --border2:#1f2937;
-      --text:#e5e7eb; --muted:#9ca3af; --good:#22c55e; --bad:#ef4444;
+      --text:#e5e7eb; --muted:#9ca3af; --ok:#22c55e; --bad:#ef4444; --warn:#fbbf24;
     }
     *{ box-sizing:border-box; }
     body { margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text); }
     .app { display:flex; min-height:100vh; }
-    .sidebar { width:280px; background:var(--panel); padding:16px; border-right:1px solid var(--border); }
-    .brand { font-weight:800; font-size:16px; letter-spacing:.2px; }
+    .sidebar { width:290px; background:var(--panel); padding:16px; border-right:1px solid var(--border); }
+    .brand { font-weight:800; font-size:16px; }
     .small { color:var(--muted); font-size:12px; }
     .nav { display:flex; flex-direction:column; gap:8px; margin-top:14px; }
     .nav button { width:100%; text-align:left; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel2); color:var(--text); cursor:pointer; }
@@ -49,14 +49,14 @@
     th { color:var(--muted); font-weight:700; }
     .row { display:flex; justify-content:space-between; gap:10px; margin:6px 0; }
     .divider { border:0; border-top:1px solid var(--border); margin:14px 0; }
-    .chkRow { display:flex; align-items:center; gap:8px; margin-top:10px; }
-    .chkRow input { width:auto; margin:0; }
-    .warn { color:#fbbf24; }
     .errbox{
       margin-top:10px; padding:10px 12px; border-radius:12px;
       border:1px solid var(--border2); background:#111827; color:#fca5a5;
       display:none; white-space:pre-wrap;
     }
+    .ok { color: var(--ok); }
+    .bad { color: var(--bad); }
+    .warn { color: var(--warn); }
   </style>
 </head>
 
@@ -65,7 +65,7 @@
     <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="brand">The Young Shall Grow – Njangi</div>
-      <div class="small" style="margin-top:6px;">Business Dashboard • <span id="todayDate"></span></div>
+      <div class="small" style="margin-top:6px;">Dashboard • <span id="todayDate"></span></div>
 
       <div class="card" style="margin-top:14px;">
         <div class="row"><span class="small">Mode</span><span id="adminStatus" class="pill">View-only</span></div>
@@ -136,7 +136,6 @@
           <div class="card">
             <h3 style="margin:0 0 10px 0;">Member Portfolio</h3>
             <canvas id="contribChart" height="190"></canvas>
-            
           </div>
           <div class="card">
             <h3 style="margin:0 0 10px 0;">Totals</h3>
@@ -174,8 +173,8 @@
             <label>Phone (optional)</label>
             <input id="newMemberPhone" placeholder="e.g. 301-000-0000" />
 
-            <div class="chkRow">
-              <input id="newMemberBenefits" type="checkbox" />
+            <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+              <input id="newMemberBenefits" type="checkbox" style="width:auto; margin:0;" />
               <label for="newMemberBenefits" style="margin:0; color:var(--text);">Has benefits</label>
             </div>
 
@@ -350,16 +349,18 @@
 
   <script>
     // =========================================================
-    // 1) SUPABASE CONFIG (YOUR PROJECT URL IS ALREADY SET)
-    // IMPORTANT: Paste your ANON PUBLIC KEY below.
-    // Supabase -> Settings -> API -> anon public
+    // SUPABASE CONFIG (MATCHES YOUR KEY'S PROJECT REF)
     // =========================================================
-    const supabaseUrl = "https://dkxqzxvqwabxmlhyyvak.supabase.co";
-    const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1eGR2dWZ1aGRubGFsdXB3cnJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNjk2NzcsImV4cCI6MjA3Njc0NTY3N30.BLZ6Xl8O2_edvq5cLgksGwNZn3lByZqUlT_uYNMa7bs";
+    const supabaseUrl = "https://auxdvufuhdnlalupwrrb.supabase.co";
+
+    // NOTE: You exposed this key earlier. After it works, rotate it.
+    const supabaseAnonKey =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1eGR2dWZ1aGRubGFsdXB3cnJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNjk2NzcsImV4cCI6MjA3Njc0NTY3N30.BLZ6Xl8O2_edvq5cLgksGwNZn3lByZqUlT_uYNMa7bs"; 
+
     const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
     // =========================================================
-    // 2) ADMIN MODE (SUPABASE AUTH + profiles.role='admin')
+    // ADMIN MODE: Supabase Auth + profiles.role === 'admin'
     // =========================================================
     let isAdmin = false;
 
@@ -383,7 +384,6 @@
         showAuthError("Login failed: " + error.message);
         return alert("❌ Login failed: " + error.message);
       }
-
       await refreshAdminStatus();
       alert("✅ Logged in.");
     }
@@ -417,7 +417,6 @@
         return;
       }
 
-      // Must have a profiles row like: profiles(id=user.id, role='admin')
       const { data: profile, error: pErr } = await supabaseClient
         .from("profiles")
         .select("role")
@@ -428,7 +427,7 @@
         console.error("profiles read error:", pErr);
         showAuthError(
           "profiles read error: " + pErr.message +
-          "\nFix: create profiles table + add your user row + RLS policy."
+          "\nFix: run the SQL script (tables + RLS) and set your admin role."
         );
         isAdmin = false;
         updateAdminUI(user.email || null);
@@ -464,7 +463,7 @@
     }
 
     // =========================================================
-    // 3) STATE
+    // STATE
     // =========================================================
     let njangiPot = 0;
     let foundation = 0;
@@ -485,7 +484,7 @@
     }
 
     // =========================================================
-    // 4) NAV / SECTIONS
+    // NAV / SECTIONS
     // =========================================================
     function showSection(id) {
       document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
@@ -507,7 +506,7 @@
     }
 
     // =========================================================
-    // 5) APP STATE (Supabase)
+    // DB helpers
     // =========================================================
     async function syncAppState() {
       const { error } = await supabaseClient
@@ -518,9 +517,6 @@
       if (error) console.error("app_state update error:", error);
     }
 
-    // =========================================================
-    // 6) RENDER HELPERS
-    // =========================================================
     function updateNjangiPot() {
       njangiPot = Object.values(members).reduce((sum, m) => sum + (Number(m.contributed) || 0), 0);
     }
@@ -592,38 +588,31 @@
 
     function renderHistory() {
       const body = document.getElementById("historyBody");
-      if (body) {
-        body.innerHTML = "";
-        history.forEach((h) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${h.time || ""}</td>
-            <td>${h.type || ""}</td>
-            <td>${h.member || ""}</td>
-            <td>$${formatMoney(h.amount)}</td>
-            <td>${h.interestPercent ? h.interestPercent + "%" : "-"}</td>
-            <td>${h.totalDue != null ? "$" + formatMoney(h.totalDue) : "-"}</td>
-          `;
-          body.appendChild(tr);
-        });
-      }
+      const recent = document.getElementById("recentActivityBody");
+      if (body) body.innerHTML = "";
+      if (recent) recent.innerHTML = "";
 
-      const rbody = document.getElementById("recentActivityBody");
-      if (rbody) {
-        rbody.innerHTML = "";
-        history.slice(0, 10).forEach((h) => {
+      const rows = history || [];
+      rows.forEach((h, idx) => {
+        const rowHtml = `
+          <td>${h.time || ""}</td>
+          <td>${h.type || ""}</td>
+          <td>${h.member || ""}</td>
+          <td>$${formatMoney(h.amount)}</td>
+          <td>${h.interestPercent ? h.interestPercent + "%" : "-"}</td>
+          <td>${h.totalDue != null ? "$" + formatMoney(h.totalDue) : "-"}</td>
+        `;
+        if (body) {
           const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${h.time || ""}</td>
-            <td>${h.type || ""}</td>
-            <td>${h.member || ""}</td>
-            <td>$${formatMoney(h.amount)}</td>
-            <td>${h.interestPercent ? h.interestPercent + "%" : "-"}</td>
-            <td>${h.totalDue != null ? "$" + formatMoney(h.totalDue) : "-"}</td>
-          `;
-          rbody.appendChild(tr);
-        });
-      }
+          tr.innerHTML = rowHtml;
+          body.appendChild(tr);
+        }
+        if (recent && idx < 10) {
+          const tr2 = document.createElement("tr");
+          tr2.innerHTML = rowHtml;
+          recent.appendChild(tr2);
+        }
+      });
     }
 
     function renderFines() {
@@ -648,7 +637,7 @@
     }
 
     // =========================================================
-    // 7) CHARTS
+    // CHARTS
     // =========================================================
     function updateCharts() {
       const labels = Object.values(members).map((m) => m.name);
@@ -702,7 +691,7 @@
     }
 
     // =========================================================
-    // 8) LOAD FROM SUPABASE
+    // LOAD DATA
     // =========================================================
     async function loadFinesFromSupabase() {
       const { data, error } = await supabaseClient.from("fines").select("*").order("created_at", { ascending: false });
@@ -728,17 +717,10 @@
 
     async function loadFromSupabase() {
       // app_state (create row if missing)
-      let { data: appRows, error: appErr } = await supabaseClient.from("app_state").select("*").eq("id", 1);
-      if (appErr) console.error("app_state error:", appErr);
-
+      let { data: appRows } = await supabaseClient.from("app_state").select("*").eq("id", 1);
       let appRow = appRows && appRows[0];
       if (!appRow) {
-        const { data: inserted, error: insertErr } = await supabaseClient
-          .from("app_state")
-          .insert([{ id: 1 }])
-          .select()
-          .single();
-        if (insertErr) console.error("app_state insert error:", insertErr);
+        const { data: inserted } = await supabaseClient.from("app_state").insert([{ id: 1 }]).select().single();
         appRow = inserted;
       }
 
@@ -750,7 +732,8 @@
         .from("members")
         .select("*")
         .order("position", { ascending: true });
-      if (memErr) console.error("members error:", memErr);
+
+      if (memErr) console.error("members load error:", memErr);
 
       members = {};
       payoutOrder = [];
@@ -774,7 +757,8 @@
         .from("history")
         .select("*")
         .order("created_at", { ascending: false });
-      if (histErr) console.error("history error:", histErr);
+
+      if (histErr) console.error("history load error:", histErr);
 
       history = (histData || []).map((h) => ({
         type: h.type,
@@ -789,9 +773,6 @@
       updateNjangiPot();
     }
 
-    // =========================================================
-    // 9) HISTORY INSERT
-    // =========================================================
     async function addHistory(type, member, amount, interestPercent, totalDue) {
       const { data, error } = await supabaseClient
         .from("history")
@@ -802,19 +783,18 @@
       if (error) {
         console.error("history insert error:", error);
         history.unshift({ type, member, amount, interestPercent, totalDue, time: new Date().toLocaleString() });
-        renderHistory(); updateCharts(); updateKpis();
-        return;
+      } else {
+        history.unshift({
+          type, member, amount, interestPercent, totalDue,
+          time: data?.created_at ? new Date(data.created_at).toLocaleString() : new Date().toLocaleString()
+        });
       }
 
-      history.unshift({
-        type, member, amount, interestPercent, totalDue,
-        time: data?.created_at ? new Date(data.created_at).toLocaleString() : new Date().toLocaleString()
-      });
       renderHistory(); updateCharts(); updateKpis();
     }
 
     // =========================================================
-    // 10) ACTIONS
+    // ACTIONS
     // =========================================================
     async function rotatePayout() {
       if (!ensureAdmin()) return;
@@ -849,10 +829,7 @@
         .select()
         .single();
 
-      if (error) {
-        console.error("addMember error:", error);
-        return alert("Could not add member: " + error.message);
-      }
+      if (error) return alert("Could not add member: " + error.message);
 
       const id = String(data.id);
       members[id] = { id, name: data.name, phone: data.phone, contributed: 0, foundationContrib: 0, loanDue: 0, position: data.position, hasBenefits: !!data.has_benefits };
@@ -886,10 +863,7 @@
       m.contributed = (Number(m.contributed) || 0) + amount;
 
       const { error } = await supabaseClient.from("members").update({ contributed: m.contributed }).eq("id", memberId);
-      if (error) {
-        console.error("addContribution error:", error);
-        return alert("Could not save contribution: " + error.message);
-      }
+      if (error) return alert("Could not save contribution: " + error.message);
 
       updateNjangiPot();
       renderMemberList();
@@ -915,10 +889,7 @@
       m.contributed = amount;
 
       const { error } = await supabaseClient.from("members").update({ contributed: m.contributed }).eq("id", memberId);
-      if (error) {
-        console.error("setContribution error:", error);
-        return alert("Could not set contribution: " + error.message);
-      }
+      if (error) return alert("Could not set contribution: " + error.message);
 
       updateNjangiPot();
       renderMemberList();
@@ -931,12 +902,10 @@
 
     async function addToFoundation() {
       if (!ensureAdmin()) return;
-
       const amount = Number(document.getElementById("foundationAddAmount").value || 0);
       if (!amount || amount <= 0) return alert("Enter a valid amount.");
 
       foundation += amount;
-
       await syncAppState();
       updateCharts();
       updateKpis();
@@ -947,12 +916,10 @@
 
     async function setFoundation() {
       if (!ensureAdmin()) return;
-
       const amount = Number(document.getElementById("foundationSetAmount").value || 0);
       if (amount < 0) return alert("Foundation cannot be negative.");
 
       foundation = amount;
-
       await syncAppState();
       updateCharts();
       updateKpis();
@@ -977,10 +944,7 @@
       foundation += amount;
 
       const { error } = await supabaseClient.from("members").update({ foundation_contrib: m.foundationContrib }).eq("id", memberId);
-      if (error) {
-        console.error("foundation member update error:", error);
-        return alert("Could not update member foundation: " + error.message);
-      }
+      if (error) return alert("Could not update member foundation: " + error.message);
 
       await syncAppState();
       renderMemberList();
@@ -1004,7 +968,6 @@
       const m = members[memberId];
       if (!m) return alert("Member not found.");
 
-      // Borrow rule
       const minFoundationRequired = 0.70 * amount;
       const memberFoundation = Number(m.foundationContrib || 0);
       if (m.hasBenefits && memberFoundation <= minFoundationRequired) {
@@ -1024,10 +987,7 @@
       m.loanDue = (Number(m.loanDue) || 0) + totalDue;
 
       const { error } = await supabaseClient.from("members").update({ loan_due: m.loanDue }).eq("id", memberId);
-      if (error) {
-        console.error("loan update error:", error);
-        return alert("Could not save loan: " + error.message);
-      }
+      if (error) return alert("Could not save loan: " + error.message);
 
       await syncAppState();
       renderMemberList();
@@ -1060,10 +1020,7 @@
       foundation += pay;
 
       const { error } = await supabaseClient.from("members").update({ loan_due: m.loanDue }).eq("id", memberId);
-      if (error) {
-        console.error("repayment update error:", error);
-        return alert("Could not record repayment: " + error.message);
-      }
+      if (error) return alert("Could not record repayment: " + error.message);
 
       await syncAppState();
       renderMemberList();
@@ -1076,7 +1033,6 @@
       alert(`Repayment recorded.\nPaid: $${formatMoney(pay)}\nRemaining due: $${formatMoney(m.loanDue)}`);
     }
 
-    // FINES
     async function addFine() {
       if (!ensureAdmin()) return;
 
@@ -1099,10 +1055,7 @@
       };
 
       const { error } = await supabaseClient.from("fines").insert([payload]);
-      if (error) {
-        console.error("addFine error:", error);
-        return alert("Could not add fine: " + error.message);
-      }
+      if (error) return alert("Could not add fine: " + error.message);
 
       document.getElementById("fineAmount").value = "";
       document.getElementById("fineReason").value = "";
@@ -1119,19 +1072,18 @@
         .update({ status: "paid", paid_at: new Date().toISOString() })
         .eq("id", fineId);
 
-      if (error) {
-        console.error("markFinePaid error:", error);
-        return alert("Could not mark fine paid: " + error.message);
-      }
-
+      if (error) return alert("Could not mark fine paid: " + error.message);
       await loadFinesFromSupabase();
     }
 
     // =========================================================
-    // 11) INIT
+    // INIT
     // =========================================================
     async function init() {
       document.getElementById("todayDate").textContent = new Date().toLocaleDateString();
+
+      // sanity log
+      supabaseClient.auth.getSession().then(({data, error}) => console.log("SESSION:", data, error));
 
       await loadFromSupabase();
 
@@ -1144,19 +1096,11 @@
       updateCharts();
 
       await refreshAdminStatus();
-      const { data } = await supabaseClient.auth.getUser();
-      updateAdminUI(data?.user?.email || null);
-
       showSection("dashboardSection");
       setActiveNav("dashboard");
     }
 
     window.addEventListener("load", init);
   </script>
-
-  <!-- IMPORTANT:
-    1) Paste your anon public key into supabaseAnonKey.
-    2) Your SQL must exist: profiles/members/app_state/history/fines + RLS policies.
-  -->
 </body>
 </html>
