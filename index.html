@@ -2,222 +2,349 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Njangi – The Young Shall Grow</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Njangi Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+
   <style>
-    :root{--bg:#0b1220;--panel:#0f172a;--panel2:#0b1220;--border:#111827;--border2:#1f2937;--text:#e5e7eb;--muted:#9ca3af}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
-    .app{display:flex;min-height:100vh}
-    .sidebar{width:320px;background:var(--panel);padding:16px;border-right:1px solid var(--border)}
-    .main{flex:1;padding:18px}
-    .brand{font-weight:800;font-size:16px}
-    .small{color:var(--muted);font-size:12px;line-height:1.4}
-    .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:0 8px 18px rgba(0,0,0,.25);margin-top:14px}
-    .nav{display:flex;flex-direction:column;gap:8px;margin-top:14px}
-    .nav button{width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--panel2);color:var(--text);cursor:pointer}
-    .nav button.active{background:#111827;border-color:var(--border2)}
-    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .kpi{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-    .kpi .label{font-size:12px;color:var(--muted)}
-    .kpi .value{font-size:22px;font-weight:800;margin-top:6px}
-    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#111827;border:1px solid var(--border2);font-size:12px;color:var(--text)}
-    .btn{padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#111827;color:var(--text);cursor:pointer}
-    .btn:hover{filter:brightness(1.06)}
-    .btn:disabled{opacity:.55;cursor:not-allowed}
-    label{display:block;margin-top:10px;color:var(--muted);font-size:12px}
-    input,select{width:100%;padding:10px;margin-top:6px;border-radius:12px;border:1px solid var(--border);background:var(--panel2);color:var(--text)}
-    .section{display:none}
-    .section.active{display:block}
-    .list{list-style:none;padding:0;margin:0}
-    .list li{padding:10px;border:1px solid var(--border);background:var(--panel2);border-radius:14px;margin-bottom:10px}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{border-bottom:1px solid var(--border);padding:10px;text-align:left;font-size:12px;vertical-align:top}
-    th{color:var(--muted);font-weight:700}
-    .row{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:6px 0}
-    .divider{border:0;border-top:1px solid var(--border);margin:14px 0}
-    .errbox{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--border2);background:#111827;color:#fca5a5;display:none;white-space:pre-wrap}
-    @media (max-width: 1100px){.grid4{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.sidebar{width:100%;max-width:360px}}
+    :root{
+      --bg:#0b1220;
+      --panel:#0f172a;
+      --panel2:#0b1220;
+      --border:#1f2937;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#60a5fa;
+      --ok:#22c55e;
+      --bad:#ef4444;
+      --warn:#fbbf24;
+    }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family: Inter, Arial, sans-serif; background:var(--bg); color:var(--text); }
+    .wrap{ display:flex; min-height:100vh; }
+    .sidebar{
+      width:320px; background:var(--panel);
+      border-right:1px solid var(--border);
+      padding:16px;
+    }
+    .brand{ font-size:16px; font-weight:800; letter-spacing:.2px; }
+    .sub{ color:var(--muted); font-size:12px; margin-top:6px; }
+    .card{
+      background: rgba(255,255,255,.02);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+      margin-top:14px;
+      box-shadow:0 10px 25px rgba(0,0,0,.25);
+    }
+    .btn{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:#111827;
+      color:var(--text);
+      cursor:pointer;
+      transition:.15s;
+    }
+    .btn:hover{ filter:brightness(1.07); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+    .pill{
+      display:inline-block; padding:4px 9px; border-radius:999px;
+      border:1px solid var(--border); background:#111827;
+      font-size:12px; color:var(--text);
+    }
+    .row{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .small{ color:var(--muted); font-size:12px; line-height:1.45; }
+    .err{ color:#fca5a5; white-space:pre-wrap; font-size:12px; margin-top:10px; display:none; }
+    .nav{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+    .nav button{
+      text-align:left; padding:10px 12px; border-radius:12px;
+      border:1px solid var(--border); background:var(--panel2);
+      color:var(--text); cursor:pointer;
+    }
+    .nav button.active{ border-color:var(--accent); box-shadow:0 0 0 1px rgba(96,165,250,.2) inset; }
+    .main{ flex:1; padding:18px; }
+    .topbar{
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      margin-bottom:14px;
+    }
+    .title{ font-size:18px; font-weight:800; }
+    .grid4{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+    .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .kpi .label{ color:var(--muted); font-size:12px; }
+    .kpi .val{ font-size:22px; font-weight:900; margin-top:6px; }
+    .section{ display:none; }
+    .section.active{ display:block; }
+    label{ display:block; color:var(--muted); font-size:12px; margin-top:10px; }
+    input, select{
+      width:100%; margin-top:6px; padding:10px;
+      border-radius:12px; border:1px solid var(--border);
+      background:var(--panel2); color:var(--text);
+      outline:none;
+    }
+    table{ width:100%; border-collapse:collapse; margin-top:10px; }
+    th,td{ padding:10px; border-bottom:1px solid var(--border); text-align:left; font-size:12px; vertical-align:top; }
+    th{ color:var(--muted); font-weight:800; }
+    .notice{
+      border:1px solid var(--border);
+      background:#0b1324;
+      border-radius:12px;
+      padding:10px 12px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    /* Login gate */
+    #appLocked{ display:flex; align-items:center; justify-content:center; min-height:100vh; padding:22px; }
+    .lockBox{
+      width:min(520px, 100%);
+      background: rgba(255,255,255,.02);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 14px 30px rgba(0,0,0,.35);
+    }
+    .lockTitle{ font-size:18px; font-weight:900; margin:0; }
+    .lockSub{ color:var(--muted); font-size:12px; margin-top:6px; line-height:1.5; }
+    .lockGrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+    .lockGrid input{ margin-top:0; }
+    .ok{ color:var(--ok); }
+    .bad{ color:var(--bad); }
+    .warn{ color:var(--warn); }
+
+    @media (max-width:1100px){
+      .grid4{ grid-template-columns:1fr 1fr; }
+      .grid2{ grid-template-columns:1fr; }
+      .sidebar{ width:100%; max-width:360px; }
+    }
   </style>
 </head>
 
 <body>
-<div class="app">
+
+<!-- LOCK SCREEN (shows first) -->
+<div id="appLocked">
+  <div class="lockBox">
+    <p class="lockTitle">Njangi Admin Login</p>
+    <div class="lockSub">
+      This dashboard is <b>admin-only</b>. No information is displayed until you sign in.
+      <br/>Project: <span class="pill">auxdvufuhdnlalupwrrb</span>
+    </div>
+
+    <div class="lockGrid">
+      <input id="loginEmail" placeholder="Admin email" autocomplete="username" />
+      <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
+    </div>
+
+    <button class="btn" style="margin-top:10px;" onclick="adminSignIn()">Sign in</button>
+    <div id="lockMsg" class="lockSub" style="margin-top:10px;"></div>
+
+    <div class="notice" style="margin-top:12px;">
+      If you still get <b>Invalid API key</b>, your <b>anon public key</b> does not match this project ref:
+      <b>auxdvufuhdnlalupwrrb</b>.
+    </div>
+  </div>
+</div>
+
+<!-- FULL APP (hidden until admin) -->
+<div id="app" class="wrap" style="display:none;">
   <aside class="sidebar">
-    <div class="brand">The Young Shall Grow – Njangi</div>
-    <div class="small" style="margin-top:6px;">Dashboard • <span id="todayDate"></span></div>
+    <div class="brand">Njangi Dashboard</div>
+    <div class="sub">Admin-only • <span id="today"></span></div>
 
     <div class="card">
-      <div class="row"><span class="small">Mode</span><span id="adminStatus" class="pill">View-only</span></div>
-      <div class="row"><span class="small">Signed in</span><span id="signedInEmail" class="small">—</span></div>
-      <button id="adminToggleBtn" class="btn" style="width:100%;margin-top:10px;" onclick="toggleAdminLogin()">Admin Login</button>
-      <div id="authError" class="errbox"></div>
-      <div class="divider"></div>
-      <div class="small">
-        <b>Loan rule:</b><br/>
-        If <span class="pill">Benefits = Yes</span> and member foundation ≤ 70% of loan request → <b>NOT qualified</b>.
-      </div>
+      <div class="row"><span class="small">Signed in</span><span class="pill" id="who">—</span></div>
+      <div class="row" style="margin-top:10px;"><span class="small">Role</span><span class="pill" id="rolePill">—</span></div>
+      <button class="btn" style="margin-top:10px;" onclick="adminSignOut()">Logout</button>
+      <div id="sideErr" class="err"></div>
     </div>
 
     <div class="nav">
-      <button id="nav-dashboard" class="active" onclick="showSection('dashboardSection'); setActiveNav('dashboard')">Dashboard</button>
-      <button id="nav-members" onclick="showSection('membersSection'); setActiveNav('members')">Members</button>
-      <button id="nav-contrib" onclick="showSection('contributionSection'); setActiveNav('contrib')">Contributions</button>
-      <button id="nav-loans" onclick="showSection('loanSection'); setActiveNav('loans')">Loans</button>
-      <button id="nav-found" onclick="showSection('foundationSection'); setActiveNav('found')">Foundation</button>
-      <button id="nav-fines" onclick="showSection('fineSection'); setActiveNav('fines')">Fines</button>
-      <button id="nav-payouts" onclick="showSection('payoutsSection'); setActiveNav('payouts')">Payouts</button>
-      <button id="nav-history" onclick="showSection('historySection'); setActiveNav('history')">History</button>
-      <button class="btn" style="margin-top:8px;" onclick="healthCheck()">Connection Test</button>
+      <button id="navDash" class="active" onclick="show('dash')">Dashboard</button>
+      <button id="navMembers" onclick="show('members')">Members</button>
+      <button id="navContrib" onclick="show('contrib')">Contributions</button>
+      <button id="navLoans" onclick="show('loans')">Loans</button>
+      <button id="navPayouts" onclick="show('payouts')">Payouts</button>
     </div>
 
     <div class="card">
-      <div class="small">Next Payout (Bi-weekly)</div>
-      <div style="margin-top:8px;font-weight:800;" id="nextPayoutName">—</div>
-      <div class="small" id="nextPayoutInfo">—</div>
-      <button class="btn" style="width:100%;margin-top:10px;" data-admin-only="true" onclick="runPayout()">Run Payout Now</button>
-      <div class="small" style="margin-top:10px;">Start date: <b>Jan 3, 2026</b></div>
+      <div class="small"><b>Rotation</b></div>
+      <div style="margin-top:8px;font-weight:900;" id="nextName">—</div>
+      <div class="small" id="nextInfo">—</div>
+      <button class="btn" style="margin-top:10px;" onclick="runPayout()">Run Payout Now</button>
+      <div class="small warn" style="margin-top:10px;">Start date: <b>Jan 3, 2026</b> • Bi-weekly</div>
     </div>
   </aside>
 
   <main class="main">
-    <section id="dashboardSection" class="section active">
+    <div class="topbar">
+      <div class="title" id="pageTitle">Dashboard</div>
+      <div class="row" style="gap:8px;">
+        <span class="pill">Total Interest: <b id="kInterestMini">$0</b></span>
+        <button class="btn" style="width:auto;" onclick="reloadAll()">Refresh</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <section id="dash" class="section active">
       <div class="grid4">
-        <div class="card kpi"><div><div class="label">Njangi Pot</div><div class="value" id="kpiNjangi">$0</div><div class="small">Sum of contributions</div></div><span class="pill">KPI</span></div>
-        <div class="card kpi"><div><div class="label">Foundation</div><div class="value" id="kpiFoundation">$0</div><div class="small">Cash for loans</div></div><span class="pill">KPI</span></div>
-        <div class="card kpi"><div><div class="label">Outstanding Loans</div><div class="value" id="kpiLoans">$0</div><div class="small">Total due</div></div><span class="pill">KPI</span></div>
-        <div class="card kpi"><div><div class="label">Total Interest</div><div class="value" id="kpiInterest">$0</div><div class="small">Lifetime</div></div><span class="pill">KPI</span></div>
+        <div class="card kpi">
+          <div class="label">Njangi Pot</div>
+          <div class="val" id="kPot">$0</div>
+          <div class="small">Sum of member contributions</div>
+        </div>
+        <div class="card kpi">
+          <div class="label">Foundation Balance</div>
+          <div class="val" id="kFoundation">$0</div>
+          <div class="small">Cash available for loans</div>
+        </div>
+        <div class="card kpi">
+          <div class="label">Outstanding Loans</div>
+          <div class="val" id="kLoans">$0</div>
+          <div class="small">Total due (principal+interest)</div>
+        </div>
+        <div class="card kpi">
+          <div class="label">Members</div>
+          <div class="val" id="kMembers">0</div>
+          <div class="small">Active rotation list</div>
+        </div>
       </div>
 
-      <div class="card" style="margin-top:14px;">
-        <h3 style="margin:0 0 10px 0;">Recent Activity</h3>
+      <div class="grid2" style="margin-top:12px;">
+        <div class="card">
+          <div class="row">
+            <div style="font-weight:900;">Njangi Pot Trend</div>
+            <span class="pill">Last 30 points</span>
+          </div>
+          <div class="small" style="margin-top:6px;">Based on recent history entries.</div>
+          <canvas id="potChart" height="120"></canvas>
+        </div>
+
+        <div class="card">
+          <div class="row">
+            <div style="font-weight:900;">Interest Trend</div>
+            <span class="pill">Lifetime</span>
+          </div>
+          <div class="small" style="margin-top:6px;">Shows interest recorded from loans.</div>
+          <canvas id="interestChart" height="120"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="row">
+          <div style="font-weight:900;">Recent Activity</div>
+          <span class="pill">Top 15</span>
+        </div>
         <table>
-          <thead><tr><th>Time</th><th>Type</th><th>Member</th><th>Amount</th><th>Interest</th><th>Total Due</th></tr></thead>
-          <tbody id="recentActivityBody"></tbody>
+          <thead><tr><th>Time</th><th>Type</th><th>Member</th><th>Amount</th><th>Interest %</th><th>Total Due</th></tr></thead>
+          <tbody id="recentBody"></tbody>
         </table>
       </div>
     </section>
 
-    <section id="membersSection" class="section">
+    <!-- MEMBERS -->
+    <section id="members" class="section">
       <div class="grid2">
         <div class="card">
-          <h3 style="margin:0 0 10px 0;">Add Member</h3>
-          <label>Full Name</label><input id="newMemberName" placeholder="e.g. John Doe" />
-          <label>Phone (optional)</label><input id="newMemberPhone" placeholder="e.g. 301-000-0000" />
-          <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-            <input id="newMemberBenefits" type="checkbox" style="width:auto;margin:0;" />
-            <label for="newMemberBenefits" style="margin:0;color:var(--text);">Has benefits</label>
+          <div style="font-weight:900;">Add Member</div>
+          <label>Full Name</label>
+          <input id="mName" placeholder="e.g. John Doe" />
+          <label>Phone (optional)</label>
+          <input id="mPhone" placeholder="e.g. 301-000-0000" />
+          <label>Has benefits?</label>
+          <select id="mBenefits">
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
+          <button class="btn" style="margin-top:12px;" onclick="addMember()">Add Member</button>
+          <div class="small warn" style="margin-top:10px;">Admin role required (already enforced).</div>
+        </div>
+        <div class="card">
+          <div class="row">
+            <div style="font-weight:900;">Member List</div>
+            <span class="pill">Total: <span id="memberCount">0</span></span>
           </div>
-          <button class="btn" style="width:100%;margin-top:12px;" data-admin-only="true" onclick="addMember()">Add Member</button>
-        </div>
-        <div class="card">
-          <h3 style="margin:0 0 10px 0;">Members</h3>
-          <div class="row"><span class="pill">Sorted A–Z</span><span class="pill">Total: <span id="memberCount">0</span></span></div>
-          <ul id="memberList" class="list" style="margin-top:10px;"></ul>
-        </div>
-      </div>
-    </section>
-
-    <section id="contributionSection" class="section">
-      <div class="grid2">
-        <div class="card">
-          <h3 style="margin:0 0 10px 0;">Contributions</h3>
-          <label>Member</label><select id="memberSelect"></select>
-          <label>Add Amount (multiple of 500)</label><input id="amountAdd" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;" data-admin-only="true" onclick="addContribution()">Add Contribution</button>
-          <hr class="divider" />
-          <label>Set Contribution Total</label><input id="amountSet" type="number" placeholder="e.g. 2000" />
-          <button class="btn" style="width:100%;" data-admin-only="true" onclick="setContribution()">Set Contribution</button>
-        </div>
-        <div class="card">
-          <h3 style="margin:0 0 10px 0;">Rules</h3>
-          <div class="small">• Contributions must be multiples of 500<br/>• Payout amount = current Njangi pot<br/>• After payout, contributions reset to 0</div>
-        </div>
-      </div>
-    </section>
-
-    <section id="loanSection" class="section">
-      <div class="grid2">
-        <div class="card">
-          <h3 style="margin:0 0 10px 0;">Issue Loan (5%)</h3>
-          <label>Member</label><select id="loanMember"></select>
-          <label>Loan Amount</label><input id="loanAmount" type="number" placeholder="e.g. 1000" />
-          <button class="btn" style="width:100%;" data-admin-only="true" onclick="saveLoan()">Save Loan</button>
-        </div>
-        <div class="card">
-          <h3 style="margin:0 0 10px 0;">Repayment</h3>
-          <label>Member</label><select id="loanRepayMember"></select>
-          <label>Repayment Amount</label><input id="loanRepayAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;" data-admin-only="true" onclick="recordRepayment()">Record Repayment</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="foundationSection" class="section">
-      <div class="grid2">
-        <div class="card">
-          <h3 style="margin:0 0 10px 0;">Foundation</h3>
-          <label>Add to Foundation</label><input id="foundationAddAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;" data-admin-only="true" onclick="addToFoundation()">Add Foundation</button>
-          <hr class="divider" />
-          <label>Set Foundation Total</label><input id="foundationSetAmount" type="number" placeholder="e.g. 5000" />
-          <button class="btn" style="width:100%;" data-admin-only="true" onclick="setFoundation()">Set Foundation</button>
-        </div>
-        <div class="card">
-          <h3 style="margin:0 0 10px 0;">Member Foundation Contribution</h3>
-          <label>Member</label><select id="foundationMember"></select>
-          <label>Amount</label><input id="foundationMemberAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;" data-admin-only="true" onclick="addMemberFoundationContribution()">Add Member Foundation Contribution</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="fineSection" class="section">
-      <div class="grid2">
-        <div class="card">
-          <h3 style="margin:0 0 10px 0;">Add Fine</h3>
-          <label>Member</label><select id="fineMember"></select>
-          <label>Fine Amount</label><input id="fineAmount" type="number" placeholder="e.g. 500" />
-          <label>Reason</label><input id="fineReason" type="text" placeholder="Late payment..." />
-          <button class="btn" style="width:100%;" data-admin-only="true" onclick="addFine()">Add Fine</button>
-        </div>
-        <div class="card">
-          <h3 style="margin:0 0 10px 0;">Fines</h3>
           <table>
-            <thead><tr><th>Date</th><th>Member</th><th>Amount</th><th>Reason</th><th>Status</th><th data-admin-only="true">Action</th></tr></thead>
-            <tbody id="fineBody"></tbody>
+            <thead><tr><th>Name</th><th>Njangi</th><th>Foundation</th><th>Loan Due</th><th>Payout Total</th><th>Benefits</th></tr></thead>
+            <tbody id="memberBody"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <section id="payoutsSection" class="section">
+    <!-- CONTRIBUTIONS -->
+    <section id="contrib" class="section">
       <div class="grid2">
         <div class="card">
-          <h3 style="margin:0 0 10px 0;">Payout</h3>
-          <div class="small">Start: <b>Jan 3, 2026</b> • Every 14 days</div>
-          <hr class="divider" />
-          <button class="btn" style="width:100%;" data-admin-only="true" onclick="runPayout()">Run Payout Now</button>
+          <div style="font-weight:900;">Add Contribution</div>
+          <label>Member</label>
+          <select id="cMember"></select>
+          <label>Amount (multiple of 500)</label>
+          <input id="cAmount" type="number" placeholder="e.g. 500" />
+          <button class="btn" style="margin-top:12px;" onclick="addContribution()">Save</button>
+          <div class="notice" style="margin-top:12px;">
+            Contributions must be multiples of <b>500</b>.
+          </div>
         </div>
         <div class="card">
-          <h3 style="margin:0 0 10px 0;">Payout History</h3>
+          <div style="font-weight:900;">Foundation</div>
+          <label>Add to Foundation</label>
+          <input id="fAmount" type="number" placeholder="e.g. 500" />
+          <button class="btn" style="margin-top:12px;" onclick="addToFoundation()">Add</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOANS -->
+    <section id="loans" class="section">
+      <div class="grid2">
+        <div class="card">
+          <div style="font-weight:900;">Issue Loan (5%)</div>
+          <label>Member</label>
+          <select id="lMember"></select>
+          <label>Loan Amount</label>
+          <input id="lAmount" type="number" placeholder="e.g. 1000" />
+          <button class="btn" style="margin-top:12px;" onclick="issueLoan()">Issue Loan</button>
+          <div class="notice" style="margin-top:12px;">
+            Rule: If benefits = Yes and member foundation ≤ 70% of loan → not qualified.
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-weight:900;">Record Repayment</div>
+          <label>Member</label>
+          <select id="rMember"></select>
+          <label>Repayment Amount</label>
+          <input id="rAmount" type="number" placeholder="e.g. 500" />
+          <button class="btn" style="margin-top:12px;" onclick="repayLoan()">Save Repayment</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAYOUTS -->
+    <section id="payouts" class="section">
+      <div class="grid2">
+        <div class="card">
+          <div style="font-weight:900;">Run Payout</div>
+          <div class="small" style="margin-top:6px;">
+            Start: <b>Jan 3, 2026</b> • Every <b>14 days</b><br/>
+            Payout amount = current Njangi Pot<br/>
+            After payout: contributions reset to 0
+          </div>
+          <button class="btn" style="margin-top:12px;" onclick="runPayout()">Run Now</button>
+        </div>
+        <div class="card">
+          <div style="font-weight:900;">Payout History</div>
           <table>
             <thead><tr><th>Date</th><th>Member</th><th>Amount</th></tr></thead>
-            <tbody id="payoutsBody"></tbody>
+            <tbody id="payoutBody"></tbody>
           </table>
         </div>
-      </div>
-    </section>
-
-    <section id="historySection" class="section">
-      <div class="card">
-        <h3 style="margin:0 0 10px 0;">History</h3>
-        <table>
-          <thead><tr><th>Time</th><th>Type</th><th>Member</th><th>Amount</th><th>Interest</th><th>Total Due</th></tr></thead>
-          <tbody id="historyBody"></tbody>
-        </table>
       </div>
     </section>
 
@@ -225,456 +352,518 @@
 </div>
 
 <script>
-  // ✅ YOUR URL IS FIXED HERE
-  const SUPABASE_URL = "https://auxdvufuhdnlalupwrrb.supabase.co";
+/* =========================================================
+   ✅ SUPABASE CONFIG
+========================================================= */
+const SUPABASE_URL = "https://auxdvufuhdnlalupwrrb.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1eGR2dWZ1aGRubGFsdXB3cnJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNjk2NzcsImV4cCI6MjA3Njc0NTY3N30.BLZ6Xl8O2_edvq5cLgksGwNZn3lByZqUlT_uYNMa7bs"; // paste from Supabase Settings → API → anon public
 
-  // ✅ PASTE YOUR ANON PUBLIC KEY HERE (from Settings → API → anon public)
-  // (It must decode to ref: "auxdvufuhdnlalupwrrb")
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1eGR2dWZ1aGRubGFsdXB3cnJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNjk2NzcsImV4cCI6MjA3Njc0NTY3N30.BLZ6Xl8O2_edvq5cLgksGwNZn3lByZqUlT_uYNMa7bs";
+function decodeJwtRef(jwt){ try { return JSON.parse(atob(jwt.split(".")[1])).ref; } catch { return null; } }
+const urlRef = new URL(SUPABASE_URL).hostname.split(".")[0];
+const keyRef = decodeJwtRef(SUPABASE_ANON_KEY);
+if (keyRef && keyRef !== urlRef) {
+  document.getElementById("lockMsg").innerHTML =
+    `<span class="bad"><b>URL/key mismatch</b></span><br/>URL ref: ${urlRef}<br/>Key ref: ${keyRef}`;
+}
 
-  function decodeJwtRef(jwt){ try{return JSON.parse(atob(jwt.split(".")[1])).ref}catch{return null} }
-  function projectRefFromUrl(url){ try{return new URL(url).hostname.split(".")[0]}catch{return null} }
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const urlRef = projectRefFromUrl(SUPABASE_URL);
-  const keyRef = decodeJwtRef(SUPABASE_ANON_KEY);
-  if (urlRef && keyRef && urlRef !== keyRef) {
-    alert("URL/key mismatch. URL ref="+urlRef+" but key ref="+keyRef+". Copy anon public key from same project.");
+/* =========================================================
+   ✅ CONSTANTS / STATE
+========================================================= */
+const ROTATION_START = new Date("2026-01-03T00:00:00");
+const BIWEEK_MS = 14 * 24 * 60 * 60 * 1000;
+const INTEREST_RATE = 0.05;
+
+let meEmail = null;
+let isAdmin = false;
+
+let appState = { foundation:0, total_interest_generated:0, next_payout_index:0, next_payout_date:"2026-01-03" };
+let members = [];   // {id,name,phone,has_benefits,contributed,foundation_contrib,loan_due,payout_total}
+let history = [];   // for charts
+let payouts = [];
+
+let potChart = null;
+let interestChart = null;
+
+/* =========================================================
+   ✅ HELPERS
+========================================================= */
+const money = (x) => "$" + (Number(x)||0).toLocaleString();
+const isoDate = (d) => {
+  const z = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+  return z.toISOString().slice(0,10);
+};
+const fromIso = (s) => new Date(s + "T00:00:00");
+
+function setErr(id, msg){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.style.display = msg ? "block" : "none";
+  el.textContent = msg || "";
+}
+
+function setLockMsg(html){
+  const el = document.getElementById("lockMsg");
+  el.innerHTML = html || "";
+}
+
+/* =========================================================
+   ✅ LOGIN GATE: admin must login to see anything
+========================================================= */
+async function adminSignIn(){
+  setLockMsg("");
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  if(!email || !password){
+    setLockMsg(`<span class="warn">Enter email and password.</span>`);
+    return;
   }
 
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  let isAdmin=false;
-  let njangiPot=0, foundation=0, totalInterestGenerated=0;
-  const ROTATION_START_DATE_STR="2026-01-03";
-  const BIWEEK_MS=14*24*60*60*1000;
-  let nextPayoutIndex=0;
-  let nextPayoutDate=new Date(ROTATION_START_DATE_STR+"T00:00:00");
-  const interestRate=0.05;
-
-  let members={}, payoutOrder=[], history=[], fines=[], payouts=[];
-
-  function showAuthError(msg){
-    const box=document.getElementById("authError");
-    if(!box) return;
-    box.style.display = msg ? "block":"none";
-    box.textContent = msg || "";
-  }
-  function formatMoney(x){return (Number(x)||0).toLocaleString()}
-  function toDateOnlyISO(d){const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)}
-  function dateOnlyFromISO(iso){return new Date(iso+"T00:00:00")}
-
-  function showSection(id){document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));document.getElementById(id)?.classList.add("active")}
-  function setActiveNav(which){
-    const map={dashboard:"nav-dashboard",members:"nav-members",contrib:"nav-contrib",loans:"nav-loans",found:"nav-found",fines:"nav-fines",payouts:"nav-payouts",history:"nav-history"};
-    Object.values(map).forEach(id=>document.getElementById(id)?.classList.remove("active"));
-    document.getElementById(map[which])?.classList.add("active");
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if(error){
+    setLockMsg(`<span class="bad">Login failed:</span> ${error.message}`);
+    return;
   }
 
-  async function adminLogin(){
-    showAuthError("");
-    const email=prompt("Admin email:"); if(!email) return;
-    const password=prompt("Password:"); if(!password) return;
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if(error){ showAuthError("Login failed: "+error.message); alert("❌ "+error.message); return; }
-    await refreshAdminStatus(); await reloadAll();
-    alert("✅ Logged in.");
+  await enforceAdminGate();
+}
+
+async function adminSignOut(){
+  await sb.auth.signOut();
+  isAdmin = false;
+  lockApp("Signed out.");
+}
+
+function lockApp(message){
+  document.getElementById("app").style.display = "none";
+  document.getElementById("appLocked").style.display = "flex";
+  setLockMsg(message ? `<span class="warn">${message}</span>` : "");
+}
+
+function unlockApp(){
+  document.getElementById("appLocked").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+}
+
+async function enforceAdminGate(){
+  // Check user
+  const { data } = await sb.auth.getUser();
+  const user = data?.user;
+  if(!user){
+    lockApp("Please sign in.");
+    return;
   }
-  async function adminLogout(){
-    showAuthError("");
-    const { error } = await supabaseClient.auth.signOut();
-    if(error){ showAuthError("Logout failed: "+error.message); alert("❌ "+error.message); return; }
-    isAdmin=false; updateAdminUI(null);
-    await reloadAll();
+
+  meEmail = user.email || "admin";
+  // Check role from profiles (must exist)
+  const { data: profile, error: pErr } = await sb
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if(pErr){
+    lockApp("profiles table/role not ready. Fix profiles + admin role.");
+    return;
   }
-  function toggleAdminLogin(){ if(!isAdmin) adminLogin(); else adminLogout(); }
 
-  async function refreshAdminStatus(){
-    const { data } = await supabaseClient.auth.getUser();
-    const user=data?.user;
-    if(!user){ isAdmin=false; updateAdminUI(null); return; }
+  isAdmin = profile?.role === "admin";
+  if(!isAdmin){
+    lockApp("Access denied. Your account is not admin.");
+    return;
+  }
 
-    const { data: profile, error: pErr } = await supabaseClient
-      .from("profiles").select("role").eq("id", user.id).single();
+  // Passed gate
+  unlockApp();
+  document.getElementById("who").textContent = meEmail;
+  document.getElementById("rolePill").textContent = "admin";
+  document.getElementById("today").textContent = new Date().toLocaleDateString();
 
-    if(pErr){
-      isAdmin=false; updateAdminUI(user.email||null);
-      showAuthError("profiles read error: "+pErr.message+"\nFix: create profiles table + set your role='admin'.");
-      return;
+  await reloadAll();
+}
+
+/* =========================================================
+   ✅ NAV
+========================================================= */
+function show(id){
+  const map = {
+    dash:{title:"Dashboard", nav:"navDash"},
+    members:{title:"Members", nav:"navMembers"},
+    contrib:{title:"Contributions", nav:"navContrib"},
+    loans:{title:"Loans", nav:"navLoans"},
+    payouts:{title:"Payouts", nav:"navPayouts"}
+  };
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.getElementById("pageTitle").textContent = map[id].title;
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+  document.getElementById(map[id].nav).classList.add("active");
+}
+
+/* =========================================================
+   ✅ LOAD DATA
+========================================================= */
+async function reloadAll(){
+  setErr("sideErr","");
+
+  // app_state
+  const { data: a, error: aErr } = await sb.from("app_state").select("*").eq("id",1).single();
+  if(aErr){ setErr("sideErr", "app_state error: " + aErr.message); }
+  if(a) appState = a;
+
+  // members
+  const { data: m, error: mErr } = await sb.from("members").select("*").order("position",{ascending:true});
+  if(mErr){ setErr("sideErr", "members error: " + mErr.message); }
+  members = m || [];
+
+  // history (for charts + recent)
+  const { data: h, error: hErr } = await sb.from("history").select("*").order("created_at",{ascending:false}).limit(200);
+  if(hErr){ setErr("sideErr", "history error: " + hErr.message); }
+  history = h || [];
+
+  // payouts
+  const { data: p, error: pErr } = await sb.from("payouts").select("*").order("created_at",{ascending:false}).limit(100);
+  if(pErr){ setErr("sideErr", "payouts error: " + pErr.message); }
+  payouts = p || [];
+
+  renderAll();
+}
+
+/* =========================================================
+   ✅ RENDER
+========================================================= */
+function renderAll(){
+  const pot = members.reduce((s,x)=>s+(Number(x.contributed)||0),0);
+  const outstanding = members.reduce((s,x)=>s+(Number(x.loan_due)||0),0);
+
+  document.getElementById("kPot").textContent = money(pot);
+  document.getElementById("kFoundation").textContent = money(appState.foundation || 0);
+  document.getElementById("kLoans").textContent = money(outstanding);
+  document.getElementById("kMembers").textContent = String(members.length);
+  document.getElementById("kInterestMini").textContent = money(appState.total_interest_generated || 0);
+
+  // Next payout info
+  const idx = Number(appState.next_payout_index || 0);
+  const nextDate = appState.next_payout_date ? fromIso(appState.next_payout_date) : ROTATION_START;
+  const nextMember = members.length ? members[idx % members.length] : null;
+  document.getElementById("nextName").textContent = nextMember ? nextMember.name : "No members";
+  document.getElementById("nextInfo").textContent =
+    members.length ? `Next: ${nextDate.toLocaleDateString()} • Position ${ (idx % members.length)+1 }/${members.length} • Payout: ${money(pot)}`
+                   : "Add members to start rotation";
+
+  // Members table
+  document.getElementById("memberCount").textContent = String(members.length);
+  const mb = document.getElementById("memberBody");
+  mb.innerHTML = members
+    .slice()
+    .sort((a,b)=>(a.name||"").localeCompare(b.name||""))
+    .map(x=>`
+      <tr>
+        <td>${x.name||""}</td>
+        <td>${money(x.contributed||0)}</td>
+        <td>${money(x.foundation_contrib||0)}</td>
+        <td>${money(x.loan_due||0)}</td>
+        <td>${money(x.payout_total||0)}</td>
+        <td>${x.has_benefits ? "Yes":"No"}</td>
+      </tr>
+    `).join("");
+
+  // Selects
+  const opts = members.map(x=>`<option value="${x.id}">${x.name}</option>`).join("");
+  ["cMember","lMember","rMember"].forEach(id => document.getElementById(id).innerHTML = opts);
+
+  // Recent activity
+  const rb = document.getElementById("recentBody");
+  const recent = history.slice(0,15);
+  rb.innerHTML = recent.map(x=>{
+    const t = x.created_at ? new Date(x.created_at).toLocaleString() : "";
+    return `<tr>
+      <td>${t}</td>
+      <td>${x.type||""}</td>
+      <td>${x.member||""}</td>
+      <td>${money(x.amount||0)}</td>
+      <td>${x.interest_percent ? (Number(x.interest_percent)+"%") : "-"}</td>
+      <td>${x.total_due!=null ? money(x.total_due) : "-"}</td>
+    </tr>`;
+  }).join("");
+
+  // Payout history
+  const pb = document.getElementById("payoutBody");
+  pb.innerHTML = payouts.map(x=>`
+    <tr>
+      <td>${x.payout_date || ""}</td>
+      <td>${x.member_name || ""}</td>
+      <td>${money(x.payout_amount || 0)}</td>
+    </tr>
+  `).join("");
+
+  // Charts
+  renderCharts(pot);
+}
+
+function renderCharts(currentPot){
+  // Build series from last 30 history points
+  const last = history.slice().reverse().slice(-30);
+  const labels = last.map(x => {
+    const d = x.created_at ? new Date(x.created_at) : new Date();
+    return d.toLocaleDateString();
+  });
+
+  // Pot trend approximation: use current pot and step changes by contributions/payouts
+  // We reconstruct by simulating from events (simple + stable).
+  let pot = 0;
+  const potSeries = [];
+  last.forEach(ev=>{
+    const type = (ev.type||"").toLowerCase();
+    const amt = Number(ev.amount||0);
+
+    if(type.includes("contribution")) pot += amt;
+    if(type.includes("set contribution")) pot = amt; // override (approx)
+    if(type.includes("payout")) pot = 0;
+
+    potSeries.push(pot);
+  });
+
+  // Interest cumulative from loans
+  let interestCum = 0;
+  const interestSeries = [];
+  last.forEach(ev=>{
+    const type = (ev.type||"").toLowerCase();
+    const amt = Number(ev.amount||0);
+    if(type.includes("loan")){
+      // loan interest is 5% of principal
+      interestCum += Math.round(amt * INTEREST_RATE);
     }
-    isAdmin = profile?.role === "admin";
-    updateAdminUI(user.email||null);
-  }
-  function updateAdminUI(email){
-    document.getElementById("signedInEmail").textContent = email || "—";
-    document.getElementById("adminStatus").textContent = isAdmin ? "Admin" : "View-only";
-    document.getElementById("adminToggleBtn").textContent = isAdmin ? "Logout Admin" : "Admin Login";
-    document.querySelectorAll("[data-admin-only='true']").forEach(el=>el.disabled=!isAdmin);
-  }
-  function ensureAdmin(){ if(!isAdmin){ alert("Admin only."); return false; } return true; }
+    interestSeries.push(interestCum);
+  });
 
-  function updateNjangiPot(){ njangiPot = Object.values(members).reduce((s,m)=>s+(Number(m.contributed)||0),0); }
-  function updateKpis(){
-    const totalLoans = Object.values(members).reduce((s,m)=>s+(Number(m.loanDue)||0),0);
-    document.getElementById("kpiNjangi").textContent="$"+formatMoney(njangiPot);
-    document.getElementById("kpiFoundation").textContent="$"+formatMoney(foundation);
-    document.getElementById("kpiLoans").textContent="$"+formatMoney(totalLoans);
-    document.getElementById("kpiInterest").textContent="$"+formatMoney(totalInterestGenerated);
-  }
-
-  function renderMemberList(){
-    const list=document.getElementById("memberList"); list.innerHTML="";
-    const arr=Object.values(members).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
-    document.getElementById("memberCount").textContent=arr.length;
-    arr.forEach(m=>{
-      const li=document.createElement("li");
-      li.innerHTML = `<div style="font-weight:800">${m.name} <span class="pill" style="margin-left:6px;">Payout Total: $${formatMoney(m.payoutTotal||0)}</span></div>
-      <div class="small" style="margin-top:6px;">Njangi: $${formatMoney(m.contributed)} • Foundation: $${formatMoney(m.foundationContrib)} • Loan due: $${formatMoney(m.loanDue)} • Benefits: ${m.hasBenefits?"Yes":"No"}${m.phone?`<br/>Phone: ${m.phone}`:""}</div>`;
-      list.appendChild(li);
-    });
-  }
-  function populateMemberSelects(){
-    const arr=Object.values(members).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
-    ["memberSelect","loanMember","loanRepayMember","foundationMember","fineMember"].forEach(id=>{
-      const sel=document.getElementById(id); sel.innerHTML="";
-      arr.forEach(m=>{ const opt=document.createElement("option"); opt.value=m.id; opt.textContent=m.name; sel.appendChild(opt); });
-    });
-  }
-  function updateNextPayoutDisplay(){
-    const nameEl=document.getElementById("nextPayoutName");
-    const infoEl=document.getElementById("nextPayoutInfo");
-    if(!payoutOrder.length){ nameEl.textContent="No members"; infoEl.textContent="Add members to start rotation"; return; }
-    if(nextPayoutIndex>=payoutOrder.length) nextPayoutIndex=0;
-    updateNjangiPot();
-    const m=members[payoutOrder[nextPayoutIndex]];
-    nameEl.textContent = m ? `${m.name} (Payout: $${formatMoney(njangiPot)})` : "Unknown member";
-    infoEl.textContent = `Next payout date: ${nextPayoutDate.toLocaleDateString()} • Position ${nextPayoutIndex+1} of ${payoutOrder.length}`;
-  }
-
-  function renderHistory(){
-    const body=document.getElementById("historyBody");
-    const recent=document.getElementById("recentActivityBody");
-    body.innerHTML=""; recent.innerHTML="";
-    history.forEach((h,idx)=>{
-      const html=`<td>${h.time||""}</td><td>${h.type||""}</td><td>${h.member||""}</td><td>$${formatMoney(h.amount)}</td><td>${h.interestPercent?h.interestPercent+"%":"-"}</td><td>${h.totalDue!=null?"$"+formatMoney(h.totalDue):"-"}</td>`;
-      const tr=document.createElement("tr"); tr.innerHTML=html; body.appendChild(tr);
-      if(idx<10){ const tr2=document.createElement("tr"); tr2.innerHTML=html; recent.appendChild(tr2); }
-    });
-  }
-  function renderFines(){
-    const body=document.getElementById("fineBody"); body.innerHTML="";
-    fines.forEach(f=>{
-      const tr=document.createElement("tr");
-      tr.innerHTML=`<td>${f.createdAt}</td><td>${f.memberName}</td><td>$${formatMoney(f.amount)}</td><td>${f.reason||"-"}</td><td>${f.status}</td>
-      <td data-admin-only="true">${f.status==="unpaid"?`<button class="btn" onclick="markFinePaid(${f.id})">Mark Paid</button>`:"-"}</td>`;
-      body.appendChild(tr);
-    });
-    document.querySelectorAll("#fineBody [data-admin-only='true']").forEach(el=>el.style.display=isAdmin?"":"none");
-  }
-  function renderPayouts(){
-    const body=document.getElementById("payoutsBody"); body.innerHTML="";
-    payouts.forEach(p=>{
-      const tr=document.createElement("tr");
-      tr.innerHTML=`<td>${p.payoutDate}</td><td>${p.memberName}</td><td>$${formatMoney(p.payoutAmount)}</td>`;
-      body.appendChild(tr);
-    });
-  }
-
-  async function syncAppState(){
-    const payload={foundation,next_payout_index:nextPayoutIndex,next_payout_date:toDateOnlyISO(nextPayoutDate),total_interest_generated:totalInterestGenerated,updated_at:new Date().toISOString()};
-    const { error } = await supabaseClient.from("app_state").update(payload).eq("id",1);
-    if(error) console.error("app_state update error:", error);
-  }
-
-  async function addHistory(type, member, amount, interestPercent, totalDue){
-    const payload={type,member,amount,interest_percent:interestPercent||0,total_due:totalDue};
-    const { data, error } = await supabaseClient.from("history").insert([payload]).select().single();
-    if(error) console.error("history insert error:", error);
-    history.unshift({type,member,amount,interestPercent:interestPercent||0,totalDue:totalDue??null,time:data?.created_at?new Date(data.created_at).toLocaleString():new Date().toLocaleString()});
-    renderHistory();
-  }
-
-  async function loadFines(){
-    const { data, error } = await supabaseClient.from("fines").select("*").order("created_at",{ascending:false});
-    if(error){ console.error("fines load error:", error); fines=[]; renderFines(); return; }
-    fines=(data||[]).map(f=>({id:f.id,memberId:f.member_id,memberName:f.member_name,amount:Number(f.amount)||0,reason:f.reason||"",status:f.status||"unpaid",createdAt:f.created_at?new Date(f.created_at).toLocaleString():""}));
-    renderFines();
-  }
-  async function loadPayouts(){
-    const { data, error } = await supabaseClient.from("payouts").select("*").order("created_at",{ascending:false});
-    if(error){ console.error("payouts load error:", error); payouts=[]; renderPayouts(); return; }
-    payouts=(data||[]).map(p=>({id:p.id,memberId:p.member_id,memberName:p.member_name,payoutAmount:Number(p.payout_amount)||0,payoutDate:p.payout_date}));
-    renderPayouts();
-  }
-
-  async function reloadAll(){
-    const { data: appRow } = await supabaseClient.from("app_state").select("*").eq("id",1).single();
-    foundation=Number(appRow?.foundation)||0;
-    nextPayoutIndex=Number(appRow?.next_payout_index)||0;
-    totalInterestGenerated=Number(appRow?.total_interest_generated)||0;
-    nextPayoutDate=appRow?.next_payout_date?dateOnlyFromISO(appRow.next_payout_date):dateOnlyFromISO(ROTATION_START_DATE_STR);
-
-    const { data: memData } = await supabaseClient.from("members").select("*").order("position",{ascending:true});
-    members={}; payoutOrder=[];
-    (memData||[]).forEach(m=>{
-      const id=String(m.id);
-      members[id]={id,name:m.name,phone:m.phone,contributed:Number(m.contributed)||0,foundationContrib:Number(m.foundation_contrib)||0,loanDue:Number(m.loan_due)||0,payoutTotal:Number(m.payout_total)||0,hasBenefits:!!m.has_benefits,position:m.position};
-      payoutOrder.push(id);
-    });
-
-    const { data: histData } = await supabaseClient.from("history").select("*").order("created_at",{ascending:false});
-    history=(histData||[]).map(h=>({type:h.type,member:h.member,amount:Number(h.amount)||0,interestPercent:Number(h.interest_percent||0),totalDue:h.total_due!=null?Number(h.total_due):null,time:h.created_at?new Date(h.created_at).toLocaleString():""}));
-
-    await loadFines();
-    await loadPayouts();
-
-    updateNjangiPot();
-    populateMemberSelects();
-    renderMemberList();
-    renderHistory();
-    updateKpis();
-    updateNextPayoutDisplay();
-  }
-
-  async function addMember(){
-    if(!ensureAdmin()) return;
-    const name=(document.getElementById("newMemberName").value||"").trim();
-    const phone=(document.getElementById("newMemberPhone").value||"").trim();
-    const hasBenefits=!!document.getElementById("newMemberBenefits").checked;
-    if(!name) return alert("Enter member full name.");
-    const maxPos = Object.values(members).reduce((max,m)=>Math.max(max,Number(m.position)||0),0);
-    const newPos = maxPos + 1;
-
-    const { data, error } = await supabaseClient.from("members")
-      .insert([{name,phone,has_benefits:hasBenefits,position:newPos}]).select().single();
-    if(error) return alert("Could not add member: "+error.message);
-
-    document.getElementById("newMemberName").value="";
-    document.getElementById("newMemberPhone").value="";
-    document.getElementById("newMemberBenefits").checked=false;
-
-    await addHistory("Member Added", data.name, 0, 0, null);
-    await reloadAll();
-  }
-
-  async function addContribution(){
-    if(!ensureAdmin()) return;
-    const memberId=document.getElementById("memberSelect").value;
-    const amount=Number(document.getElementById("amountAdd").value||0);
-    if(!memberId) return alert("Select a member.");
-    if(!amount||amount<=0) return alert("Enter a valid amount.");
-    if(amount%500!==0) return alert("Amount must be multiple of 500.");
-
-    const m=members[memberId];
-    const newTotal=(Number(m.contributed)||0)+amount;
-    const { error } = await supabaseClient.from("members").update({contributed:newTotal}).eq("id",memberId);
-    if(error) return alert("Could not save contribution: "+error.message);
-
-    await addHistory("Contribution", m.name, amount, 0, newTotal);
-    document.getElementById("amountAdd").value="";
-    await reloadAll();
-  }
-
-  async function setContribution(){
-    if(!ensureAdmin()) return;
-    const memberId=document.getElementById("memberSelect").value;
-    const amount=Number(document.getElementById("amountSet").value||0);
-    if(!memberId) return alert("Select a member.");
-    if(amount<0) return alert("Contribution cannot be negative.");
-
-    const m=members[memberId];
-    const { error } = await supabaseClient.from("members").update({contributed:amount}).eq("id",memberId);
-    if(error) return alert("Could not set contribution: "+error.message);
-
-    await addHistory("Set Contribution", m.name, amount, 0, amount);
-    document.getElementById("amountSet").value="";
-    await reloadAll();
-  }
-
-  async function addToFoundation(){
-    if(!ensureAdmin()) return;
-    const amount=Number(document.getElementById("foundationAddAmount").value||0);
-    if(!amount||amount<=0) return alert("Enter a valid amount.");
-    foundation += amount;
-    await syncAppState();
-    await addHistory("Foundation Add", "Admin", amount, 0, foundation);
-    document.getElementById("foundationAddAmount").value="";
-    await reloadAll();
-  }
-  async function setFoundation(){
-    if(!ensureAdmin()) return;
-    const amount=Number(document.getElementById("foundationSetAmount").value||0);
-    if(amount<0) return alert("Foundation cannot be negative.");
-    foundation = amount;
-    await syncAppState();
-    await addHistory("Foundation Set", "Admin", amount, 0, foundation);
-    document.getElementById("foundationSetAmount").value="";
-    await reloadAll();
-  }
-
-  async function addMemberFoundationContribution(){
-    if(!ensureAdmin()) return;
-    const memberId=document.getElementById("foundationMember").value;
-    const amount=Number(document.getElementById("foundationMemberAmount").value||0);
-    if(!memberId) return alert("Select a member.");
-    if(!amount||amount<=0) return alert("Enter a valid amount.");
-
-    const m=members[memberId];
-    const newMemberFound=(Number(m.foundationContrib)||0)+amount;
-
-    const { error: mErr } = await supabaseClient.from("members").update({foundation_contrib:newMemberFound}).eq("id",memberId);
-    if(mErr) return alert("Could not update member foundation: "+mErr.message);
-
-    foundation += amount;
-    await syncAppState();
-    await addHistory("Foundation Member", m.name, amount, 0, newMemberFound);
-    document.getElementById("foundationMemberAmount").value="";
-    await reloadAll();
-  }
-
-  async function saveLoan(){
-    if(!ensureAdmin()) return;
-    const memberId=document.getElementById("loanMember").value;
-    const amount=Number(document.getElementById("loanAmount").value||0);
-    if(!memberId) return alert("Select a member.");
-    if(!amount||amount<=0) return alert("Enter a valid loan amount.");
-    if(amount>foundation) return alert("Loan cannot be more than foundation.");
-
-    const m=members[memberId];
-    const minFoundationRequired=0.70*amount;
-    const memberFoundation=Number(m.foundationContrib||0);
-    if(m.hasBenefits && memberFoundation<=minFoundationRequired){
-      return alert("NOT QUALIFIED TO BORROW\n\nLoan: $"+formatMoney(amount)+"\n70% required: $"+formatMoney(minFoundationRequired)+"\nMember foundation: $"+formatMoney(memberFoundation));
-    }
-
-    const interest=Math.round(amount*0.05);
-    const totalDue=amount+interest;
-    foundation -= amount;
-    totalInterestGenerated += interest;
-
-    const newLoanDue=(Number(m.loanDue)||0)+totalDue;
-    const { error } = await supabaseClient.from("members").update({loan_due:newLoanDue}).eq("id",memberId);
-    if(error) return alert("Could not save loan: "+error.message);
-
-    await syncAppState();
-    await addHistory("Loan", m.name, amount, 5, totalDue);
-    document.getElementById("loanAmount").value="";
-    await reloadAll();
-  }
-
-  async function recordRepayment(){
-    if(!ensureAdmin()) return;
-    const memberId=document.getElementById("loanRepayMember").value;
-    const amount=Number(document.getElementById("loanRepayAmount").value||0);
-    if(!memberId) return alert("Select a member.");
-    if(!amount||amount<=0) return alert("Enter valid repayment.");
-
-    const m=members[memberId];
-    const due=Number(m.loanDue||0);
-    if(due<=0) return alert("No outstanding loan.");
-
-    const pay = amount>due?due:amount;
-    const newDue = due - pay;
-    foundation += pay;
-
-    const { error } = await supabaseClient.from("members").update({loan_due:newDue}).eq("id",memberId);
-    if(error) return alert("Could not record repayment: "+error.message);
-
-    await syncAppState();
-    await addHistory("Repayment", m.name, pay, 0, newDue);
-    document.getElementById("loanRepayAmount").value="";
-    await reloadAll();
-  }
-
-  async function addFine(){
-    if(!ensureAdmin()) return;
-    const memberId=document.getElementById("fineMember").value;
-    const amount=Number(document.getElementById("fineAmount").value||0);
-    const reason=(document.getElementById("fineReason").value||"").trim();
-    if(!memberId) return alert("Select a member.");
-    if(!amount||amount<=0) return alert("Enter fine amount.");
-
-    const m=members[memberId];
-    const { error } = await supabaseClient.from("fines").insert([{
-      member_id:Number(memberId), member_name:m.name, amount, reason, status:"unpaid"
-    }]);
-    if(error) return alert("Could not add fine: "+error.message);
-
-    document.getElementById("fineAmount").value="";
-    document.getElementById("fineReason").value="";
-    await addHistory("Fine", m.name, amount, 0, null);
-    await reloadAll();
-  }
-
-  async function markFinePaid(fineId){
-    if(!ensureAdmin()) return;
-    const { error } = await supabaseClient.from("fines")
-      .update({status:"paid",paid_at:new Date().toISOString()})
-      .eq("id",fineId);
-    if(error) return alert("Could not mark paid: "+error.message);
-    await reloadAll();
-  }
-
-  async function runPayout(){
-    if(!ensureAdmin()) return;
-    if(!payoutOrder.length) return alert("No members.");
-
-    const today = dateOnlyFromISO(toDateOnlyISO(new Date()));
-    if(today < nextPayoutDate){
-      return alert("Too early. Next payout: "+nextPayoutDate.toLocaleDateString());
-    }
-
-    updateNjangiPot();
-    const payoutAmount = njangiPot;
-    if(payoutAmount<=0) return alert("Pot is 0.");
-
-    if(nextPayoutIndex>=payoutOrder.length) nextPayoutIndex=0;
-    const memberId=payoutOrder[nextPayoutIndex];
-    const m=members[memberId];
-
-    const payoutDateStr=toDateOnlyISO(today);
-
-    const { error: pErr } = await supabaseClient.from("payouts").insert([{
-      member_id:Number(memberId), member_name:m.name, payout_amount:payoutAmount, payout_date:payoutDateStr
-    }]);
-    if(pErr) return alert("Could not save payout: "+pErr.message);
-
-    const newPayoutTotal=(Number(m.payoutTotal)||0)+payoutAmount;
-    const { error: mErr } = await supabaseClient.from("members")
-      .update({payout_total:newPayoutTotal,last_payout_at:new Date().toISOString()})
-      .eq("id",memberId);
-    if(mErr) return alert("Could not update member: "+mErr.message);
-
-    const { error: resetErr } = await supabaseClient.from("members").update({ contributed: 0 });
-    if(resetErr) return alert("Could not reset contributions: "+resetErr.message);
-
-    nextPayoutIndex = (nextPayoutIndex+1) % payoutOrder.length;
-    nextPayoutDate = new Date(nextPayoutDate.getTime() + BIWEEK_MS);
-    await syncAppState();
-
-    await addHistory("Payout", m.name, payoutAmount, 0, null);
-    await reloadAll();
-    alert("✅ Paid $"+formatMoney(payoutAmount)+" to "+m.name);
-  }
-
-  async function healthCheck(){
-    try{
-      const r1=projectRefFromUrl(SUPABASE_URL);
-      const r2=decodeJwtRef(SUPABASE_ANON_KEY);
-      const { data, error } = await supabaseClient.from("app_state").select("id").limit(1);
-      if(error){
-        alert("❌ Connection failed:\n"+error.message+"\n\nURL ref: "+r1+"\nKey ref: "+r2);
-        return;
+  // Pot chart
+  const ctx1 = document.getElementById("potChart").getContext("2d");
+  if(potChart) potChart.destroy();
+  potChart = new Chart(ctx1, {
+    type:"line",
+    data:{ labels, datasets:[{ label:"Pot", data: potSeries, tension:0.35 }] },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ ticks:{ color:"#9ca3af" }, grid:{ color:"rgba(31,41,55,.35)" } },
+        y:{ ticks:{ color:"#9ca3af" }, grid:{ color:"rgba(31,41,55,.35)" } }
       }
-      alert("✅ Connected OK.\nURL ref: "+r1+"\nKey ref: "+r2+"\nRows: "+(data?.length||0));
-    }catch(e){ alert("❌ Error:\n"+e.message); }
+    }
+  });
+
+  // Interest chart
+  const ctx2 = document.getElementById("interestChart").getContext("2d");
+  if(interestChart) interestChart.destroy();
+  interestChart = new Chart(ctx2, {
+    type:"line",
+    data:{ labels, datasets:[{ label:"Interest", data: interestSeries, tension:0.35 }] },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ ticks:{ color:"#9ca3af" }, grid:{ color:"rgba(31,41,55,.35)" } },
+        y:{ ticks:{ color:"#9ca3af" }, grid:{ color:"rgba(31,41,55,.35)" } }
+      }
+    }
+  });
+}
+
+/* =========================================================
+   ✅ WRITE ACTIONS (admin-only by gate)
+========================================================= */
+async function addMember(){
+  const name = document.getElementById("mName").value.trim();
+  const phone = document.getElementById("mPhone").value.trim();
+  const hasBenefits = document.getElementById("mBenefits").value === "true";
+  if(!name) return alert("Enter member name.");
+
+  const pos = members.length ? Math.max(...members.map(x=>Number(x.position||0))) + 1 : 1;
+
+  const { error } = await sb.from("members").insert([{
+    name, phone, has_benefits: hasBenefits, position: pos
+  }]);
+  if(error) return alert(error.message);
+
+  await sb.from("history").insert([{ type:"Member Added", member:name, amount:0, interest_percent:0 }]);
+  document.getElementById("mName").value="";
+  document.getElementById("mPhone").value="";
+  await reloadAll();
+}
+
+async function addContribution(){
+  const memberId = document.getElementById("cMember").value;
+  const amt = Number(document.getElementById("cAmount").value||0);
+  if(!memberId) return alert("Select member.");
+  if(!amt || amt<=0) return alert("Enter amount.");
+  if(amt % 500 !== 0) return alert("Amount must be multiple of 500.");
+
+  const m = members.find(x=>String(x.id)===String(memberId));
+  const newTotal = (Number(m.contributed)||0) + amt;
+
+  const { error } = await sb.from("members").update({ contributed:newTotal }).eq("id", memberId);
+  if(error) return alert(error.message);
+
+  await sb.from("history").insert([{ type:"Contribution", member:m.name, amount:amt, interest_percent:0, total_due:newTotal }]);
+  document.getElementById("cAmount").value="";
+  await reloadAll();
+}
+
+async function addToFoundation(){
+  const amt = Number(document.getElementById("fAmount").value||0);
+  if(!amt || amt<=0) return alert("Enter amount.");
+
+  const newFound = (Number(appState.foundation)||0) + amt;
+  const { error } = await sb.from("app_state").update({
+    foundation:newFound, updated_at:new Date().toISOString()
+  }).eq("id",1);
+  if(error) return alert(error.message);
+
+  await sb.from("history").insert([{ type:"Foundation Add", member:"Admin", amount:amt, interest_percent:0, total_due:newFound }]);
+  document.getElementById("fAmount").value="";
+  await reloadAll();
+}
+
+async function issueLoan(){
+  const memberId = document.getElementById("lMember").value;
+  const amt = Number(document.getElementById("lAmount").value||0);
+  if(!memberId) return alert("Select member.");
+  if(!amt || amt<=0) return alert("Enter loan amount.");
+
+  const m = members.find(x=>String(x.id)===String(memberId));
+  const foundation = Number(appState.foundation||0);
+  if(amt > foundation) return alert("Loan cannot exceed foundation.");
+
+  const minRequired = 0.70 * amt;
+  const memberFoundation = Number(m.foundation_contrib||0);
+  if(m.has_benefits && memberFoundation <= minRequired){
+    return alert(`NOT QUALIFIED\nLoan: ${money(amt)}\n70% required: ${money(minRequired)}\nMember foundation: ${money(memberFoundation)}`);
   }
 
-  async function init(){
-    document.getElementById("todayDate").textContent = new Date().toLocaleDateString();
-    await refreshAdminStatus();
-    await reloadAll();
+  const interest = Math.round(amt * INTEREST_RATE);
+  const totalDue = amt + interest;
+
+  // update member loan_due
+  const newLoanDue = (Number(m.loan_due)||0) + totalDue;
+  let { error } = await sb.from("members").update({ loan_due:newLoanDue }).eq("id", memberId);
+  if(error) return alert(error.message);
+
+  // update app_state foundation and total interest
+  const newFoundation = foundation - amt;
+  const newTotalInterest = (Number(appState.total_interest_generated)||0) + interest;
+
+  ({ error } = await sb.from("app_state").update({
+    foundation:newFoundation,
+    total_interest_generated:newTotalInterest,
+    updated_at:new Date().toISOString()
+  }).eq("id",1));
+  if(error) return alert(error.message);
+
+  await sb.from("history").insert([{ type:"Loan", member:m.name, amount:amt, interest_percent:5, total_due:totalDue }]);
+  document.getElementById("lAmount").value="";
+  await reloadAll();
+
+  alert(`Loan issued.\nPrincipal: ${money(amt)}\nInterest(5%): ${money(interest)}\nTotal due: ${money(totalDue)}`);
+}
+
+async function repayLoan(){
+  const memberId = document.getElementById("rMember").value;
+  const amt = Number(document.getElementById("rAmount").value||0);
+  if(!memberId) return alert("Select member.");
+  if(!amt || amt<=0) return alert("Enter repayment amount.");
+
+  const m = members.find(x=>String(x.id)===String(memberId));
+  const due = Number(m.loan_due||0);
+  if(due<=0) return alert("Member has no loan.");
+
+  const pay = Math.min(amt, due);
+  const newDue = due - pay;
+
+  let { error } = await sb.from("members").update({ loan_due:newDue }).eq("id", memberId);
+  if(error) return alert(error.message);
+
+  const newFoundation = (Number(appState.foundation)||0) + pay;
+  ({ error } = await sb.from("app_state").update({
+    foundation:newFoundation,
+    updated_at:new Date().toISOString()
+  }).eq("id",1));
+  if(error) return alert(error.message);
+
+  await sb.from("history").insert([{ type:"Repayment", member:m.name, amount:pay, interest_percent:0, total_due:newDue }]);
+  document.getElementById("rAmount").value="";
+  await reloadAll();
+}
+
+async function runPayout(){
+  if(!members.length) return alert("No members.");
+
+  const pot = members.reduce((s,x)=>s+(Number(x.contributed)||0),0);
+  if(pot<=0) return alert("Njangi pot is 0. Add contributions first.");
+
+  const idx = Number(appState.next_payout_index || 0) % members.length;
+  const nextDate = appState.next_payout_date ? fromIso(appState.next_payout_date) : ROTATION_START;
+  const today = new Date();
+  const todayDate = fromIso(isoDate(today));
+
+  if(todayDate < nextDate){
+    return alert("Too early. Next payout: " + nextDate.toLocaleDateString());
   }
-  window.addEventListener("load", init);
+
+  const receiver = members[idx];
+
+  // Save payout
+  let { error } = await sb.from("payouts").insert([{
+    member_id: receiver.id,
+    member_name: receiver.name,
+    payout_amount: pot,
+    payout_date: isoDate(todayDate)
+  }]);
+  if(error) return alert(error.message);
+
+  // Update receiver payout_total
+  const newPayoutTotal = (Number(receiver.payout_total)||0) + pot;
+  ({ error } = await sb.from("members").update({
+    payout_total:newPayoutTotal,
+    last_payout_at:new Date().toISOString()
+  }).eq("id", receiver.id));
+  if(error) return alert(error.message);
+
+  // Reset contributions
+  ({ error } = await sb.from("members").update({ contributed:0 }));
+  if(error) return alert(error.message);
+
+  // Advance rotation
+  const newIdx = (idx + 1) % members.length;
+  const newNextDate = new Date(nextDate.getTime() + BIWEEK_MS);
+
+  ({ error } = await sb.from("app_state").update({
+    next_payout_index:newIdx,
+    next_payout_date: isoDate(newNextDate),
+    updated_at:new Date().toISOString()
+  }).eq("id",1));
+  if(error) return alert(error.message);
+
+  await sb.from("history").insert([{ type:"Payout", member:receiver.name, amount:pot, interest_percent:0 }]);
+  await reloadAll();
+  alert(`✅ Paid ${money(pot)} to ${receiver.name}\nNext payout: ${newNextDate.toLocaleDateString()}`);
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+(async function init(){
+  // Start locked ALWAYS
+  lockApp("");
+
+  // If already signed in, enforce admin gate
+  const { data } = await sb.auth.getUser();
+  if(data?.user){
+    await enforceAdminGate();
+  }
+})();
 </script>
+
 </body>
 </html>
