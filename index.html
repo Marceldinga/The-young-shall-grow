@@ -52,6 +52,11 @@
     .chkRow { display:flex; align-items:center; gap:8px; margin-top:10px; }
     .chkRow input { width:auto; margin:0; }
     .warn { color:#fbbf24; }
+    .errbox{
+      margin-top:10px; padding:10px 12px; border-radius:12px;
+      border:1px solid var(--border2); background:#111827; color:#fca5a5;
+      display:none; white-space:pre-wrap;
+    }
   </style>
 </head>
 
@@ -66,6 +71,7 @@
         <div class="row"><span class="small">Mode</span><span id="adminStatus" class="pill">View-only</span></div>
         <div class="row"><span class="small">Signed in</span><span id="signedInEmail" class="small">—</span></div>
         <button id="adminToggleBtn" class="btn" style="width:100%; margin-top:10px;" onclick="toggleAdminLogin()">Admin Login</button>
+        <div id="authError" class="errbox"></div>
 
         <div class="divider"></div>
         <div class="small">
@@ -343,11 +349,12 @@
 
   <script>
     // =========================================================
-    // 1) CONFIG: PUT YOUR REAL SUPABASE VALUES HERE
-    // Supabase -> Project Settings -> API
+    // 1) SUPABASE CONFIG (YOUR PROJECT URL IS ALREADY SET)
+    // IMPORTANT: Paste your ANON PUBLIC KEY below.
+    // Supabase -> Settings -> API -> anon public
     // =========================================================
-    const supabaseUrl = "PASTE_YOUR_SUPABASE_URL_HERE";
-    const supabaseAnonKey = "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
+    const supabaseUrl = "https://dkxqzxvqwabxmlhyyvak.supabase.co";
+    const supabaseAnonKey = "sb_secret_whqpjFmR9FahVQ9C09pY-Q_8CAyiGwl";
     const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
     // =========================================================
@@ -355,23 +362,38 @@
     // =========================================================
     let isAdmin = false;
 
+    function showAuthError(msg) {
+      const box = document.getElementById("authError");
+      if (!box) return;
+      if (!msg) { box.style.display = "none"; box.textContent = ""; return; }
+      box.style.display = "block";
+      box.textContent = msg;
+    }
+
     async function adminLogin() {
+      showAuthError("");
       const email = window.prompt("Admin email:");
       if (!email) return;
       const password = window.prompt("Password:");
       if (!password) return;
 
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) return alert("❌ Login failed: " + error.message);
+      if (error) {
+        showAuthError("Login failed: " + error.message);
+        return alert("❌ Login failed: " + error.message);
+      }
 
       await refreshAdminStatus();
       alert("✅ Logged in.");
     }
 
     async function adminLogout() {
+      showAuthError("");
       const { error } = await supabaseClient.auth.signOut();
-      if (error) return alert("❌ Logout failed: " + error.message);
-
+      if (error) {
+        showAuthError("Logout failed: " + error.message);
+        return alert("❌ Logout failed: " + error.message);
+      }
       isAdmin = false;
       updateAdminUI(null);
       alert("You are now in view-only mode.");
@@ -383,23 +405,30 @@
     }
 
     async function refreshAdminStatus() {
-      const { data } = await supabaseClient.auth.getUser();
-      const user = data?.user;
+      showAuthError("");
+      const { data, error } = await supabaseClient.auth.getUser();
+      if (error) console.error("getUser error:", error);
 
+      const user = data?.user;
       if (!user) {
         isAdmin = false;
         updateAdminUI(null);
         return;
       }
 
-      const { data: profile, error } = await supabaseClient
+      // Must have a profiles row like: profiles(id=user.id, role='admin')
+      const { data: profile, error: pErr } = await supabaseClient
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .single();
 
-      if (error) {
-        console.error("profiles read error:", error);
+      if (pErr) {
+        console.error("profiles read error:", pErr);
+        showAuthError(
+          "profiles read error: " + pErr.message +
+          "\nFix: create profiles table + add your user row + RLS policy."
+        );
         isAdmin = false;
         updateAdminUI(user.email || null);
         return;
@@ -415,7 +444,6 @@
       const signedInEmail = document.getElementById("signedInEmail");
 
       if (signedInEmail) signedInEmail.textContent = email || "—";
-
       if (statusEl) statusEl.textContent = isAdmin ? "Admin" : "View-only";
       if (toggleBtn) toggleBtn.textContent = isAdmin ? "Logout Admin" : "Admin Login";
 
@@ -423,7 +451,6 @@
         el.disabled = !isAdmin;
       });
 
-      // for fine action column
       renderFines();
     }
 
@@ -442,14 +469,13 @@
     let foundation = 0;
     const interestRate = 0.05;
 
-    let members = {};          // {id: {...}}
-    let payoutOrder = [];      // [id, id, ...]
+    let members = {};
+    let payoutOrder = [];
     let nextPayoutIndex = 0;
 
-    let history = [];          // latest first
+    let history = [];
     let fines = [];
 
-    // charts
     let contribChart = null;
     let totalsChart = null;
 
@@ -487,6 +513,7 @@
         .from("app_state")
         .update({ foundation, next_payout_index: nextPayoutIndex, updated_at: new Date().toISOString() })
         .eq("id", 1);
+
       if (error) console.error("app_state update error:", error);
     }
 
@@ -499,7 +526,6 @@
 
     function updateKpis() {
       const totalLoans = Object.values(members).reduce((sum, m) => sum + (Number(m.loanDue) || 0), 0);
-
       document.getElementById("kpiNjangi").textContent = "$" + formatMoney(njangiPot);
       document.getElementById("kpiFoundation").textContent = "$" + formatMoney(foundation);
       document.getElementById("kpiLoans").textContent = "$" + formatMoney(totalLoans);
@@ -508,8 +534,8 @@
     function renderMemberList() {
       const list = document.getElementById("memberList");
       if (!list) return;
-      list.innerHTML = "";
 
+      list.innerHTML = "";
       const arr = Object.values(members).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       document.getElementById("memberCount").textContent = arr.length;
 
@@ -565,22 +591,22 @@
 
     function renderHistory() {
       const body = document.getElementById("historyBody");
-      if (!body) return;
-      body.innerHTML = "";
-      history.forEach((h) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${h.time || ""}</td>
-          <td>${h.type || ""}</td>
-          <td>${h.member || ""}</td>
-          <td>$${formatMoney(h.amount)}</td>
-          <td>${h.interestPercent ? h.interestPercent + "%" : "-"}</td>
-          <td>${h.totalDue != null ? "$" + formatMoney(h.totalDue) : "-"}</td>
-        `;
-        body.appendChild(tr);
-      });
+      if (body) {
+        body.innerHTML = "";
+        history.forEach((h) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${h.time || ""}</td>
+            <td>${h.type || ""}</td>
+            <td>${h.member || ""}</td>
+            <td>$${formatMoney(h.amount)}</td>
+            <td>${h.interestPercent ? h.interestPercent + "%" : "-"}</td>
+            <td>${h.totalDue != null ? "$" + formatMoney(h.totalDue) : "-"}</td>
+          `;
+          body.appendChild(tr);
+        });
+      }
 
-      // Recent activity = top 10
       const rbody = document.getElementById("recentActivityBody");
       if (rbody) {
         rbody.innerHTML = "";
@@ -677,8 +703,30 @@
     // =========================================================
     // 8) LOAD FROM SUPABASE
     // =========================================================
+    async function loadFinesFromSupabase() {
+      const { data, error } = await supabaseClient.from("fines").select("*").order("created_at", { ascending: false });
+      if (error) {
+        console.error("fines load error:", error);
+        fines = [];
+        renderFines();
+        return;
+      }
+
+      fines = (data || []).map((f) => ({
+        id: f.id,
+        memberId: f.member_id,
+        memberName: f.member_name,
+        amount: Number(f.amount) || 0,
+        reason: f.reason || "",
+        status: f.status || "unpaid",
+        createdAt: f.created_at ? new Date(f.created_at).toLocaleString() : "",
+      }));
+
+      renderFines();
+    }
+
     async function loadFromSupabase() {
-      // app_state
+      // app_state (create row if missing)
       let { data: appRows, error: appErr } = await supabaseClient.from("app_state").select("*").eq("id", 1);
       if (appErr) console.error("app_state error:", appErr);
 
@@ -701,7 +749,6 @@
         .from("members")
         .select("*")
         .order("position", { ascending: true });
-
       if (memErr) console.error("members error:", memErr);
 
       members = {};
@@ -726,7 +773,6 @@
         .from("history")
         .select("*")
         .order("created_at", { ascending: false });
-
       if (histErr) console.error("history error:", histErr);
 
       history = (histData || []).map((h) => ({
@@ -738,9 +784,7 @@
         time: h.created_at ? new Date(h.created_at).toLocaleString() : "",
       }));
 
-      // fines
       await loadFinesFromSupabase();
-
       updateNjangiPot();
     }
 
@@ -756,7 +800,6 @@
 
       if (error) {
         console.error("history insert error:", error);
-        // still add locally
         history.unshift({ type, member, amount, interestPercent, totalDue, time: new Date().toLocaleString() });
         renderHistory(); updateCharts(); updateKpis();
         return;
@@ -775,7 +818,6 @@
     async function rotatePayout() {
       if (!ensureAdmin()) return;
       if (!payoutOrder.length) return alert("No members in rotation.");
-
       nextPayoutIndex = (nextPayoutIndex + 1) % payoutOrder.length;
       updateNextPayoutDisplay();
       await syncAppState();
@@ -812,11 +854,7 @@
       }
 
       const id = String(data.id);
-      members[id] = {
-        id, name: data.name, phone: data.phone,
-        contributed: 0, foundationContrib: 0, loanDue: 0,
-        position: data.position, hasBenefits: !!data.has_benefits,
-      };
+      members[id] = { id, name: data.name, phone: data.phone, contributed: 0, foundationContrib: 0, loanDue: 0, position: data.position, hasBenefits: !!data.has_benefits };
       payoutOrder.push(id);
 
       document.getElementById("newMemberName").value = "";
@@ -846,11 +884,7 @@
 
       m.contributed = (Number(m.contributed) || 0) + amount;
 
-      const { error } = await supabaseClient
-        .from("members")
-        .update({ contributed: m.contributed })
-        .eq("id", memberId);
-
+      const { error } = await supabaseClient.from("members").update({ contributed: m.contributed }).eq("id", memberId);
       if (error) {
         console.error("addContribution error:", error);
         return alert("Could not save contribution: " + error.message);
@@ -879,11 +913,7 @@
 
       m.contributed = amount;
 
-      const { error } = await supabaseClient
-        .from("members")
-        .update({ contributed: m.contributed })
-        .eq("id", memberId);
-
+      const { error } = await supabaseClient.from("members").update({ contributed: m.contributed }).eq("id", memberId);
       if (error) {
         console.error("setContribution error:", error);
         return alert("Could not set contribution: " + error.message);
@@ -945,11 +975,7 @@
       m.foundationContrib = (Number(m.foundationContrib) || 0) + amount;
       foundation += amount;
 
-      const { error } = await supabaseClient
-        .from("members")
-        .update({ foundation_contrib: m.foundationContrib })
-        .eq("id", memberId);
-
+      const { error } = await supabaseClient.from("members").update({ foundation_contrib: m.foundationContrib }).eq("id", memberId);
       if (error) {
         console.error("foundation member update error:", error);
         return alert("Could not update member foundation: " + error.message);
@@ -996,11 +1022,7 @@
       foundation -= amount;
       m.loanDue = (Number(m.loanDue) || 0) + totalDue;
 
-      const { error } = await supabaseClient
-        .from("members")
-        .update({ loan_due: m.loanDue })
-        .eq("id", memberId);
-
+      const { error } = await supabaseClient.from("members").update({ loan_due: m.loanDue }).eq("id", memberId);
       if (error) {
         console.error("loan update error:", error);
         return alert("Could not save loan: " + error.message);
@@ -1036,11 +1058,7 @@
       m.loanDue = due - pay;
       foundation += pay;
 
-      const { error } = await supabaseClient
-        .from("members")
-        .update({ loan_due: m.loanDue })
-        .eq("id", memberId);
-
+      const { error } = await supabaseClient.from("members").update({ loan_due: m.loanDue }).eq("id", memberId);
       if (error) {
         console.error("repayment update error:", error);
         return alert("Could not record repayment: " + error.message);
@@ -1058,28 +1076,6 @@
     }
 
     // FINES
-    async function loadFinesFromSupabase() {
-      const { data, error } = await supabaseClient.from("fines").select("*").order("created_at", { ascending: false });
-      if (error) {
-        console.error("fines load error:", error);
-        fines = [];
-        renderFines();
-        return;
-      }
-
-      fines = (data || []).map((f) => ({
-        id: f.id,
-        memberId: f.member_id,
-        memberName: f.member_name,
-        amount: Number(f.amount) || 0,
-        reason: f.reason || "",
-        status: f.status || "unpaid",
-        createdAt: f.created_at ? new Date(f.created_at).toLocaleString() : "",
-      }));
-
-      renderFines();
-    }
-
     async function addFine() {
       if (!ensureAdmin()) return;
 
@@ -1094,7 +1090,7 @@
       if (!m) return alert("Member not found.");
 
       const payload = {
-        member_id: Number(memberId),   // members.id is bigint
+        member_id: Number(memberId),
         member_name: m.name,
         amount,
         reason,
@@ -1136,10 +1132,8 @@
     async function init() {
       document.getElementById("todayDate").textContent = new Date().toLocaleDateString();
 
-      // Load all data
       await loadFromSupabase();
 
-      // UI
       populateMemberSelects();
       renderMemberList();
       updateNjangiPot();
@@ -1148,7 +1142,6 @@
       renderHistory();
       updateCharts();
 
-      // check auth/admin
       await refreshAdminStatus();
       const { data } = await supabaseClient.auth.getUser();
       updateAdminUI(data?.user?.email || null);
@@ -1161,8 +1154,8 @@
   </script>
 
   <!-- IMPORTANT:
-    1) Replace supabaseUrl + supabaseAnonKey with your real values.
-    2) Your SQL setup must already be run (profiles/members/app_state/history/fines + RLS policies).
+    1) Paste your anon public key into supabaseAnonKey.
+    2) Your SQL must exist: profiles/members/app_state/history/fines + RLS policies.
   -->
 </body>
 </html>
