@@ -1,1316 +1,213 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>The Young Shall Grow – Njangi (Full)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <title>Njangi – The Young Shall Grow</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
-    :root{
-      --bg:#0b1220; --panel:#0f172a; --panel2:#0b1220;
-      --border:#111827; --border2:#1f2937;
-      --text:#e5e7eb; --muted:#9ca3af; --ok:#22c55e; --bad:#ef4444; --warn:#fbbf24;
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b1220;
+      color: #e5e7eb;
+      margin: 0;
+      padding: 20px;
     }
-    *{ box-sizing:border-box; }
-    body { margin:0; font-family: Arial, sans-serif; background:var(--bg); color:var(--text); }
-    .app { display:flex; min-height:100vh; }
-    .sidebar { width:300px; background:var(--panel); padding:16px; border-right:1px solid var(--border); }
-    .brand { font-weight:800; font-size:16px; }
-    .small { color:var(--muted); font-size:12px; }
-    .nav { display:flex; flex-direction:column; gap:8px; margin-top:14px; }
-    .nav button { width:100%; text-align:left; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel2); color:var(--text); cursor:pointer; }
-    .nav button.active { background:#111827; border-color:var(--border2); }
-    .card { background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:14px; box-shadow: 0 8px 18px rgba(0,0,0,.25); }
-    .main { flex:1; padding:18px; }
-    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
-    .grid4 { display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:12px; }
-    .kpi { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
-    .kpi .value { font-size:22px; font-weight:800; margin-top:6px; }
-    .kpi .label { font-size:12px; color:var(--muted); }
-    .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:#111827; border:1px solid var(--border2); font-size:12px; color:var(--text); }
-    .btn { padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:#111827; color:var(--text); cursor:pointer; }
-    .btn:hover { filter:brightness(1.06); }
-    .btn:disabled { opacity:.55; cursor:not-allowed; }
-    label { display:block; margin-top:10px; color:var(--muted); font-size:12px; }
-    input, select { width:100%; padding:10px; margin-top:6px; border-radius:12px; border:1px solid var(--border); background:var(--panel2); color:var(--text); }
-    .section { display:none; }
-    .section.active { display:block; }
-    .list { list-style:none; padding:0; margin:0; }
-    .list li { padding:10px; border:1px solid var(--border); background:var(--panel2); border-radius:14px; margin-bottom:10px; }
-    .name { font-weight:800; margin-bottom:4px; }
-    .meta { color:var(--muted); font-size:12px; line-height:1.45; }
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    th, td { border-bottom:1px solid var(--border); padding:10px; text-align:left; font-size:12px; vertical-align:top; }
-    th { color:var(--muted); font-weight:700; }
-    .row { display:flex; justify-content:space-between; gap:10px; margin:6px 0; align-items:center; }
-    .divider { border:0; border-top:1px solid var(--border); margin:14px 0; }
-    .errbox{
-      margin-top:10px; padding:10px 12px; border-radius:12px;
-      border:1px solid var(--border2); background:#111827; color:#fca5a5;
-      display:none; white-space:pre-wrap;
+    h2 { margin-top: 0; }
+    .card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+      max-width: 420px;
     }
-    .ok { color: var(--ok); }
-    .bad { color: var(--bad); }
-    .warn { color: var(--warn); }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+    }
+    button { cursor: pointer; }
+    .ok { color: #22c55e; }
+    .bad { color: #ef4444; }
+    .small { font-size: 12px; color: #9ca3af; }
   </style>
 </head>
 
 <body>
-  <div class="app">
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
-      <div class="brand">The Young Shall Grow – Njangi</div>
-      <div class="small" style="margin-top:6px;">Dashboard • <span id="todayDate"></span></div>
-
-      <div class="card" style="margin-top:14px;">
-        <div class="row"><span class="small">Mode</span><span id="adminStatus" class="pill">View-only</span></div>
-        <div class="row"><span class="small">Signed in</span><span id="signedInEmail" class="small">—</span></div>
-        <button id="adminToggleBtn" class="btn" style="width:100%; margin-top:10px;" onclick="toggleAdminLogin()">Admin Login</button>
-        <div id="authError" class="errbox"></div>
-
-        <div class="divider"></div>
-        <div class="small">
-          <b>Borrow rule:</b><br/>
-          If <span class="pill">Benefits = Yes</span> and member foundation ≤ 70% of loan request → <b>NOT qualified</b>.
-        </div>
-      </div>
-
-      <div class="nav">
-        <button id="nav-dashboard" class="active" onclick="showSection('dashboardSection'); setActiveNav('dashboard')">Dashboard</button>
-        <button id="nav-members" onclick="showSection('membersSection'); setActiveNav('members')">Members</button>
-        <button id="nav-contrib" onclick="showSection('contributionSection'); setActiveNav('contrib')">Contributions</button>
-        <button id="nav-loans" onclick="showSection('loanSection'); setActiveNav('loans')">Loans</button>
-        <button id="nav-found" onclick="showSection('foundationSection'); setActiveNav('found')">Foundation</button>
-        <button id="nav-fines" onclick="showSection('fineSection'); setActiveNav('fines')">Fines</button>
-        <button id="nav-payouts" onclick="showSection('payoutsSection'); setActiveNav('payouts')">Payouts</button>
-        <button id="nav-history" onclick="showSection('historySection'); setActiveNav('history')">History</button>
-      </div>
-
-      <div class="card" style="margin-top:14px;">
-        <div class="small">Next Payout (Bi-weekly)</div>
-        <div style="margin-top:8px; font-weight:800;" id="nextPayoutName">—</div>
-        <div class="small" id="nextPayoutInfo">—</div>
-        <button class="btn" style="width:100%; margin-top:10px;" data-admin-only="true" onclick="runPayout()">Run Payout Now</button>
-        <div class="small warn" style="margin-top:10px;">Start date: <b>Jan 3, 2026</b></div>
-      </div>
-    </aside>
-
-    <!-- MAIN -->
-    <main class="main">
-
-      <!-- DASHBOARD -->
-      <section id="dashboardSection" class="section active">
-        <div class="grid4">
-          <div class="card kpi">
-            <div>
-              <div class="label">Njangi Pot</div>
-              <div class="value" id="kpiNjangi">$0</div>
-              <div class="small">Sum of member contributions</div>
-            </div>
-            <span class="pill">KPI</span>
-          </div>
-
-          <div class="card kpi">
-            <div>
-              <div class="label">Foundation Balance</div>
-              <div class="value" id="kpiFoundation">$0</div>
-              <div class="small">Cash available for loans</div>
-            </div>
-            <span class="pill">KPI</span>
-          </div>
-
-          <div class="card kpi">
-            <div>
-              <div class="label">Outstanding Loans</div>
-              <div class="value" id="kpiLoans">$0</div>
-              <div class="small">Total due (principal + interest)</div>
-            </div>
-            <span class="pill">KPI</span>
-          </div>
-
-          <div class="card kpi">
-            <div>
-              <div class="label">Total Interest Generated</div>
-              <div class="value" id="kpiInterest">$0</div>
-              <div class="small">Lifetime</div>
-            </div>
-            <span class="pill">KPI</span>
-          </div>
-        </div>
-
-        <div class="grid2" style="margin-top:14px;">
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Member Portfolio</h3>
-            <canvas id="contribChart" height="190"></canvas>
-          </div>
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Totals</h3>
-            <canvas id="totalsChart" height="190"></canvas>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:14px;">
-          <h3 style="margin:0 0 10px 0;">Recent Activity</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Type</th>
-                <th>Member</th>
-                <th>Amount</th>
-                <th>Interest</th>
-                <th>Total Due</th>
-              </tr>
-            </thead>
-            <tbody id="recentActivityBody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- MEMBERS -->
-      <section id="membersSection" class="section">
-        <div class="grid2">
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Add Member</h3>
-
-            <label>Full Name</label>
-            <input id="newMemberName" placeholder="e.g. John Doe" />
-
-            <label>Phone (optional)</label>
-            <input id="newMemberPhone" placeholder="e.g. 301-000-0000" />
-
-            <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
-              <input id="newMemberBenefits" type="checkbox" style="width:auto; margin:0;" />
-              <label for="newMemberBenefits" style="margin:0; color:var(--text);">Has benefits</label>
-            </div>
-
-            <button class="btn" style="width:100%; margin-top:12px;" data-admin-only="true" onclick="addMember()">Add Member</button>
-
-            <div class="small warn" style="margin-top:10px;">
-              Admin only. If button is disabled, login as admin.
-            </div>
-          </div>
-
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Members</h3>
-            <div class="row">
-              <span class="pill">Sorted A–Z</span>
-              <span class="pill">Total: <span id="memberCount">0</span></span>
-            </div>
-            <ul id="memberList" class="list" style="margin-top:10px;"></ul>
-          </div>
-        </div>
-      </section>
-
-      <!-- CONTRIBUTIONS -->
-      <section id="contributionSection" class="section">
-        <div class="grid2">
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Contributions</h3>
-
-            <label>Member</label>
-            <select id="memberSelect"></select>
-
-            <label>Add Amount (multiple of 500)</label>
-            <input id="amountAdd" type="number" placeholder="e.g. 500" />
-            <button class="btn" style="width:100%;" data-admin-only="true" onclick="addContribution()">Add Contribution</button>
-
-            <hr class="divider" />
-
-            <label>Set Contribution Total (override)</label>
-            <input id="amountSet" type="number" placeholder="e.g. 2000" />
-            <button class="btn" style="width:100%;" data-admin-only="true" onclick="setContribution()">Set Contribution</button>
-          </div>
-
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Notes</h3>
-            <div class="small">
-              • Contributions must be multiples of 500<br/>
-              • Njangi pot auto-updates from member totals<br/>
-              • Admin actions require admin login
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- LOANS -->
-      <section id="loanSection" class="section">
-        <div class="grid2">
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Issue Loan (5% Interest)</h3>
-            <label>Member</label>
-            <select id="loanMember"></select>
-
-            <label>Loan Amount</label>
-            <input id="loanAmount" type="number" placeholder="e.g. 1000" />
-
-            <button class="btn" style="width:100%;" data-admin-only="true" onclick="saveLoan()">Save Loan</button>
-          </div>
-
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Record Repayment</h3>
-            <label>Member</label>
-            <select id="loanRepayMember"></select>
-
-            <label>Repayment Amount</label>
-            <input id="loanRepayAmount" type="number" placeholder="e.g. 500" />
-
-            <button class="btn" style="width:100%;" data-admin-only="true" onclick="recordRepayment()">Record Repayment</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- FOUNDATION -->
-      <section id="foundationSection" class="section">
-        <div class="grid2">
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Foundation (Business Cash)</h3>
-
-            <label>Add to Foundation</label>
-            <input id="foundationAddAmount" type="number" placeholder="e.g. 500" />
-            <button class="btn" style="width:100%;" data-admin-only="true" onclick="addToFoundation()">Add Foundation</button>
-
-            <hr class="divider" />
-
-            <label>Set Foundation Total (override)</label>
-            <input id="foundationSetAmount" type="number" placeholder="e.g. 5000" />
-            <button class="btn" style="width:100%;" data-admin-only="true" onclick="setFoundation()">Set Foundation</button>
-          </div>
-
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Member Foundation Contribution</h3>
-
-            <label>Member</label>
-            <select id="foundationMember"></select>
-
-            <label>Amount</label>
-            <input id="foundationMemberAmount" type="number" placeholder="e.g. 500" />
-
-            <button class="btn" style="width:100%;" data-admin-only="true" onclick="addMemberFoundationContribution()">
-              Add Member Foundation Contribution
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- FINES -->
-      <section id="fineSection" class="section">
-        <div class="grid2">
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Add Fine</h3>
-
-            <label>Member</label>
-            <select id="fineMember"></select>
-
-            <label>Fine Amount</label>
-            <input id="fineAmount" type="number" placeholder="e.g. 500" />
-
-            <label>Reason (optional)</label>
-            <input id="fineReason" type="text" placeholder="Late payment, missed meeting..." />
-
-            <button class="btn" style="width:100%;" data-admin-only="true" onclick="addFine()">Add Fine</button>
-          </div>
-
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Fine List</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Member</th>
-                  <th>Amount</th>
-                  <th>Reason</th>
-                  <th>Status</th>
-                  <th data-admin-only="true">Action</th>
-                </tr>
-              </thead>
-              <tbody id="fineBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- PAYOUTS -->
-      <section id="payoutsSection" class="section">
-        <div class="grid2">
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Bi-weekly Payout</h3>
-            <div class="small">
-              • Start: <b>Jan 3, 2026</b><br/>
-              • Every 14 days<br/>
-              • Payout amount = current Njangi Pot<br/>
-              • After payout: contributions reset to 0
-            </div>
-            <hr class="divider" />
-            <button class="btn" style="width:100%;" data-admin-only="true" onclick="runPayout()">Run Payout Now</button>
-            <div class="small warn" style="margin-top:10px;">Admin only.</div>
-          </div>
-
-          <div class="card">
-            <h3 style="margin:0 0 10px 0;">Payouts History</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Member</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody id="payoutsBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- HISTORY -->
-      <section id="historySection" class="section">
-        <div class="card">
-          <h3 style="margin:0 0 10px 0;">Full Activity History</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Type</th>
-                <th>Member</th>
-                <th>Amount</th>
-                <th>Interest</th>
-                <th>Total Due</th>
-              </tr>
-            </thead>
-            <tbody id="historyBody"></tbody>
-          </table>
-        </div>
-      </section>
-
-    </main>
-  </div>
-
-  <script>
-    // =========================================================
-    // SUPABASE CONFIG
-    // =========================================================
-    // IMPORTANT: Use your project's URL and anon public key.
-    const supabaseUrl = "postgresql://postgres:[YOUR-PASSWORD]@db.auxdvufuhdnlalupwrrb.supabase.co:5432/postgres";
-
-    // Replace this with YOUR anon public key from Supabase Settings → API Keys
-    // (NOT sb_publishable__..., NOT service_role)
-    const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRreHF6eHZxd2FieG1saHl5dmFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwNjI4NDgsImV4cCI6MjA4MDYzODg0OH0.pRqdu2S_wH_SoGzEGCFYS44TQX3ZISv7qp8gmW7Ve7M";
-
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
-
-    // =========================================================
-    // ADMIN MODE: Supabase Auth + profiles.role === 'admin'
-    // =========================================================
-    let isAdmin = false;
-
-    function showAuthError(msg) {
-      const box = document.getElementById("authError");
-      if (!box) return;
-      if (!msg) { box.style.display = "none"; box.textContent = ""; return; }
-      box.style.display = "block";
-      box.textContent = msg;
-    }
-
-    async function adminLogin() {
-      showAuthError("");
-      const email = window.prompt("Admin email:");
-      if (!email) return;
-      const password = window.prompt("Password:");
-      if (!password) return;
-
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) {
-        showAuthError("Login failed: " + error.message);
-        return alert("❌ Login failed: " + error.message);
-      }
-      await refreshAdminStatus();
-      alert("✅ Logged in.");
-    }
-
-    async function adminLogout() {
-      showAuthError("");
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) {
-        showAuthError("Logout failed: " + error.message);
-        return alert("❌ Logout failed: " + error.message);
-      }
-      isAdmin = false;
-      updateAdminUI(null);
-      alert("You are now in view-only mode.");
-    }
-
-    function toggleAdminLogin() {
-      if (!isAdmin) adminLogin();
-      else adminLogout();
-    }
-
-    async function refreshAdminStatus() {
-      showAuthError("");
-      const { data, error } = await supabaseClient.auth.getUser();
-      if (error) console.error("getUser error:", error);
-
-      const user = data?.user;
-      if (!user) {
-        isAdmin = false;
-        updateAdminUI(null);
-        return;
-      }
-
-      const { data: profile, error: pErr } = await supabaseClient
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (pErr) {
-        console.error("profiles read error:", pErr);
-        showAuthError(
-          "profiles read error: " + pErr.message +
-          "\nFix: run the SQL script and set your admin role in profiles."
-        );
-        isAdmin = false;
-        updateAdminUI(user.email || null);
-        return;
-      }
-
-      isAdmin = profile?.role === "admin";
-      updateAdminUI(user.email || null);
-    }
-
-    function updateAdminUI(email) {
-      const statusEl = document.getElementById("adminStatus");
-      const toggleBtn = document.getElementById("adminToggleBtn");
-      const signedInEmail = document.getElementById("signedInEmail");
-
-      if (signedInEmail) signedInEmail.textContent = email || "—";
-      if (statusEl) statusEl.textContent = isAdmin ? "Admin" : "View-only";
-      if (toggleBtn) toggleBtn.textContent = isAdmin ? "Logout Admin" : "Admin Login";
-
-      document.querySelectorAll("[data-admin-only='true']").forEach((el) => {
-        el.disabled = !isAdmin;
-      });
-
-      renderFines();
-    }
-
-    function ensureAdmin() {
-      if (!isAdmin) {
-        alert("Admin only action. Please log in as admin.");
-        return false;
-      }
-      return true;
-    }
-
-    // =========================================================
-    // STATE
-    // =========================================================
-    let njangiPot = 0;
-    let foundation = 0;
-    let totalInterestGenerated = 0;
-
-    // Rotation starts Jan 3, 2026 and repeats every 14 days
-    const ROTATION_START_DATE_STR = "2026-01-03";
-    const BIWEEK_MS = 14 * 24 * 60 * 60 * 1000;
-
-    let nextPayoutIndex = 0;
-    let nextPayoutDate = new Date(ROTATION_START_DATE_STR + "T00:00:00");
-
-    const interestRate = 0.05;
-
-    let members = {};
-    let payoutOrder = [];
-
-    let history = [];
-    let fines = [];
-    let payouts = [];
-
-    let contribChart = null;
-    let totalsChart = null;
-
-    function formatMoney(x) {
-      return (Number(x) || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    }
-    function toDateOnlyISO(d) {
-      return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0,10);
-    }
-    function dateOnlyFromISO(isoDate) {
-      return new Date(isoDate + "T00:00:00");
-    }
-
-    // =========================================================
-    // NAV / SECTIONS
-    // =========================================================
-    function showSection(id) {
-      document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
-      document.getElementById(id)?.classList.add("active");
-    }
-
-    function setActiveNav(which) {
-      const map = {
-        dashboard: "nav-dashboard",
-        members: "nav-members",
-        contrib: "nav-contrib",
-        loans: "nav-loans",
-        found: "nav-found",
-        fines: "nav-fines",
-        payouts: "nav-payouts",
-        history: "nav-history",
-      };
-      Object.values(map).forEach((id) => document.getElementById(id)?.classList.remove("active"));
-      document.getElementById(map[which])?.classList.add("active");
-    }
-
-    // =========================================================
-    // DB helpers
-    // =========================================================
-    async function syncAppState() {
-      const payload = {
-        foundation,
-        next_payout_index: nextPayoutIndex,
-        next_payout_date: toDateOnlyISO(nextPayoutDate),
-        total_interest_generated: totalInterestGenerated,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabaseClient
-        .from("app_state")
-        .update(payload)
-        .eq("id", 1);
-
-      if (error) console.error("app_state update error:", error);
-    }
-
-    function updateNjangiPot() {
-      njangiPot = Object.values(members).reduce((sum, m) => sum + (Number(m.contributed) || 0), 0);
-    }
-
-    function updateKpis() {
-      const totalLoans = Object.values(members).reduce((sum, m) => sum + (Number(m.loanDue) || 0), 0);
-      document.getElementById("kpiNjangi").textContent = "$" + formatMoney(njangiPot);
-      document.getElementById("kpiFoundation").textContent = "$" + formatMoney(foundation);
-      document.getElementById("kpiLoans").textContent = "$" + formatMoney(totalLoans);
-      document.getElementById("kpiInterest").textContent = "$" + formatMoney(totalInterestGenerated);
-    }
-
-    function renderMemberList() {
-      const list = document.getElementById("memberList");
-      if (!list) return;
-
-      list.innerHTML = "";
-      const arr = Object.values(members).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-      document.getElementById("memberCount").textContent = arr.length;
-
-      arr.forEach((m) => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-          <div class="name">${m.name} <span class="pill" style="margin-left:6px;">Payout Total: $${formatMoney(m.payoutTotal || 0)}</span></div>
-          <div class="meta">
-            Njangi: $${formatMoney(m.contributed)}
-            • Foundation: $${formatMoney(m.foundationContrib)}
-            • Loan due: $${formatMoney(m.loanDue)}
-            • Benefits: ${m.hasBenefits ? "Yes" : "No"}
-            ${m.phone ? `<br/>Phone: ${m.phone}` : ""}
-          </div>
-        `;
-        list.appendChild(li);
-      });
-    }
-
-    function populateMemberSelects() {
-      const arr = Object.values(members).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-      const ids = ["memberSelect", "loanMember", "loanRepayMember", "foundationMember", "fineMember"];
-      ids.forEach((id) => {
-        const sel = document.getElementById(id);
-        if (!sel) return;
-        sel.innerHTML = "";
-        arr.forEach((m) => {
-          const opt = document.createElement("option");
-          opt.value = m.id;
-          opt.textContent = m.name;
-          sel.appendChild(opt);
-        });
-      });
-    }
-
-    function updateNextPayoutDisplay() {
-      const nameEl = document.getElementById("nextPayoutName");
-      const infoEl = document.getElementById("nextPayoutInfo");
-      if (!nameEl || !infoEl) return;
-
-      if (!payoutOrder.length) {
-        nameEl.textContent = "No members";
-        infoEl.textContent = "Add members to start rotation";
-        return;
-      }
-      if (nextPayoutIndex >= payoutOrder.length) nextPayoutIndex = 0;
-
-      const memberId = payoutOrder[nextPayoutIndex];
-      const m = members[memberId];
-
-      // payout amount shown on member name (current pot)
-      const payoutAmount = njangiPot;
-
-      nameEl.textContent = m ? `${m.name}  (Payout: $${formatMoney(payoutAmount)})` : "Unknown member";
-      infoEl.textContent = `Next payout date: ${nextPayoutDate.toLocaleDateString()} • Position ${nextPayoutIndex + 1} of ${payoutOrder.length}`;
-    }
-
-    function renderHistory() {
-      const body = document.getElementById("historyBody");
-      const recent = document.getElementById("recentActivityBody");
-      if (body) body.innerHTML = "";
-      if (recent) recent.innerHTML = "";
-
-      const rows = history || [];
-      rows.forEach((h, idx) => {
-        const rowHtml = `
-          <td>${h.time || ""}</td>
-          <td>${h.type || ""}</td>
-          <td>${h.member || ""}</td>
-          <td>$${formatMoney(h.amount)}</td>
-          <td>${h.interestPercent ? h.interestPercent + "%" : "-"}</td>
-          <td>${h.totalDue != null ? "$" + formatMoney(h.totalDue) : "-"}</td>
-        `;
-        if (body) {
-          const tr = document.createElement("tr");
-          tr.innerHTML = rowHtml;
-          body.appendChild(tr);
-        }
-        if (recent && idx < 10) {
-          const tr2 = document.createElement("tr");
-          tr2.innerHTML = rowHtml;
-          recent.appendChild(tr2);
-        }
-      });
-    }
-
-    function renderFines() {
-      const body = document.getElementById("fineBody");
-      if (!body) return;
-
-      body.innerHTML = "";
-      fines.forEach((f) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${f.createdAt}</td>
-          <td>${f.memberName}</td>
-          <td>$${formatMoney(f.amount)}</td>
-          <td>${f.reason || "-"}</td>
-          <td>${f.status}</td>
-          <td ${isAdmin ? "" : 'style="display:none"'} data-admin-only="true">
-            ${f.status === "unpaid" ? `<button class="btn" onclick="markFinePaid(${f.id})">Mark Paid</button>` : "-"}
-          </td>
-        `;
-        body.appendChild(tr);
-      });
-    }
-
-    function renderPayouts() {
-      const body = document.getElementById("payoutsBody");
-      if (!body) return;
-      body.innerHTML = "";
-      payouts.forEach((p) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${p.payoutDate}</td>
-          <td>${p.memberName}</td>
-          <td>$${formatMoney(p.payoutAmount)}</td>
-        `;
-        body.appendChild(tr);
-      });
-    }
-
-    // =========================================================
-    // CHARTS
-    // =========================================================
-    function updateCharts() {
-      const labels = Object.values(members).map((m) => m.name);
-      const contribVals = Object.values(members).map((m) => Number(m.contributed) || 0);
-      const loanVals = Object.values(members).map((m) => Number(m.loanDue) || 0);
-      const totalLoans = loanVals.reduce((a, b) => a + b, 0);
-
-      const contribCtx = document.getElementById("contribChart")?.getContext("2d");
-      if (contribCtx) {
-        if (!contribChart) {
-          contribChart = new Chart(contribCtx, {
-            type: "bar",
-            data: {
-              labels,
-              datasets: [
-                { label: "Contributions", data: contribVals },
-                { label: "Outstanding Loans", data: loanVals },
-              ],
-            },
-            options: {
-              responsive: true,
-              plugins: { legend: { labels: { color: "#e5e7eb", font: { size: 10 } } } },
-              scales: {
-                x: { ticks: { color: "#9ca3af", font: { size: 10 } }, grid: { color: "#111827" } },
-                y: { ticks: { color: "#9ca3af", font: { size: 10 } }, grid: { color: "#111827" } },
-              },
-            },
-          });
-        } else {
-          contribChart.data.labels = labels;
-          contribChart.data.datasets[0].data = contribVals;
-          contribChart.data.datasets[1].data = loanVals;
-          contribChart.update();
-        }
-      }
-
-      const totalsCtx = document.getElementById("totalsChart")?.getContext("2d");
-      if (totalsCtx) {
-        const data = [njangiPot, foundation, totalLoans, totalInterestGenerated];
-        if (!totalsChart) {
-          totalsChart = new Chart(totalsCtx, {
-            type: "doughnut",
-            data: { labels: ["Njangi Pot", "Foundation", "Outstanding Loans", "Total Interest"], datasets: [{ data }] },
-            options: { responsive: true, plugins: { legend: { labels: { color: "#e5e7eb", font: { size: 10 } } } } },
-          });
-        } else {
-          totalsChart.data.datasets[0].data = data;
-          totalsChart.update();
-        }
-      }
-    }
-
-    // =========================================================
-    // LOAD DATA
-    // =========================================================
-    async function loadFinesFromSupabase() {
-      const { data, error } = await supabaseClient.from("fines").select("*").order("created_at", { ascending: false });
-      if (error) {
-        console.error("fines load error:", error);
-        fines = [];
-        renderFines();
-        return;
-      }
-
-      fines = (data || []).map((f) => ({
-        id: f.id,
-        memberId: f.member_id,
-        memberName: f.member_name,
-        amount: Number(f.amount) || 0,
-        reason: f.reason || "",
-        status: f.status || "unpaid",
-        createdAt: f.created_at ? new Date(f.created_at).toLocaleString() : "",
-      }));
-
-      renderFines();
-    }
-
-    async function loadPayoutsFromSupabase() {
-      const { data, error } = await supabaseClient.from("payouts").select("*").order("created_at", { ascending: false });
-      if (error) {
-        console.error("payouts load error:", error);
-        payouts = [];
-        renderPayouts();
-        return;
-      }
-
-      payouts = (data || []).map((p) => ({
-        id: p.id,
-        memberId: p.member_id,
-        memberName: p.member_name,
-        payoutAmount: Number(p.payout_amount) || 0,
-        payoutDate: p.payout_date,
-        createdAt: p.created_at ? new Date(p.created_at).toLocaleString() : "",
-      }));
-
-      renderPayouts();
-    }
-
-    async function loadFromSupabase() {
-      // app_state
-      let { data: appRows, error: appErr } = await supabaseClient.from("app_state").select("*").eq("id", 1);
-      if (appErr) console.error("app_state load error:", appErr);
-
-      let appRow = appRows && appRows[0];
-      if (!appRow) {
-        const { data: inserted } = await supabaseClient.from("app_state").insert([{ id: 1 }]).select().single();
-        appRow = inserted;
-      }
-
-      foundation = Number(appRow?.foundation) || 0;
-      nextPayoutIndex = Number(appRow?.next_payout_index) || 0;
-
-      // load total interest generated
-      totalInterestGenerated = Number(appRow?.total_interest_generated) || 0;
-
-      // next payout date (bi-weekly) - fallback to Jan 3 if missing
-      const dbNextDate = appRow?.next_payout_date ? dateOnlyFromISO(appRow.next_payout_date) : dateOnlyFromISO(ROTATION_START_DATE_STR);
-      nextPayoutDate = dbNextDate;
-
-      // members
-      const { data: membersData, error: memErr } = await supabaseClient
-        .from("members")
-        .select("*")
-        .order("position", { ascending: true });
-
-      if (memErr) console.error("members load error:", memErr);
-
-      members = {};
-      payoutOrder = [];
-      (membersData || []).forEach((m) => {
-        const id = String(m.id);
-        members[id] = {
-          id,
-          name: m.name,
-          phone: m.phone,
-          contributed: Number(m.contributed) || 0,
-          foundationContrib: Number(m.foundation_contrib) || 0,
-          loanDue: Number(m.loan_due) || 0,
-          payoutTotal: Number(m.payout_total) || 0,
-          lastPayoutAt: m.last_payout_at,
-          position: m.position,
-          hasBenefits: !!m.has_benefits,
-        };
-        payoutOrder.push(id);
-      });
-
-      // history
-      const { data: histData, error: histErr } = await supabaseClient
-        .from("history")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (histErr) console.error("history load error:", histErr);
-
-      history = (histData || []).map((h) => ({
-        type: h.type,
-        member: h.member,
-        amount: Number(h.amount) || 0,
-        interestPercent: h.interest_percent != null ? Number(h.interest_percent) : 0,
-        totalDue: h.total_due != null ? Number(h.total_due) : null,
-        time: h.created_at ? new Date(h.created_at).toLocaleString() : "",
-      }));
-
-      await loadFinesFromSupabase();
-      await loadPayoutsFromSupabase();
-      updateNjangiPot();
-    }
-
-    async function addHistory(type, member, amount, interestPercent, totalDue) {
-      const { data, error } = await supabaseClient
-        .from("history")
-        .insert([{ type, member, amount, interest_percent: interestPercent, total_due: totalDue }])
-        .select()
-        .single();
-
-      const entry = {
-        type, member, amount,
-        interestPercent: interestPercent || 0,
-        totalDue: totalDue != null ? totalDue : null,
-        time: data?.created_at ? new Date(data.created_at).toLocaleString() : new Date().toLocaleString()
-      };
-
-      if (error) {
-        console.error("history insert error:", error);
-        history.unshift({ ...entry, time: new Date().toLocaleString() });
-      } else {
-        history.unshift(entry);
-      }
-
-      renderHistory(); updateCharts(); updateKpis();
-    }
-
-    // =========================================================
-    // ACTIONS
-    // =========================================================
-    async function addMember() {
-      if (!ensureAdmin()) return;
-
-      const name = (document.getElementById("newMemberName").value || "").trim();
-      const phone = (document.getElementById("newMemberPhone").value || "").trim();
-      const hasBenefits = !!document.getElementById("newMemberBenefits").checked;
-      if (!name) return alert("Enter member full name.");
-
-      const maxPos = Object.values(members).reduce((max, m) => Math.max(max, Number(m.position) || 0), 0);
-      const newPos = maxPos + 1;
-
-      const { data, error } = await supabaseClient
-        .from("members")
-        .insert([{
-          name,
-          phone,
-          contributed: 0,
-          foundation_contrib: 0,
-          loan_due: 0,
-          payout_total: 0,
-          position: newPos,
-          has_benefits: hasBenefits,
-        }])
-        .select()
-        .single();
-
-      if (error) return alert("Could not add member: " + error.message);
-
-      const id = String(data.id);
-      members[id] = {
-        id,
-        name: data.name,
-        phone: data.phone,
-        contributed: 0,
-        foundationContrib: 0,
-        loanDue: 0,
-        payoutTotal: 0,
-        lastPayoutAt: null,
-        position: data.position,
-        hasBenefits: !!data.has_benefits
-      };
-      payoutOrder.push(id);
-
-      document.getElementById("newMemberName").value = "";
-      document.getElementById("newMemberPhone").value = "";
-      document.getElementById("newMemberBenefits").checked = false;
-
-      updateNjangiPot();
-      populateMemberSelects();
-      renderMemberList();
-      updateNextPayoutDisplay();
-      updateCharts();
-      updateKpis();
-    }
-
-    async function addContribution() {
-      if (!ensureAdmin()) return;
-
-      const memberId = document.getElementById("memberSelect").value;
-      const amount = Number(document.getElementById("amountAdd").value || 0);
-
-      if (!memberId) return alert("Select a member.");
-      if (!amount || amount <= 0) return alert("Enter a valid amount.");
-      if (amount % 500 !== 0) return alert("Amount must be multiple of 500.");
-
-      const m = members[memberId];
-      if (!m) return alert("Member not found.");
-
-      m.contributed = (Number(m.contributed) || 0) + amount;
-
-      const { error } = await supabaseClient.from("members").update({ contributed: m.contributed }).eq("id", memberId);
-      if (error) return alert("Could not save contribution: " + error.message);
-
-      updateNjangiPot();
-      renderMemberList();
-      updateCharts();
-      updateKpis();
-      updateNextPayoutDisplay();
-
-      await addHistory("Contribution", m.name, amount, 0, m.contributed);
-      document.getElementById("amountAdd").value = "";
-    }
-
-    async function setContribution() {
-      if (!ensureAdmin()) return;
-
-      const memberId = document.getElementById("memberSelect").value;
-      const amount = Number(document.getElementById("amountSet").value || 0);
-
-      if (!memberId) return alert("Select a member.");
-      if (amount < 0) return alert("Contribution cannot be negative.");
-
-      const m = members[memberId];
-      if (!m) return alert("Member not found.");
-
-      m.contributed = amount;
-
-      const { error } = await supabaseClient.from("members").update({ contributed: m.contributed }).eq("id", memberId);
-      if (error) return alert("Could not set contribution: " + error.message);
-
-      updateNjangiPot();
-      renderMemberList();
-      updateCharts();
-      updateKpis();
-      updateNextPayoutDisplay();
-
-      await addHistory("Set Contribution", m.name, amount, 0, m.contributed);
-      document.getElementById("amountSet").value = "";
-    }
-
-    async function addToFoundation() {
-      if (!ensureAdmin()) return;
-      const amount = Number(document.getElementById("foundationAddAmount").value || 0);
-      if (!amount || amount <= 0) return alert("Enter a valid amount.");
-
-      foundation += amount;
-      await syncAppState();
-      updateCharts();
-      updateKpis();
-
-      await addHistory("Foundation Add", "Admin", amount, 0, foundation);
-      document.getElementById("foundationAddAmount").value = "";
-    }
-
-    async function setFoundation() {
-      if (!ensureAdmin()) return;
-      const amount = Number(document.getElementById("foundationSetAmount").value || 0);
-      if (amount < 0) return alert("Foundation cannot be negative.");
-
-      foundation = amount;
-      await syncAppState();
-      updateCharts();
-      updateKpis();
-
-      await addHistory("Foundation Set", "Admin", amount, 0, foundation);
-      document.getElementById("foundationSetAmount").value = "";
-    }
-
-    async function addMemberFoundationContribution() {
-      if (!ensureAdmin()) return;
-
-      const memberId = document.getElementById("foundationMember").value;
-      const amount = Number(document.getElementById("foundationMemberAmount").value || 0);
-
-      if (!memberId) return alert("Select a member.");
-      if (!amount || amount <= 0) return alert("Enter a valid amount.");
-
-      const m = members[memberId];
-      if (!m) return alert("Member not found.");
-
-      m.foundationContrib = (Number(m.foundationContrib) || 0) + amount;
-      foundation += amount;
-
-      const { error } = await supabaseClient.from("members").update({ foundation_contrib: m.foundationContrib }).eq("id", memberId);
-      if (error) return alert("Could not update member foundation: " + error.message);
-
-      await syncAppState();
-      renderMemberList();
-      updateCharts();
-      updateKpis();
-      updateNextPayoutDisplay();
-
-      await addHistory("Foundation Member", m.name, amount, 0, m.foundationContrib);
-      document.getElementById("foundationMemberAmount").value = "";
-    }
-
-    async function saveLoan() {
-      if (!ensureAdmin()) return;
-
-      const memberId = document.getElementById("loanMember").value;
-      const amount = Number(document.getElementById("loanAmount").value || 0);
-
-      if (!memberId) return alert("Select a member.");
-      if (!amount || amount <= 0) return alert("Enter a valid loan amount.");
-      if (amount > foundation) return alert("Loan amount cannot be more than foundation balance.");
-
-      const m = members[memberId];
-      if (!m) return alert("Member not found.");
-
-      const minFoundationRequired = 0.70 * amount;
-      const memberFoundation = Number(m.foundationContrib || 0);
-      if (m.hasBenefits && memberFoundation <= minFoundationRequired) {
-        return alert(
-          "NOT QUALIFIED TO BORROW\n\n" +
-          "Reason: Member has benefits and foundation contribution is <= 70% of the loan request.\n\n" +
-          `Loan requested: $${formatMoney(amount)}\n` +
-          `70% required:  $${formatMoney(minFoundationRequired)}\n` +
-          `Member foundation: $${formatMoney(memberFoundation)}`
-        );
-      }
-
-      const interest = Math.round(amount * interestRate);
-      const totalDue = amount + interest;
-
-      // Track lifetime interest
-      totalInterestGenerated += interest;
-
-      foundation -= amount;
-      m.loanDue = (Number(m.loanDue) || 0) + totalDue;
-
-      const { error } = await supabaseClient.from("members").update({ loan_due: m.loanDue }).eq("id", memberId);
-      if (error) return alert("Could not save loan: " + error.message);
-
-      await syncAppState();
-
-      renderMemberList();
-      updateCharts();
-      updateKpis();
-
-      await addHistory("Loan", m.name, amount, 5, totalDue);
-      document.getElementById("loanAmount").value = "";
-
-      alert(`Loan saved.\nPrincipal: $${formatMoney(amount)}\nInterest (5%): $${formatMoney(interest)}\nTotal due: $${formatMoney(totalDue)}`);
-    }
-
-    async function recordRepayment() {
-      if (!ensureAdmin()) return;
-
-      const memberId = document.getElementById("loanRepayMember").value;
-      const amount = Number(document.getElementById("loanRepayAmount").value || 0);
-
-      if (!memberId) return alert("Select a member.");
-      if (!amount || amount <= 0) return alert("Enter a valid repayment amount.");
-
-      const m = members[memberId];
-      if (!m) return alert("Member not found.");
-
-      const due = Number(m.loanDue || 0);
-      if (due <= 0) return alert("This member has no outstanding loan.");
-
-      const pay = amount > due ? due : amount;
-      m.loanDue = due - pay;
-      foundation += pay;
-
-      const { error } = await supabaseClient.from("members").update({ loan_due: m.loanDue }).eq("id", memberId);
-      if (error) return alert("Could not record repayment: " + error.message);
-
-      await syncAppState();
-
-      renderMemberList();
-      updateCharts();
-      updateKpis();
-
-      await addHistory("Repayment", m.name, pay, 0, m.loanDue);
-      document.getElementById("loanRepayAmount").value = "";
-
-      alert(`Repayment recorded.\nPaid: $${formatMoney(pay)}\nRemaining due: $${formatMoney(m.loanDue)}`);
-    }
-
-    async function addFine() {
-      if (!ensureAdmin()) return;
-
-      const memberId = document.getElementById("fineMember").value;
-      const amount = Number(document.getElementById("fineAmount").value || 0);
-      const reason = (document.getElementById("fineReason").value || "").trim();
-
-      if (!memberId) return alert("Select a member.");
-      if (!amount || amount <= 0) return alert("Enter a valid fine amount.");
-
-      const m = members[memberId];
-      if (!m) return alert("Member not found.");
-
-      const payload = {
-        member_id: Number(memberId),
-        member_name: m.name,
-        amount,
-        reason,
-        status: "unpaid",
-      };
-
-      const { error } = await supabaseClient.from("fines").insert([payload]);
-      if (error) return alert("Could not add fine: " + error.message);
-
-      document.getElementById("fineAmount").value = "";
-      document.getElementById("fineReason").value = "";
-
-      await addHistory("Fine", m.name, amount, 0, null);
-      await loadFinesFromSupabase();
-    }
-
-    async function markFinePaid(fineId) {
-      if (!ensureAdmin()) return;
-
-      const { error } = await supabaseClient
-        .from("fines")
-        .update({ status: "paid", paid_at: new Date().toISOString() })
-        .eq("id", fineId);
-
-      if (error) return alert("Could not mark fine paid: " + error.message);
-      await loadFinesFromSupabase();
-    }
-
-    // =========================================================
-    // BI-WEEKLY PAYOUT (STARTS JAN 3, 2026)
-    // =========================================================
-    async function runPayout() {
-      if (!ensureAdmin()) return;
-
-      if (!payoutOrder.length) return alert("No members in rotation.");
-      if (nextPayoutIndex >= payoutOrder.length) nextPayoutIndex = 0;
-
-      const today = new Date();
-      const todayDateOnly = dateOnlyFromISO(toDateOnlyISO(today));
-
-      // Enforce start date and bi-weekly
-      if (todayDateOnly < nextPayoutDate) {
-        return alert("Too early.\nNext payout date is: " + nextPayoutDate.toLocaleDateString());
-      }
-
-      const memberId = payoutOrder[nextPayoutIndex];
-      const m = members[memberId];
-      if (!m) return alert("Member not found.");
-
-      // payout amount is current pot
-      updateNjangiPot();
-      const payoutAmount = njangiPot;
-      if (payoutAmount <= 0) return alert("Njangi pot is 0. Add contributions first.");
-
-      const payoutDateStr = toDateOnlyISO(todayDateOnly);
-
-      // 1) Save payout record
-      const { error: pErr } = await supabaseClient.from("payouts").insert([{
-        member_id: Number(memberId),
-        member_name: m.name,
-        payout_amount: payoutAmount,
-        payout_date: payoutDateStr
-      }]);
-      if (pErr) return alert("Could not save payout: " + pErr.message);
-
-      // 2) Update member payout totals + last payout timestamp
-      m.payoutTotal = (Number(m.payoutTotal) || 0) + payoutAmount;
-      m.lastPayoutAt = new Date().toISOString();
-
-      const { error: mErr } = await supabaseClient.from("members")
-        .update({ payout_total: m.payoutTotal, last_payout_at: m.lastPayoutAt })
-        .eq("id", memberId);
-      if (mErr) return alert("Could not update member payout: " + mErr.message);
-
-      // 3) Reset pot: set all members contributed = 0
-      const { error: resetErr } = await supabaseClient.from("members").update({ contributed: 0 });
-      if (resetErr) return alert("Could not reset contributions: " + resetErr.message);
-
-      Object.values(members).forEach(x => x.contributed = 0);
-      updateNjangiPot();
-
-      // 4) Advance rotation index + next payout date
-      nextPayoutIndex = (nextPayoutIndex + 1) % payoutOrder.length;
-      nextPayoutDate = new Date(nextPayoutDate.getTime() + BIWEEK_MS);
-
-      await syncAppState();
-
-      // 5) Reload payouts + add history
-      await loadPayoutsFromSupabase();
-      await addHistory("Payout", m.name, payoutAmount, 0, null);
-
-      // UI refresh
-      renderMemberList();
-      updateKpis();
-      updateCharts();
-      updateNextPayoutDisplay();
-
-      alert(`✅ Paid out $${formatMoney(payoutAmount)} to ${m.name}\nNext payout: ${nextPayoutDate.toLocaleDateString()}`);
-    }
-
-    // =========================================================
-    // INIT
-    // =========================================================
-    async function init() {
-      document.getElementById("todayDate").textContent = new Date().toLocaleDateString();
-
-      // Sanity log
-      supabaseClient.auth.getSession().then(({data, error}) => console.log("SESSION:", data, error));
-
-      await loadFromSupabase();
-
-      populateMemberSelects();
-      renderMemberList();
-      updateNjangiPot();
-      updateKpis();
-      updateNextPayoutDisplay();
-      renderHistory();
-      renderPayouts();
-      updateCharts();
-
-      await refreshAdminStatus();
-      showSection("dashboardSection");
-      setActiveNav("dashboard");
-    }
-
-    window.addEventListener("load", init);
-  </script>
+
+<h2>Njangi Dashboard</h2>
+
+<!-- AUTH -->
+<div class="card">
+  <h3>Admin Login</h3>
+  <input id="email" placeholder="Admin email" />
+  <input id="password" type="password" placeholder="Password" />
+  <button onclick="login()">Login</button>
+  <div id="authStatus" class="small"></div>
+</div>
+
+<!-- KPI -->
+<div class="card">
+  <h3>Key Figures</h3>
+  Njangi Pot: <b id="kPot">$0</b><br/>
+  Foundation: <b id="kFoundation">$0</b><br/>
+  Total Interest: <b id="kInterest">$0</b><br/>
+  Next Payout Date: <b id="kNext">—</b>
+</div>
+
+<!-- ADD MEMBER -->
+<div class="card">
+  <h3>Add Member</h3>
+  <input id="memberName" placeholder="Member full name" />
+  <button onclick="addMember()">Add Member</button>
+</div>
+
+<!-- PAYOUT -->
+<div class="card">
+  <h3>Bi-Weekly Payout</h3>
+  <div class="small">Rotation starts Jan 3 • Every 14 days</div>
+  <button onclick="runPayout()">Run Payout</button>
+</div>
+
+<script>
+/* =========================================================
+   1) SUPABASE CONFIG  (PASTE ONLY HERE)
+========================================================= */
+const SUPABASE_URL = "https://auxdvufuhdnlalupwrrb.supabase.co // 👈 PASTE HERE
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1eGR2dWZ1aGRubGFsdXB3cnJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNjk2NzcsImV4cCI6MjA3Njc0NTY3N30.BLZ6Xl8O2_edvq5cLgksGwNZn3lByZqUlT_uYNMa7bs";       // 👈 PASTE HERE
+
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* =========================================================
+   2) GLOBAL STATE
+========================================================= */
+let isAdmin = false;
+let members = {};
+let appState = {};
+
+const BIWEEK_MS = 14 * 24 * 60 * 60 * 1000;
+
+/* =========================================================
+   3) AUTH
+========================================================= */
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  document.getElementById("authStatus").innerHTML =
+    error ? `<span class="bad">${error.message}</span>` : `<span class="ok">Logged in</span>`;
+
+  await loadAll();
+}
+
+/* =========================================================
+   4) LOAD DATA
+========================================================= */
+async function loadAll() {
+  const { data: userData } = await supabase.auth.getUser();
+  if (userData?.user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userData.user.id)
+      .single();
+    isAdmin = profile?.role === "admin";
+  }
+
+  const { data: app } = await supabase.from("app_state").select("*").eq("id", 1).single();
+  appState = app || {};
+
+  const { data: mems } = await supabase.from("members").select("*").order("position");
+  members = {};
+  (mems || []).forEach(m => members[m.id] = m);
+
+  updateUI();
+}
+
+/* =========================================================
+   5) UI
+========================================================= */
+function money(x) { return "$" + (Number(x) || 0).toLocaleString(); }
+
+function updateUI() {
+  const pot = Object.values(members).reduce((s, m) => s + Number(m.contributed || 0), 0);
+
+  document.getElementById("kPot").textContent = money(pot);
+  document.getElementById("kFoundation").textContent = money(appState.foundation || 0);
+  document.getElementById("kInterest").textContent = money(appState.total_interest_generated || 0);
+  document.getElementById("kNext").textContent =
+    appState.next_payout_date ? new Date(appState.next_payout_date).toDateString() : "—";
+}
+
+/* =========================================================
+   6) ACTIONS
+========================================================= */
+async function addMember() {
+  if (!isAdmin) return alert("Admin only");
+
+  const name = document.getElementById("memberName").value.trim();
+  if (!name) return alert("Enter name");
+
+  const pos = Object.keys(members).length + 1;
+  await supabase.from("members").insert({ name, position: pos });
+
+  document.getElementById("memberName").value = "";
+  await loadAll();
+}
+
+async function runPayout() {
+  if (!isAdmin) return alert("Admin only");
+
+  const today = new Date();
+  const nextDate = new Date(appState.next_payout_date + "T00:00:00");
+  if (today < nextDate) {
+    return alert("Too early. Next payout: " + nextDate.toDateString());
+  }
+
+  const ids = Object.keys(members);
+  if (!ids.length) return alert("No members");
+
+  const idx = appState.next_payout_index || 0;
+  const member = members[ids[idx]];
+
+  const pot = Object.values(members).reduce((s, m) => s + Number(m.contributed || 0), 0);
+  if (pot <= 0) return alert("Pot is empty");
+
+  await supabase.from("payouts").insert({
+    member_id: member.id,
+    member_name: member.name,
+    payout_amount: pot,
+    payout_date: today.toISOString().slice(0,10)
+  });
+
+  await supabase.from("members").update({ contributed: 0 });
+  await supabase.from("members")
+    .update({ payout_total: (member.payout_total || 0) + pot })
+    .eq("id", member.id);
+
+  await supabase.from("app_state").update({
+    next_payout_index: (idx + 1) % ids.length,
+    next_payout_date: new Date(nextDate.getTime() + BIWEEK_MS).toISOString().slice(0,10)
+  }).eq("id", 1);
+
+  alert(`Paid ${money(pot)} to ${member.name}`);
+  await loadAll();
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+loadAll();
+</script>
+
 </body>
 </html>
