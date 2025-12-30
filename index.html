@@ -507,11 +507,32 @@ async function enforceAdminGate(){
 async function signIn(){
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
-  if(!email || !password) return;
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if(error) return;
+
+  if (!email || !password) {
+    toast("Enter email and password");
+    return;
+  }
+
+  const { error } = await sb.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    toast(error.message);
+    return;
+  }
+
   const ok = await enforceAdminGate();
-  if(ok) await reloadAll();
+  if (!ok) {
+    toast("Access denied: admin only");
+    return;
+  }
+
+  await reloadAll();
+  toast("Welcome");
+}
+
 }
 
 async function signOut(){
