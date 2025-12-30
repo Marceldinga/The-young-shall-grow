@@ -20,9 +20,6 @@
       --muted:rgba(234,240,255,.65);
       --accent:#7dd3fc;
       --accent2:#a78bfa;
-      --good:#34d399;
-      --warn:#fbbf24;
-      --bad:#fb7185;
       --shadow: 0 18px 45px rgba(0,0,0,.55);
       --shadow2: 0 10px 24px rgba(0,0,0,.35);
       --radius:18px;
@@ -40,7 +37,7 @@
       min-height:100vh;
     }
 
-    /* LOCK SCREEN (ONLY credentials) */
+    /* LOCK SCREEN */
     #locked{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:22px}
     .lockBox{
       width:min(440px,100%);
@@ -153,12 +150,12 @@
     .section{display:none}
     .section.active{display:block}
 
+    label{display:block;color:var(--muted);font-size:12px;margin-top:10px}
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:12px;vertical-align:top}
     th{color:var(--muted);font-weight:800}
     .err{color:#fecaca;white-space:pre-wrap;font-size:12px;margin-top:10px;display:none}
 
-    /* Custom toast (no "website says") */
     #toast{
       position:fixed; left:50%; bottom:20px; transform:translateX(-50%);
       background:rgba(0,0,0,.55);
@@ -184,7 +181,7 @@
 
 <body>
 
-<!-- LOCKED VIEW (ONLY credentials) -->
+<!-- LOGIN (ONLY CREDENTIALS) -->
 <div id="locked">
   <div class="lockBox">
     <div class="lockGrid">
@@ -225,7 +222,7 @@
       <div style="margin-top:8px;font-weight:900;font-size:18px" id="nextName">—</div>
       <div class="sub" id="nextInfo">—</div>
       <button class="btn" style="width:100%;margin-top:10px" onclick="runPayout()">Run Payout</button>
-      <div class="sub" style="margin-top:10px;color:var(--warn)">Start: <b>Jan 3, 2026</b> • Every 14 days</div>
+      <div class="sub" style="margin-top:10px;color:#fbbf24">Start: <b>Jan 3, 2026</b> • Every 14 days</div>
     </div>
   </aside>
 
@@ -235,7 +232,6 @@
       <span class="pill">Total Interest: <b id="kInterestMini">$0</b></span>
     </div>
 
-    <!-- DASH -->
     <section id="dash" class="section active">
       <div class="grid4">
         <div class="card kpi"><div class="label">Njangi Pot</div><div class="val" id="kPot">$0</div><div class="sub">Sum of contributions</div></div>
@@ -244,10 +240,9 @@
         <div class="card kpi"><div class="label">Members</div><div class="val" id="kMembers">0</div><div class="sub">Rotation list</div></div>
       </div>
 
-      <!-- ✅ Removed line graphs: added Histogram + Pie chart -->
       <div class="grid2" style="margin-top:12px;">
         <div class="card">
-          <div class="row"><div style="font-weight:900;">Histogram: Contributions by Member (Top 10)</div><span class="pill">Now</span></div>
+          <div class="row"><div style="font-weight:900;">Histogram: Contributions (Top 10)</div><span class="pill">Now</span></div>
           <canvas id="histChart" height="140"></canvas>
         </div>
         <div class="card">
@@ -265,7 +260,6 @@
       </div>
     </section>
 
-    <!-- MEMBERS -->
     <section id="members" class="section">
       <div class="grid2">
         <div class="card">
@@ -287,7 +281,6 @@
       </div>
     </section>
 
-    <!-- CONTRIBUTIONS -->
     <section id="contrib" class="section">
       <div class="grid2">
         <div class="card">
@@ -306,7 +299,6 @@
       </div>
     </section>
 
-    <!-- FOUNDATION -->
     <section id="foundation" class="section">
       <div class="grid2">
         <div class="card">
@@ -323,12 +315,11 @@
           <label>Member</label><select id="mfMember"></select>
           <label>Amount</label><input id="mfAmount" type="number" placeholder="e.g. 500" />
           <button class="btn" style="width:100%;margin-top:12px" onclick="addMemberFoundation()">Add Member Foundation</button>
-          <div class="sub" style="margin-top:12px">This increases both member foundation and foundation balance.</div>
+          <div class="sub" style="margin-top:12px">This increases member foundation and foundation balance.</div>
         </div>
       </div>
     </section>
 
-    <!-- LOANS -->
     <section id="loans" class="section">
       <div class="grid2">
         <div class="card">
@@ -337,7 +328,7 @@
           <label>Loan amount</label><input id="lAmount" type="number" placeholder="e.g. 1000" />
           <button class="btn" style="width:100%;margin-top:12px" onclick="issueLoan()">Issue Loan</button>
           <div class="sub" style="margin-top:12px">
-            Rule: if benefits = Yes and member foundation ≤ 70% of loan → not qualified.
+            Rule: if benefits = Yes and foundation contrib ≤ 70% of loan → not qualified.
           </div>
         </div>
 
@@ -350,7 +341,6 @@
       </div>
     </section>
 
-    <!-- FINES -->
     <section id="fines" class="section">
       <div class="grid2">
         <div class="card">
@@ -371,14 +361,11 @@
       </div>
     </section>
 
-    <!-- PAYOUTS -->
     <section id="payouts" class="section">
       <div class="grid2">
         <div class="card">
           <div style="font-weight:900;">Run Payout</div>
-          <div class="sub" style="margin-top:6px;">
-            Start: Jan 3, 2026 • Every 14 days
-          </div>
+          <div class="sub" style="margin-top:6px;">Start: Jan 3, 2026 • Every 14 days</div>
           <button class="btn" style="width:100%;margin-top:12px" onclick="runPayout()">Run Now</button>
         </div>
 
@@ -392,7 +379,6 @@
       </div>
     </section>
 
-    <!-- HISTORY -->
     <section id="history" class="section">
       <div class="card">
         <div class="row"><div style="font-weight:900;">Full History</div><span class="pill">Latest first</span></div>
@@ -410,7 +396,7 @@
 
 <script>
 /* ===========================
-   CONFIG (keep your existing values)
+   SUPABASE CONFIG
 =========================== */
 const SUPABASE_URL = "https://auxdvufuhdnlalupwrrb.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1eGR2dWZ1aGRubGFsdXB3cnJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNjk2NzcsImV4cCI6MjA3Njc0NTY2N30.BLZ6Xl8O2_edvq5cLgksGwNZn3lByZqUlT_uYNMa7bs";
@@ -435,7 +421,7 @@ let histChart = null;
 let pieChart = null;
 
 /* ===========================
-   UI HELPERS
+   HELPERS
 =========================== */
 const money = (x) => "$" + (Number(x)||0).toLocaleString();
 const isoDate = (d) => {
@@ -449,37 +435,32 @@ function toast(msg){
   el.textContent = msg;
   el.style.display = "block";
   clearTimeout(toast._t);
-  toast._t = setTimeout(()=>{ el.style.display="none"; }, 2800);
+  toast._t = setTimeout(() => { el.style.display = "none"; }, 2800);
 }
-
 function sideErr(msg){
   const el = document.getElementById("sideErr");
   el.style.display = msg ? "block" : "none";
   el.textContent = msg || "";
 }
-
 function show(sectionId, title){
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
   document.getElementById(sectionId).classList.add("active");
   document.getElementById("pageTitle").textContent = title;
   document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
-  const map = {
-    dash:"navDash", members:"navMembers", contrib:"navContrib", foundation:"navFoundation",
-    loans:"navLoans", fines:"navFines", payouts:"navPayouts", history:"navHistory"
-  };
+  const map = { dash:"navDash", members:"navMembers", contrib:"navContrib", foundation:"navFoundation", loans:"navLoans", fines:"navFines", payouts:"navPayouts", history:"navHistory" };
   document.getElementById(map[sectionId])?.classList.add("active");
 }
 
 /* ===========================
-   ADMIN GATE (silent)
+   AUTH / ADMIN GATE
 =========================== */
 async function enforceAdminGate(){
   const { data } = await sb.auth.getUser();
   const user = data?.user;
 
   if(!user){
-    document.getElementById("app").style.display="none";
-    document.getElementById("locked").style.display="flex";
+    document.getElementById("app").style.display = "none";
+    document.getElementById("locked").style.display = "flex";
     return false;
   }
 
@@ -491,13 +472,13 @@ async function enforceAdminGate(){
 
   if(error || profile?.role !== "admin"){
     await sb.auth.signOut();
-    document.getElementById("app").style.display="none";
-    document.getElementById("locked").style.display="flex";
+    document.getElementById("app").style.display = "none";
+    document.getElementById("locked").style.display = "flex";
     return false;
   }
 
-  document.getElementById("locked").style.display="none";
-  document.getElementById("app").style.display="flex";
+  document.getElementById("locked").style.display = "none";
+  document.getElementById("app").style.display = "flex";
   document.getElementById("who").textContent = user.email || "admin";
   document.getElementById("role").textContent = "admin";
   document.getElementById("today").textContent = new Date().toLocaleDateString();
@@ -513,10 +494,7 @@ async function signIn(){
     return;
   }
 
-  const { error } = await sb.auth.signInWithPassword({
-    email,
-    password
-  });
+  const { error } = await sb.auth.signInWithPassword({ email, password });
 
   if (error) {
     toast(error.message);
@@ -533,16 +511,14 @@ async function signIn(){
   toast("Welcome");
 }
 
-}
-
 async function signOut(){
   await sb.auth.signOut();
-  document.getElementById("app").style.display="none";
-  document.getElementById("locked").style.display="flex";
+  document.getElementById("app").style.display = "none";
+  document.getElementById("locked").style.display = "flex";
 }
 
 /* ===========================
-   LOAD ALL DATA
+   LOAD
 =========================== */
 async function reloadAll(){
   sideErr("");
@@ -637,24 +613,17 @@ function renderAll(){
   renderCharts();
 }
 
-/* ===========================
-   CHARTS (Histogram + Pie)
-=========================== */
 function renderCharts(){
-  // Histogram (Bar) - Top 10 contributions
   const top = members
     .map(m => ({ name: m.name || "Member", v: Number(m.contributed || 0) }))
     .sort((a,b)=>b.v-a.v)
     .slice(0,10);
 
-  const hLabels = top.map(x=>x.name);
-  const hData = top.map(x=>x.v);
-
   const hctx = document.getElementById("histChart").getContext("2d");
   if(histChart) histChart.destroy();
   histChart = new Chart(hctx,{
     type:"bar",
-    data:{ labels:hLabels, datasets:[{ label:"Contributions", data:hData }] },
+    data:{ labels: top.map(x=>x.name), datasets:[{ label:"Contributions", data: top.map(x=>x.v) }] },
     options:{
       responsive:true,
       plugins:{ legend:{display:false} },
@@ -665,7 +634,6 @@ function renderCharts(){
     }
   });
 
-  // Pie - Pot vs Foundation vs Loans
   const pot = members.reduce((s,x)=>s+(Number(x.contributed)||0),0);
   const loans = members.reduce((s,x)=>s+(Number(x.loan_due)||0),0);
   const foundation = Number(appState.foundation||0);
@@ -674,29 +642,19 @@ function renderCharts(){
   if(pieChart) pieChart.destroy();
   pieChart = new Chart(pctx,{
     type:"pie",
-    data:{
-      labels:["Pot","Foundation","Loans Due"],
-      datasets:[{ data:[pot, foundation, loans] }]
-    },
+    data:{ labels:["Pot","Foundation","Loans Due"], datasets:[{ data:[pot, foundation, loans] }] },
     options:{
       responsive:true,
-      plugins:{
-        legend:{
-          position:"bottom",
-          labels:{ color:"rgba(234,240,255,.75)" }
-        }
-      }
+      plugins:{ legend:{ position:"bottom", labels:{ color:"rgba(234,240,255,.75)" } } }
     }
   });
 }
 
 /* ===========================
-   WRITE ACTIONS
+   WRITES
 =========================== */
 async function addHistoryRow(type, member, amount, interestPercent=0, totalDue=null){
-  const payload = { type, member, amount, interest_percent:interestPercent, total_due:totalDue };
-  const r = await sb.from("history").insert([payload]);
-  if(r.error) toast("History save failed");
+  await sb.from("history").insert([{ type, member, amount, interest_percent:interestPercent, total_due:totalDue }]);
 }
 
 async function addMember(){
@@ -704,15 +662,12 @@ async function addMember(){
   const phone=document.getElementById("mPhone").value.trim();
   const hasBenefits=document.getElementById("mBenefits").value==="true";
   if(!name) return toast("Enter member name");
-
   const pos = members.length ? Math.max(...members.map(x=>Number(x.position||0)))+1 : 1;
   const r = await sb.from("members").insert([{name,phone,has_benefits:hasBenefits,position:pos}]);
-  if(r.error) return toast("Add member failed");
-
+  if(r.error) return toast(r.error.message);
   await addHistoryRow("Member Added", name, 0, 0, null);
   document.getElementById("mName").value=""; document.getElementById("mPhone").value="";
-  await reloadAll();
-  toast("Member added");
+  await reloadAll(); toast("Member added");
 }
 
 async function addContribution(){
@@ -726,12 +681,11 @@ async function addContribution(){
   const newTotal=(Number(m.contributed)||0)+amt;
 
   const r=await sb.from("members").update({contributed:newTotal}).eq("id",memberId);
-  if(r.error) return toast("Save failed");
+  if(r.error) return toast(r.error.message);
 
   await addHistoryRow("Contribution", m.name, amt, 0, newTotal);
   document.getElementById("cAmount").value="";
-  await reloadAll();
-  toast("Saved");
+  await reloadAll(); toast("Saved");
 }
 
 async function setContribution(){
@@ -739,42 +693,33 @@ async function setContribution(){
   const amt=Number(document.getElementById("cSetAmount").value||0);
   if(!memberId) return toast("Select member");
   if(amt<0) return toast("Invalid amount");
-
   const m=members.find(x=>String(x.id)===String(memberId));
   const r=await sb.from("members").update({contributed:amt}).eq("id",memberId);
-  if(r.error) return toast("Save failed");
-
+  if(r.error) return toast(r.error.message);
   await addHistoryRow("Set Contribution", m.name, amt, 0, amt);
   document.getElementById("cSetAmount").value="";
-  await reloadAll();
-  toast("Updated");
+  await reloadAll(); toast("Updated");
 }
 
 async function addToFoundation(){
   const amt=Number(document.getElementById("fAmount").value||0);
   if(!amt||amt<=0) return toast("Enter amount");
-
   const newFound=(Number(appState.foundation)||0)+amt;
   const r=await sb.from("app_state").update({foundation:newFound,updated_at:new Date().toISOString()}).eq("id",1);
-  if(r.error) return toast("Save failed");
-
+  if(r.error) return toast(r.error.message);
   await addHistoryRow("Foundation Add","Admin",amt,0,newFound);
   document.getElementById("fAmount").value="";
-  await reloadAll();
-  toast("Saved");
+  await reloadAll(); toast("Saved");
 }
 
 async function setFoundation(){
   const amt=Number(document.getElementById("fSetAmount").value||0);
   if(amt<0) return toast("Invalid amount");
-
   const r=await sb.from("app_state").update({foundation:amt,updated_at:new Date().toISOString()}).eq("id",1);
-  if(r.error) return toast("Save failed");
-
+  if(r.error) return toast(r.error.message);
   await addHistoryRow("Foundation Set","Admin",amt,0,amt);
   document.getElementById("fSetAmount").value="";
-  await reloadAll();
-  toast("Updated");
+  await reloadAll(); toast("Updated");
 }
 
 async function addMemberFoundation(){
@@ -787,16 +732,15 @@ async function addMemberFoundation(){
   const newMemberFound=(Number(m.foundation_contrib)||0)+amt;
 
   let r=await sb.from("members").update({foundation_contrib:newMemberFound}).eq("id",memberId);
-  if(r.error) return toast("Save failed");
+  if(r.error) return toast(r.error.message);
 
   const newFound=(Number(appState.foundation)||0)+amt;
   r=await sb.from("app_state").update({foundation:newFound,updated_at:new Date().toISOString()}).eq("id",1);
-  if(r.error) return toast("Save failed");
+  if(r.error) return toast(r.error.message);
 
   await addHistoryRow("Member Foundation",m.name,amt,0,newMemberFound);
   document.getElementById("mfAmount").value="";
-  await reloadAll();
-  toast("Saved");
+  await reloadAll(); toast("Saved");
 }
 
 async function issueLoan(){
@@ -804,34 +748,30 @@ async function issueLoan(){
   const amt=Number(document.getElementById("lAmount").value||0);
   if(!memberId) return toast("Select member");
   if(!amt||amt<=0) return toast("Enter loan amount");
-
   const m=members.find(x=>String(x.id)===String(memberId));
   const foundation=Number(appState.foundation||0);
   if(amt>foundation) return toast("Loan exceeds foundation");
 
   const minReq=0.70*amt;
   const memberFound=Number(m.foundation_contrib||0);
-  if(m.has_benefits && memberFound<=minReq){
-    return toast("Not qualified");
-  }
+  if(m.has_benefits && memberFound<=minReq) return toast("Not qualified");
 
   const interest=Math.round(amt*INTEREST_RATE);
   const totalDue=amt+interest;
 
   let r=await sb.from("members").update({loan_due:(Number(m.loan_due)||0)+totalDue}).eq("id",memberId);
-  if(r.error) return toast("Save failed");
+  if(r.error) return toast(r.error.message);
 
   r=await sb.from("app_state").update({
     foundation: foundation-amt,
     total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
     updated_at:new Date().toISOString()
   }).eq("id",1);
-  if(r.error) return toast("Save failed");
+  if(r.error) return toast(r.error.message);
 
   await addHistoryRow("Loan",m.name,amt,5,totalDue);
   document.getElementById("lAmount").value="";
-  await reloadAll();
-  toast("Loan issued");
+  await reloadAll(); toast("Loan issued");
 }
 
 async function repayLoan(){
@@ -848,18 +788,17 @@ async function repayLoan(){
   const newDue=due-pay;
 
   let r=await sb.from("members").update({loan_due:newDue}).eq("id",memberId);
-  if(r.error) return toast("Save failed");
+  if(r.error) return toast(r.error.message);
 
   r=await sb.from("app_state").update({
     foundation:(Number(appState.foundation)||0)+pay,
     updated_at:new Date().toISOString()
   }).eq("id",1);
-  if(r.error) return toast("Save failed");
+  if(r.error) return toast(r.error.message);
 
   await addHistoryRow("Repayment",m.name,pay,0,newDue);
   document.getElementById("rAmount").value="";
-  await reloadAll();
-  toast("Repayment saved");
+  await reloadAll(); toast("Repayment saved");
 }
 
 async function addFine(){
@@ -870,28 +809,23 @@ async function addFine(){
   if(!amt||amt<=0) return toast("Enter fine amount");
 
   const m=members.find(x=>String(x.id)===String(memberId));
-  const r=await sb.from("fines").insert([{
-    member_id:m.id, member_name:m.name, amount:amt, reason, status:"unpaid"
-  }]);
-  if(r.error) return toast("Save failed");
+  const r=await sb.from("fines").insert([{ member_id:m.id, member_name:m.name, amount:amt, reason, status:"unpaid" }]);
+  if(r.error) return toast(r.error.message);
 
   await addHistoryRow("Fine",m.name,amt,0,null);
   document.getElementById("fineAmount").value="";
   document.getElementById("fineReason").value="";
-  await reloadAll();
-  toast("Fine saved");
+  await reloadAll(); toast("Fine saved");
 }
 
 async function markFinePaid(fineId){
   const r=await sb.from("fines").update({status:"paid",paid_at:new Date().toISOString()}).eq("id",fineId);
-  if(r.error) return toast("Save failed");
-  await reloadAll();
-  toast("Marked paid");
+  if(r.error) return toast(r.error.message);
+  await reloadAll(); toast("Marked paid");
 }
 
 async function runPayout(){
   if(!members.length) return toast("No members");
-
   const pot = members.reduce((s,x)=>s+(Number(x.contributed)||0),0);
   if(pot<=0) return toast("Pot is 0");
 
@@ -899,49 +833,35 @@ async function runPayout(){
   const nextDate = appState.next_payout_date ? fromIso(appState.next_payout_date) : ROTATION_START;
 
   const today = fromIso(isoDate(new Date()));
-  if(today < nextDate){
-    return toast("Too early. Next payout: " + nextDate.toLocaleDateString());
-  }
+  if(today < nextDate) return toast("Next payout: " + nextDate.toLocaleDateString());
 
   const receiver = members[idx];
 
-  let r=await sb.from("payouts").insert([{
-    member_id:receiver.id, member_name:receiver.name,
-    payout_amount:pot, payout_date:isoDate(today)
-  }]);
-  if(r.error) return toast("Payout failed");
+  let r=await sb.from("payouts").insert([{ member_id:receiver.id, member_name:receiver.name, payout_amount:pot, payout_date:isoDate(today) }]);
+  if(r.error) return toast(r.error.message);
 
-  r=await sb.from("members").update({
-    payout_total:(Number(receiver.payout_total)||0)+pot,
-    last_payout_at:new Date().toISOString()
-  }).eq("id",receiver.id);
-  if(r.error) return toast("Save failed");
+  r=await sb.from("members").update({ payout_total:(Number(receiver.payout_total)||0)+pot, last_payout_at:new Date().toISOString() }).eq("id",receiver.id);
+  if(r.error) return toast(r.error.message);
 
   r=await sb.from("members").update({contributed:0});
-  if(r.error) return toast("Reset failed");
+  if(r.error) return toast(r.error.message);
 
   const newIdx=(idx+1)%members.length;
   const newNextDate=new Date(nextDate.getTime()+BIWEEK_MS);
 
-  r=await sb.from("app_state").update({
-    next_payout_index:newIdx,
-    next_payout_date:isoDate(newNextDate),
-    updated_at:new Date().toISOString()
-  }).eq("id",1);
-  if(r.error) return toast("Save failed");
+  r=await sb.from("app_state").update({ next_payout_index:newIdx, next_payout_date:isoDate(newNextDate), updated_at:new Date().toISOString() }).eq("id",1);
+  if(r.error) return toast(r.error.message);
 
   await addHistoryRow("Payout",receiver.name,pot,0,null);
-  await reloadAll();
-  toast(`Paid ${money(pot)} to ${receiver.name}`);
+  await reloadAll(); toast(`Paid ${money(pot)} to ${receiver.name}`);
 }
 
 /* ===========================
-   INIT
+   INIT (correct IIFE)
 =========================== */
 (async function init(){
   document.getElementById("app").style.display="none";
   document.getElementById("locked").style.display="flex";
-
   const ok = await enforceAdminGate();
   if(ok) await reloadAll();
 })();
