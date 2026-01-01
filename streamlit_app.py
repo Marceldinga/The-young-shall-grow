@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 from supabase import create_client
@@ -9,8 +10,7 @@ st.set_page_config(page_title="The Young Shall Grow – Njangi", layout="wide")
 st.title("🌱 The Young Shall Grow – Njangi")
 
 # ---------------------------
-# SECRETS (TOML keys)
-# Streamlit Secrets must be:
+# SECRETS (Streamlit TOML)
 # SUPABASE_URL = "https://..."
 # SUPABASE_ANON_KEY = "..."
 # ---------------------------
@@ -24,46 +24,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ---------------------------
-# Helpers
-# ---------------------------
-def get_current_user():
-    """Return user object or None."""
-    try:
-        resp = supabase.auth.get_user()
-        # resp.user is the user object in supabase-py v2
-        return getattr(resp, "user", None)
-    except Exception:
-        return None
-
-def ensure_admin(user_id: str) -> bool:
-    """Check profiles.role == 'admin' for this user."""
-    try:
-        res = (
-            supabase
-            .table("profiles")
-            .select("role")
-            .eq("id", user_id)
-            .single()
-            .execute()
-        )
-        return bool(res.data) and res.data.get("role") == "admin"
-    except Exception as e:
-        st.error("❌ Could not verify admin role (profiles table blocked or missing).")
-        st.caption(str(e))
-        return False
-
-def load_table(table_name: str) -> pd.DataFrame:
-    try:
-        res = supabase.table(table_name).select("*").execute()
-        return pd.DataFrame(res.data or [])
-    except Exception as e:
-        st.error(f"❌ Could not load table '{table_name}'.")
-        st.caption("This is usually RLS policy blocking SELECT for authenticated users.")
-        st.caption(str(e))
-        return pd.DataFrame()
-
-# ---------------------------
-# SESSION RESTORE (keep login after refresh)
+# SESSION RESTORE (keeps login after refresh)
 # ---------------------------
 if "access_token" in st.session_state and "refresh_token" in st.session_state:
     try:
@@ -72,21 +33,28 @@ if "access_token" in st.session_state and "refresh_token" in st.session_state:
             st.session_state["refresh_token"]
         )
     except Exception:
-        # If tokens are invalid/expired, wipe session
-        for k in ["logged_in", "email", "access_token", "refresh_token", "user_id", "is_admin"]:
+        # wipe if invalid
+        for k in ["logged_in", "email", "access_token", "refresh_token"]:
             st.session_state.pop(k, None)
+
+def get_current_user():
+    try:
+        resp = supabase.auth.get_user()
+        return getattr(resp, "user", None)
+    except Exception:
+        return None
 
 user = get_current_user()
 st.session_state["logged_in"] = user is not None
 if user:
-    st.session_state["user_id"] = user.id
     st.session_state["email"] = user.email
 
 # ---------------------------
-# AUTH UI
+# AUTH UI (SIGN UP + LOGIN)
 # ---------------------------
 if not st.session_state.get("logged_in"):
     st.subheader("🔐 Authentication")
+
     tab_login, tab_signup = st.tabs(["Login", "Sign Up"])
 
     with tab_login:
@@ -98,16 +66,8 @@ if not st.session_state.get("logged_in"):
                 res = supabase.auth.sign_in_with_password({"email": email, "password": password})
                 st.session_state["access_token"] = res.session.access_token
                 st.session_state["refresh_token"] = res.session.refresh_token
-
-                # refresh user
-                user = get_current_user()
-                if not user:
-                    st.error("❌ Login succeeded but could not fetch user session.")
-                    st.stop()
-
                 st.session_state["logged_in"] = True
-                st.session_state["user_id"] = user.id
-                st.session_state["email"] = user.email
+                st.session_state["email"] = email
                 st.success("✅ Login successful. Reloading...")
                 st.rerun()
             except Exception as e:
@@ -129,40 +89,35 @@ if not st.session_state.get("logged_in"):
     st.stop()
 
 # ---------------------------
-# ADMIN GATE
-# ---------------------------
-if "is_admin" not in st.session_state:
-    st.session_state["is_admin"] = ensure_admin(st.session_state["user_id"])
-
-if not st.session_state["is_admin"]:
-    st.error("⛔ Access denied: your account is not an admin.")
-    if st.button("Logout"):
-        try:
-            supabase.auth.sign_out()
-        except Exception:
-            pass
-        for k in ["logged_in", "email", "access_token", "refresh_token", "user_id", "is_admin"]:
-            st.session_state.pop(k, None)
-        st.rerun()
-    st.stop()
-
-# ---------------------------
 # LOGOUT BAR
 # ---------------------------
 col1, col2 = st.columns([3, 1])
 with col1:
-    st.success(f"✅ Admin: {st.session_state.get('email', 'User')}")
+    st.success(f"✅ Logged in as: {st.session_state.get('email', 'User')}")
 with col2:
     if st.button("Logout"):
         try:
             supabase.auth.sign_out()
         except Exception:
             pass
-        for k in ["logged_in", "email", "access_token", "refresh_token", "user_id", "is_admin"]:
+        for k in ["logged_in", "email", "access_token", "refresh_token"]:
             st.session_state.pop(k, None)
         st.rerun()
 
 st.divider()
+
+# ---------------------------
+# DASHBOARD LOADERS
+# ---------------------------
+def load_table(table_name: str) -> pd.DataFrame:
+    try:
+        res = supabase.table(table_name).select("*").execute()
+        return pd.DataFrame(res.data or [])
+    except Exception as e:
+        st.error(f"❌ Could not load table '{table_name}'.")
+        st.caption("Most common cause: RLS blocks SELECT for authenticated users.")
+        st.caption(str(e))
+        return pd.DataFrame()
 
 # ---------------------------
 # DASHBOARD
