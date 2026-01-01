@@ -1,384 +1,135 @@
 import streamlit as st
 import pandas as pd
 from supabase import create_client
-from sqlalchemy import create_engine, text
 
-# =========================================================
+# ---------------------------
 # PAGE CONFIG
-# =========================================================
+# ---------------------------
 st.set_page_config(page_title="The Young Shall Grow – Njangi", layout="wide")
-st.title("🪙 The Young Shall Grow – Njangi")
+st.title("🌱 The Young Shall Grow – Njangi")
 
-# =========================================================
-# SECRETS
-# =========================================================
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_ANON_KEY = st.secrets["SUPABASE_ANON_KEY"]
-DB_URL = st.secrets["DB_URL"]
+# ---------------------------
+# SECRETS (YOU ALREADY HAVE THESE)
+# ---------------------------
+SUPABASE_URL = st.secrets.get("SUPABASE_URL")
+SUPABASE_KEY = st.secrets.get("SUPABASE_ANON_KEY")
 
-supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+if not SUPABASE_URL or not SUPABASE_KEY:
+    st.error("❌ Missing SUPABASE_URL or SUPABASE_ANON_KEY in Streamlit Secrets.")
+    st.stop()
 
-@st.cache_resource
-def get_engine():
-    return create_engine(DB_URL)
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-engine = get_engine()
-
-# =========================================================
-# DB HELPERS
-# =========================================================
-def qdf(query: str, params: dict | None = None) -> pd.DataFrame:
-    with engine.connect() as conn:
-        return pd.read_sql(text(query), conn, params=params or {})
-
-def qexec(query: str, params: dict | None = None):
-    with engine.begin() as conn:
-        conn.execute(text(query), params or {})
-
-# =========================================================
-# AUTH HELPERS
-# =========================================================
-def get_user_role(user_id: str):
+# ---------------------------
+# SESSION RESTORE (keeps login after refresh)
+# ---------------------------
+if "access_token" in st.session_state and "refresh_token" in st.session_state:
     try:
-        res = supabase.table("profiles").select("role").eq("id", user_id).execute()
-        if res.data:
-            return res.data[0]["role"]
-        return None
+        supabase.auth.set_session(st.session_state["access_token"], st.session_state["refresh_token"])
+        user = supabase.auth.get_user()
+        st.session_state["logged_in"] = user is not None
     except Exception:
-        return None
+        st.session_state["logged_in"] = False
 
-def do_logout():
-    try:
-        supabase.auth.sign_out()
-    except Exception:
-        pass
-    st.session_state.clear()
-    st.rerun()
+# ---------------------------
+# AUTH UI (SIGN UP + LOGIN)
+# ---------------------------
+if not st.session_state.get("logged_in"):
+    st.subheader("🔐 Authentication")
 
-# =========================================================
-# BOOTSTRAP: Ensure columns exist in members
-# (safe to run repeatedly)
-# =========================================================
-def ensure_members_columns():
-    try:
-        qexec("""
-            alter table public.members
-            add column if not exists user_id uuid references auth.users(id),
-            add column if not exists email text;
-        """)
-    except Exception:
-        # If DB_URL is wrong or permissions issue, we will fail later anyway.
-        pass
+    tab_login, tab_signup = st.tabs(["Login", "Sign Up"])
 
-ensure_members_columns()
-
-# =========================================================
-# AUTH UI (LOGIN + SIGNUP)
-# =========================================================
-if "user" not in st.session_state:
-    st.subheader("🔐 Login Required")
-
-    tab1, tab2 = st.tabs(["Login", "Create Account"])
-
-    with tab1:
+    with tab_login:
         email = st.text_input("Email", key="login_email")
-        password = st.text_input("Password", type="password", key="login_pw")
+        password = st.text_input("Password", type="password", key="login_password")
 
-        if st.button("Login", use_container_width=True):
+        if st.button("Login"):
             try:
                 res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                user = res.user
-                role = get_user_role(user.id)
-
-                if not role:
-                    st.error("No role found in profiles. (Create profiles table + trigger, or insert role manually.)")
-                    st.stop()
-
-                st.session_state.user = user
-                st.session_state.role = role
+                st.session_state["access_token"] = res.session.access_token
+                st.session_state["refresh_token"] = res.session.refresh_token
+                st.session_state["logged_in"] = True
+                st.session_state["email"] = email
+                st.success("✅ Login successful. Reloading...")
                 st.rerun()
             except Exception:
-                st.error("Login failed. Check email/password (or confirm email if confirmation is ON).")
+                st.error("❌ Login failed. Check email/password.")
 
-    with tab2:
-        new_email = st.text_input("Email", key="signup_email")
-        new_pw = st.text_input("Create Password (min 6 chars)", type="password", key="signup_pw")
-        new_pw2 = st.text_input("Confirm Password", type="password", key="signup_pw2")
+    with tab_signup:
+        new_email = st.text_input("New Email", key="signup_email")
+        new_password = st.text_input("New Password", type="password", key="signup_password")
 
-        if st.button("Create Account", use_container_width=True):
-            if not new_email:
-                st.error("Email is required.")
-            elif new_pw != new_pw2:
-                st.error("Passwords do not match.")
-            elif len(new_pw) < 6:
-                st.error("Password must be at least 6 characters.")
-            else:
-                try:
-                    supabase.auth.sign_up({"email": new_email, "password": new_pw})
-                    st.success("Account created! Now go to Login and sign in.")
-                    st.info("If Supabase requires email confirmation, confirm your email first.")
-                except Exception:
-                    st.error("Signup failed. Email may already exist or signup is blocked in Supabase Auth settings.")
+        if st.button("Create Account"):
+            try:
+                supabase.auth.sign_up({"email": new_email, "password": new_password})
+                st.success("✅ Account created! Now go to Login tab and sign in.")
+            except Exception:
+                st.error("❌ Sign up failed. Try another email or stronger password.")
 
     st.stop()
 
-# =========================================================
-# AUTHENTICATED AREA
-# =========================================================
-user = st.session_state.user
-role = st.session_state.role
-
-st.sidebar.success(f"Logged in: {user.email}")
-st.sidebar.write(f"Role: **{role}**")
-st.sidebar.button("Logout", on_click=do_logout)
-
-# =========================================================
-# ADMIN LINKING (connect login to an existing member row)
-# =========================================================
-def admin_link_panel():
-    st.subheader("👑 Admin: Link a Login to a Member Record")
-
-    try:
-        members = qdf("select id, name, email, user_id from public.members order by id asc")
-    except Exception as e:
-        st.error("Cannot read members table. Check DB_URL permissions.")
-        st.stop()
-
-    st.caption("Select a member name, then link them to THIS logged-in user (sets members.user_id + members.email).")
-    st.dataframe(members, use_container_width=True)
-
-    name_list = members["name"].fillna("").tolist()
-    chosen_name = st.selectbox("Select member to link", options=[""] + name_list)
-
-    if st.button("Link selected member to this login", use_container_width=True):
-        if not chosen_name:
-            st.error("Please choose a member name first.")
-        else:
-            qexec(
-                """
-                update public.members
-                set user_id = :uid,
-                    email = :email
-                where name = :name
-                """,
-                {"uid": user.id, "email": user.email, "name": chosen_name}
-            )
-            st.success(f"Linked '{chosen_name}' ✅")
-            st.rerun()
-
-# =========================================================
-# DASHBOARDS
-# =========================================================
-if role == "admin":
-    st.header("📌 Admin Dashboard")
-
-    admin_link_panel()
-
-    st.divider()
-    st.subheader("All Members (Admin View)")
-    all_members = qdf("select * from public.members order by id asc")
-    st.dataframe(all_members, use_container_width=True)
-
-elif role == "member":
-    st.header("👤 Member Dashboard")
-
-    # Member record is identified by user_id (most reliable)
-    my_member = qdf(
-        "select * from public.members where user_id = :uid limit 1",
-        {"uid": user.id}
-    )
-
-    if my_member.empty:
-        st.warning("Your login is NOT linked to any member record yet.")
-        st.info("Ask the admin to link your account to your name in the members table.")
-        st.stop()
-
-    st.subheader("My Member Record")
-    st.dataframe(my_member, use_container_width=True)
-
-    st.divider()
-    st.subheader("My Payouts / Fines (if tables exist)")
-
-    member_id = int(my_member.iloc[0]["id"])
-
-    def try_table(sql, params):
+# ---------------------------
+# LOGOUT
+# ---------------------------
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.success(f"✅ Logged in as: {st.session_state.get('email', 'User')}")
+with col2:
+    if st.button("Logout"):
         try:
-            return qdf(sql, params)
+            supabase.auth.sign_out()
         except Exception:
-            return pd.DataFrame()
+            pass
+        for k in ["logged_in", "email", "access_token", "refresh_token"]:
+            if k in st.session_state:
+                del st.session_state[k]
+        st.rerun()
 
-    payouts = try_table(
-        "select * from public.payouts where member_id = :mid order by id desc",
-        {"mid": member_id}
-    )
-    fines = try_table(
-        "select * from public.fines where member_id = :mid order by id desc",
-        {"mid": member_id}
-    )
+st.divider()
 
-    c1, c2 = st.columns(2)
-    with c1:
-        st.write("**My Payouts**")
-        st.dataframe(payouts, use_container_width=True)
-    with c2:
-        st.write("**My Fines**")
-        st.dataframe(fines, use_container_width=True)
-
-else:
-    st.error("Unauthorized role. Contact admin.")
-ensure_members_columns()
-
-# =========================================================
-# AUTH UI (LOGIN + SIGNUP)
-# =========================================================
-if "user" not in st.session_state:
-    st.subheader("🔐 Login Required")
-
-    tab1, tab2 = st.tabs(["Login", "Create Account"])
-
-    with tab1:
-        email = st.text_input("Email", key="login_email")
-        password = st.text_input("Password", type="password", key="login_pw")
-
-        if st.button("Login", use_container_width=True):
-            try:
-                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                user = res.user
-                role = get_user_role(user.id)
-
-                if not role:
-                    st.error("No role found in profiles. (Create profiles table + trigger, or insert role manually.)")
-                    st.stop()
-
-                st.session_state.user = user
-                st.session_state.role = role
-                st.rerun()
-            except Exception:
-                st.error("Login failed. Check email/password (or confirm email if confirmation is ON).")
-
-    with tab2:
-        new_email = st.text_input("Email", key="signup_email")
-        new_pw = st.text_input("Create Password (min 6 chars)", type="password", key="signup_pw")
-        new_pw2 = st.text_input("Confirm Password", type="password", key="signup_pw2")
-
-        if st.button("Create Account", use_container_width=True):
-            if not new_email:
-                st.error("Email is required.")
-            elif new_pw != new_pw2:
-                st.error("Passwords do not match.")
-            elif len(new_pw) < 6:
-                st.error("Password must be at least 6 characters.")
-            else:
-                try:
-                    supabase.auth.sign_up({"email": new_email, "password": new_pw})
-                    st.success("Account created! Now go to Login and sign in.")
-                    st.info("If Supabase requires email confirmation, confirm your email first.")
-                except Exception:
-                    st.error("Signup failed. Email may already exist or signup is blocked in Supabase Auth settings.")
-
-    st.stop()
-
-# =========================================================
-# AUTHENTICATED AREA
-# =========================================================
-user = st.session_state.user
-role = st.session_state.role
-
-st.sidebar.success(f"Logged in: {user.email}")
-st.sidebar.write(f"Role: **{role}**")
-st.sidebar.button("Logout", on_click=do_logout)
-
-# =========================================================
-# ADMIN LINKING (connect login to an existing member row)
-# =========================================================
-def admin_link_panel():
-    st.subheader("👑 Admin: Link a Login to a Member Record")
-
+# ---------------------------
+# DASHBOARD LOADERS
+# ---------------------------
+def load_table(table_name: str) -> pd.DataFrame:
     try:
-        members = qdf("select id, name, email, user_id from public.members order by id asc")
+        res = supabase.table(table_name).select("*").execute()
+        return pd.DataFrame(res.data)
     except Exception as e:
-        st.error("Cannot read members table. Check DB_URL permissions.")
-        st.stop()
+        st.error(f"❌ Could not load table '{table_name}'. Make sure it exists and RLS allows access.")
+        st.caption(str(e))
+        return pd.DataFrame()
 
-    st.caption("Select a member name, then link them to THIS logged-in user (sets members.user_id + members.email).")
-    st.dataframe(members, use_container_width=True)
+# ---------------------------
+# DASHBOARD
+# ---------------------------
+st.header("📊 Dashboard")
 
-    name_list = members["name"].fillna("").tolist()
-    chosen_name = st.selectbox("Select member to link", options=[""] + name_list)
+members_df = load_table("members")
+payouts_df = load_table("payouts")
+fines_df   = load_table("fines")
 
-    if st.button("Link selected member to this login", use_container_width=True):
-        if not chosen_name:
-            st.error("Please choose a member name first.")
-        else:
-            qexec(
-                """
-                update public.members
-                set user_id = :uid,
-                    email = :email
-                where name = :name
-                """,
-                {"uid": user.id, "email": user.email, "name": chosen_name}
-            )
-            st.success(f"Linked '{chosen_name}' ✅")
-            st.rerun()
+# Quick stats
+c1, c2, c3 = st.columns(3)
+c1.metric("Members", 0 if members_df.empty else len(members_df))
+c2.metric("Payouts", 0 if payouts_df.empty else len(payouts_df))
+c3.metric("Fines",   0 if fines_df.empty else len(fines_df))
 
-# =========================================================
-# DASHBOARDS
-# =========================================================
-if role == "admin":
-    st.header("📌 Admin Dashboard")
-
-    admin_link_panel()
-
-    st.divider()
-    st.subheader("All Members (Admin View)")
-    all_members = qdf("select * from public.members order by id asc")
-    st.dataframe(all_members, use_container_width=True)
-
-elif role == "member":
-    st.header("👤 Member Dashboard")
-
-    # Member record is identified by user_id (most reliable)
-    my_member = qdf(
-        "select * from public.members where user_id = :uid limit 1",
-        {"uid": user.id}
-    )
-
-    if my_member.empty:
-        st.warning("Your login is NOT linked to any member record yet.")
-        st.info("Ask the admin to link your account to your name in the members table.")
-        st.stop()
-
-    st.subheader("My Member Record")
-    st.dataframe(my_member, use_container_width=True)
-
-    st.divider()
-    st.subheader("My Payouts / Fines (if tables exist)")
-
-    member_id = int(my_member.iloc[0]["id"])
-
-    def try_table(sql, params):
-        try:
-            return qdf(sql, params)
-        except Exception:
-            return pd.DataFrame()
-
-    payouts = try_table(
-        "select * from public.payouts where member_id = :mid order by id desc",
-        {"mid": member_id}
-    )
-    fines = try_table(
-        "select * from public.fines where member_id = :mid order by id desc",
-        {"mid": member_id}
-    )
-
-    c1, c2 = st.columns(2)
-    with c1:
-        st.write("**My Payouts**")
-        st.dataframe(payouts, use_container_width=True)
-    with c2:
-        st.write("**My Fines**")
-        st.dataframe(fines, use_container_width=True)
-
+st.subheader("👥 Members")
+if members_df.empty:
+    st.info("No members found.")
 else:
-    st.error("Unauthorized role. Contact admin.")
+    st.dataframe(members_df, use_container_width=True)
+
+st.subheader("💸 Payouts")
+if payouts_df.empty:
+    st.info("No payouts found.")
+else:
+    st.dataframe(payouts_df, use_container_width=True)
+
+st.subheader("⚠️ Fines")
+if fines_df.empty:
+    st.info("No fines found.")
+else:
+    st.dataframe(fines_df, use_container_width=True)
+
+st.success("✅ Dashboard loaded.")
