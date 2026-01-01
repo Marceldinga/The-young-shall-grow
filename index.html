@@ -1120,11 +1120,25 @@ async function enforceAdminGate(){
     return false;
   }
 
-  const { data: profile, error } = await sb
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+  // Admin check via RPC (more reliable with RLS)
+  const { data: isAdmin, error } = await sb.rpc("is_admin");
+
+  if (error) {
+    sideErr("is_admin: " + error.message);
+    await sb.auth.signOut();
+    document.getElementById("app").style.display = "none";
+    document.getElementById("locked").style.display = "flex";
+    return false;
+  }
+
+  if (!isAdmin) {
+    sideErr("Access denied: role is not admin.");
+    await sb.auth.signOut();
+    document.getElementById("app").style.display = "none";
+    document.getElementById("locked").style.display = "flex";
+    return false;
+  }
+
 
   if(error){
     sideErr("profiles: " + error.message);
@@ -1773,6 +1787,7 @@ async function addSurety(){
   document.getElementById("sCollateral").value="";
   await reloadAll(); toast("Saved");
 }
+
 /* ===========================
    INIT
 =========================== */
