@@ -19,467 +19,858 @@
       --border:rgba(255,255,255,.10);
       --text:#eaf0ff;
       --muted:rgba(234,240,255,.65);
-      --accent:#7dd3fc;
-      --accent2:#a78bfa;
-      --shadow: 0 18px 45px rgba(0,0,0,.55);
-      --shadow2: 0 10px 24px rgba(0,0,0,.35);
+      --accent:#4f7cff;
+      --accent2:#1bd6a7;
+      --danger:#ff4f6d;
+      --warn:#ffcc66;
+      --ok:#39d98a;
       --radius:18px;
+      --shadow:0 12px 40px rgba(0,0,0,.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
     }
     *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:
-        radial-gradient(1200px 800px at 15% 10%, rgba(125,211,252,.22), transparent 55%),
-        radial-gradient(900px 700px at 85% 25%, rgba(167,139,250,.18), transparent 60%),
-        radial-gradient(1200px 900px at 45% 95%, rgba(52,211,153,.10), transparent 55%),
-        linear-gradient(180deg, #060815, #070b18 45%, #070b18);
+      font-family:var(--sans);
+      background: radial-gradient(1200px 800px at 10% 10%, rgba(79,124,255,.20), transparent 60%),
+                  radial-gradient(1000px 700px at 90% 20%, rgba(27,214,167,.12), transparent 60%),
+                  radial-gradient(900px 650px at 40% 90%, rgba(255,79,109,.10), transparent 60%),
+                  var(--bg);
       color:var(--text);
-      min-height:100vh;
     }
-
-    /* LOCK SCREEN */
-    #locked{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:22px}
-    .lockBox{
-      width:min(440px,100%);
-      background:var(--panel);
-      border:1px solid var(--border);
-      border-radius:22px;
-      padding:18px;
-      box-shadow:var(--shadow);
-      backdrop-filter: blur(12px);
-    }
-    .lockGrid{display:grid;grid-template-columns:1fr;gap:10px}
-    input,select,textarea{
-      width:100%;
-      padding:14px;
-      border-radius:14px;
-      border:1px solid var(--border);
-      background:rgba(0,0,0,.25);
-      color:var(--text);
-      outline:none;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
-    }
-    textarea{min-height:96px;resize:vertical}
-    input::placeholder,textarea::placeholder{color:rgba(234,240,255,.55)}
-    .btn{
-      padding:12px 14px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.14);
-      background:
-        linear-gradient(135deg, rgba(125,211,252,.22), rgba(167,139,250,.18)),
-        rgba(255,255,255,.03);
-      color:var(--text);
-      cursor:pointer;
-      box-shadow:var(--shadow2);
-      transition: transform .10s ease, filter .10s ease;
-    }
-    .btn:hover{filter:brightness(1.08)}
-    .btn:active{transform: translateY(1px)}
-    .btn.ghost{
-      background:rgba(255,255,255,.03);
-      box-shadow:none;
-    }
-
-    /* APP LAYOUT */
-    .wrap{display:flex;min-height:100vh}
+    a{color:inherit}
+    .wrap{display:flex; min-height:100%}
     .sidebar{
-      width:330px;
-      padding:16px;
+      width:320px;
+      padding:18px;
       border-right:1px solid var(--border);
-      background:rgba(0,0,0,.18);
-      backdrop-filter: blur(10px);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      position:sticky; top:0; height:100vh; overflow:auto;
     }
-    .main{flex:1;padding:18px}
     .brand{
-      font-weight:900;
-      font-size:18px;
-      letter-spacing:.2px;
-      display:flex;
-      align-items:center;
-      gap:10px;
+      display:flex; gap:12px; align-items:center; padding:12px 10px; border-radius:14px;
+      background:rgba(255,255,255,.03); border:1px solid var(--border);
+      box-shadow: var(--shadow);
     }
-    .dot{
-      width:10px;height:10px;border-radius:999px;
+    .logo{
+      width:44px; height:44px; border-radius:14px;
       background:linear-gradient(135deg, var(--accent), var(--accent2));
-      box-shadow:0 0 22px rgba(125,211,252,.35);
+      display:grid; place-items:center; font-weight:800;
     }
-    .sub{color:var(--muted);font-size:12px;margin-top:6px;line-height:1.4}
-    .card{
-      background:var(--panel);
-      border:1px solid var(--border);
-      border-radius:var(--radius);
-      padding:14px;
-      margin-top:14px;
-      box-shadow:var(--shadow2);
-      backdrop-filter: blur(12px);
-    }
-    .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
-    .pill{
-      display:inline-block;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:rgba(0,0,0,.18);
-      font-size:12px;
-      color:rgba(234,240,255,.85);
-    }
-    .nav{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+    .brand h1{font-size:14px; margin:0; line-height:1.1}
+    .brand p{margin:2px 0 0; color:var(--muted); font-size:12px}
+
+    .nav{margin-top:14px; display:flex; flex-direction:column; gap:8px}
     .nav button{
       width:100%;
-      text-align:left;
-      padding:11px 12px;
+      padding:10px 12px;
       border-radius:14px;
+      background:rgba(255,255,255,.03);
       border:1px solid var(--border);
-      background:rgba(255,255,255,.02);
       color:var(--text);
       cursor:pointer;
-      transition: filter .1s ease;
+      display:flex; justify-content:space-between; align-items:center;
     }
-    .nav button:hover{filter:brightness(1.08)}
     .nav button.active{
-      border-color:rgba(125,211,252,.45);
-      box-shadow:0 0 0 1px rgba(125,211,252,.22) inset;
-      background:rgba(125,211,252,.06);
+      background:rgba(79,124,255,.18);
+      border-color:rgba(79,124,255,.35);
     }
-
-    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
-    .title{font-size:18px;font-weight:900}
-    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .kpi .label{color:var(--muted);font-size:12px}
-    .kpi .val{font-size:22px;font-weight:900;margin-top:6px}
-    .section{display:none}
-    .section.active{display:block}
-
-    label{display:block;color:var(--muted);font-size:12px;margin-top:10px}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:12px;vertical-align:top}
-    th{color:var(--muted);font-weight:800}
-    .err{color:#fecaca;white-space:pre-wrap;font-size:12px;margin-top:10px;display:none}
-
-    #toast{
-      position:fixed; left:50%; bottom:20px; transform:translateX(-50%);
-      background:rgba(0,0,0,.55);
-      border:1px solid rgba(255,255,255,.12);
-      color:rgba(234,240,255,.92);
-      padding:10px 14px;
+    .pill{
+      font-size:11px; padding:2px 8px; border-radius:999px;
+      background:rgba(255,255,255,.06); border:1px solid var(--border); color:var(--muted);
+    }
+    .sidecard{
+      margin-top:14px;
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:12px;
+    }
+    .sidecard h3{margin:0 0 8px; font-size:13px; color:var(--muted)}
+    .sidecard .kv{display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:6px 0; border-bottom:1px dashed rgba(255,255,255,.10)}
+    .sidecard .kv:last-child{border-bottom:none}
+    .dangerBox{
+      margin-top:10px;
+      border:1px solid rgba(255,79,109,.45);
+      background:rgba(255,79,109,.08);
       border-radius:14px;
-      box-shadow:var(--shadow);
-      backdrop-filter: blur(10px);
+      padding:10px;
+      font-size:12px;
+      color:#ffd3dc;
       display:none;
-      z-index:9999;
-      max-width:min(520px,92vw);
-      font-size:13px;
+      white-space:pre-wrap;
+    }
+    .btnRow{display:flex; gap:10px; margin-top:10px}
+    .btn{
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      color:var(--text);
+      cursor:pointer;
+      flex:1;
+    }
+    .btn.primary{background:rgba(79,124,255,.20); border-color:rgba(79,124,255,.35)}
+    .btn.danger{background:rgba(255,79,109,.12); border-color:rgba(255,79,109,.35)}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+
+    .main{flex:1; padding:18px 18px 28px}
+    .topbar{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:12px 14px;
+      border-radius:var(--radius);
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--border);
+      box-shadow: var(--shadow);
+      gap:12px;
+    }
+    .topbar .left{display:flex; flex-direction:column; gap:2px}
+    .topbar h2{margin:0; font-size:16px}
+    .topbar p{margin:0; font-size:12px; color:var(--muted)}
+    .topbar .right{display:flex; gap:10px; align-items:center}
+    .tag{
+      font-size:12px; padding:6px 10px; border-radius:999px;
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--border);
+      color:var(--muted);
     }
 
-    @media (max-width:1100px){
-      .grid4{grid-template-columns:1fr 1fr}
-      .grid2{grid-template-columns:1fr}
-      .sidebar{width:100%;max-width:360px}
+    .grid{
+      margin-top:16px;
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:14px;
+    }
+    .card{
+      grid-column: span 12;
+      background:rgba(255,255,255,.03);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:12px 14px;
+      display:flex; justify-content:space-between; align-items:center;
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .card .hd h3{margin:0; font-size:14px}
+    .card .hd .sub{color:var(--muted); font-size:12px}
+    .card .bd{padding:14px}
+
+    .kpis{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap:12px;
+    }
+    .kpi{
+      padding:12px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+    }
+    .kpi .label{font-size:12px; color:var(--muted)}
+    .kpi .value{font-size:18px; margin-top:6px; font-weight:800}
+    .kpi .mini{font-size:11px; margin-top:6px; color:var(--muted)}
+    .kpi .mini strong{color:var(--text)}
+    .twoCols{display:grid; grid-template-columns: 1.3fr .7fr; gap:14px}
+    canvas{max-width:100%}
+    .formGrid{display:grid; grid-template-columns: repeat(12, 1fr); gap:10px}
+    label{font-size:12px; color:var(--muted)}
+    input, select, textarea{
+      width:100%;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.20);
+      color:var(--text);
+      outline:none;
+    }
+    textarea{min-height:86px; resize:vertical}
+    .row{display:flex; gap:10px; align-items:end}
+    .row > div{flex:1}
+    table{
+      width:100%;
+      border-collapse:collapse;
+      overflow:hidden;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    th, td{
+      text-align:left;
+      padding:10px 10px;
+      border-bottom:1px solid rgba(255,255,255,.07);
+      font-size:12px;
+    }
+    th{color:var(--muted); font-weight:700; background:rgba(255,255,255,.02)}
+    tr:last-child td{border-bottom:none}
+    .muted{color:var(--muted)}
+    .rightText{text-align:right}
+    .split{display:grid; grid-template-columns: 1fr 1fr; gap:14px}
+    .small{font-size:11px; color:var(--muted)}
+    .toast{
+      position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,.65);
+      border:1px solid rgba(255,255,255,.16);
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:13px;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .18s ease;
+      box-shadow: var(--shadow);
+    }
+    .toast.show{opacity:1}
+
+    /* auth screen */
+    .locked{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      padding:18px;
+      background:radial-gradient(900px 700px at 20% 20%, rgba(79,124,255,.18), transparent 60%),
+                 radial-gradient(900px 700px at 80% 20%, rgba(27,214,167,.10), transparent 60%),
+                 var(--bg);
+    }
+    .auth{
+      width:min(540px, 96vw);
+      border-radius:22px;
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding:18px;
+    }
+    .auth h2{margin:0 0 6px}
+    .auth p{margin:0 0 12px; color:var(--muted); font-size:13px}
+    .auth .row{margin-top:10px}
+    .auth .btn{width:100%}
+    .hint{
+      margin-top:10px; font-size:12px; color:var(--muted);
+      border-top:1px solid rgba(255,255,255,.07);
+      padding-top:10px;
+    }
+
+    @media (max-width: 980px){
+      .wrap{flex-direction:column}
+      .sidebar{width:100%; height:auto; position:relative}
+      .kpis{grid-template-columns: repeat(2, minmax(0, 1fr))}
+      .twoCols{grid-template-columns:1fr}
+      .split{grid-template-columns:1fr}
     }
   </style>
 </head>
 
 <body>
+  <!-- LOCKED / LOGIN -->
+  <div id="locked" class="locked">
+    <div class="auth">
+      <div class="brand" style="box-shadow:none">
+        <div class="logo">YS</div>
+        <div>
+          <h1 style="font-size:16px;margin:0">The Young Shall Grow</h1>
+          <p style="margin:2px 0 0;color:var(--muted);font-size:12px">Admin Dashboard • Secure Login</p>
+        </div>
+      </div>
 
-<!-- LOGIN -->
-<div id="locked">
-  <div class="lockBox">
-    <div class="lockGrid">
-      <input id="email" placeholder="Admin email" autocomplete="username" />
-      <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
-      <button class="btn" onclick="signIn()">Sign in</button>
+      <h2 style="margin-top:14px">Sign in</h2>
+      <p>Only admins can access the dashboard.</p>
+
+      <div class="formGrid" style="margin-top:10px">
+        <div style="grid-column:span 12">
+          <label>Email</label>
+          <input id="email" type="email" placeholder="admin@email.com" autocomplete="username" />
+        </div>
+        <div style="grid-column:span 12">
+          <label>Password</label>
+          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+      </div>
+
+      <div class="btnRow">
+        <button class="btn primary" onclick="signIn()">Sign in</button>
+      </div>
+
+      <div class="hint">
+        <div><strong>Tip:</strong> Your Supabase Auth user must have a row in <span class="mono">profiles</span> with <span class="mono">role='admin'</span>.</div>
+      </div>
+
+      <div id="authErr" class="dangerBox" style="display:block;margin-top:10px"></div>
     </div>
   </div>
-</div>
 
-<!-- APP -->
-<div id="app" class="wrap" style="display:none;">
-  <aside class="sidebar">
-    <div class="brand"><span class="dot"></span> Njangi Admin</div>
-    <div class="sub">Today • <span id="today"></span></div>
-
-    <div class="card">
-      <div class="row"><span class="sub">Signed in</span><span class="pill" id="who">—</span></div>
-      <div class="row" style="margin-top:10px;"><span class="sub">Role</span><span class="pill" id="role">—</span></div>
-      <button class="btn ghost" style="width:100%;margin-top:10px" onclick="signOut()">Logout</button>
-      <div id="sideErr" class="err"></div>
-    </div>
-
-    <div class="nav">
-      <button id="navDash" class="active" onclick="show('dash','Dashboard')">Dashboard</button>
-      <button id="navMembers" onclick="show('members','Members')">Members</button>
-      <button id="navContrib" onclick="show('contrib','Contributions')">Contributions</button>
-      <button id="navFoundation" onclick="show('foundation','Foundation')">Foundation</button>
-      <button id="navLoans" onclick="show('loans','Loans')">Loans</button>
-      <button id="navFines" onclick="show('fines','Fines')">Fines</button>
-      <button id="navPayouts" onclick="show('payouts','Payouts')">Payouts</button>
-      <button id="navHistory" onclick="show('history','History')">History</button>
-
-      <!-- NEW -->
-      <button id="navFPayments" onclick="show('foundation_payments','Foundation Payments')">Foundation Payments</button>
-      <button id="navSureties" onclick="show('sureties','Sureties')">Sureties</button>
-
-      <button class="btn ghost" style="margin-top:6px" onclick="reloadAll()">Refresh</button>
-    </div>
-
-    <div class="card">
-      <div class="sub"><b>Rotation</b></div>
-      <div style="margin-top:8px;font-weight:900;font-size:18px" id="nextName">—</div>
-      <div class="sub" id="nextInfo">—</div>
-      <button class="btn" style="width:100%;margin-top:10px" onclick="runPayout()">Run Payout</button>
-      <div class="sub" style="margin-top:10px;color:#fbbf24">Start: <b>Jan 3, 2026</b> • Every 14 days</div>
-    </div>
-  </aside>
-
-  <main class="main">
-    <div class="topbar">
-      <div class="title" id="pageTitle">Dashboard</div>
-      <span class="pill">Total Interest: <b id="kInterestMini">$0</b></span>
-    </div>
-
-    <section id="dash" class="section active">
-      <div class="grid4">
-        <div class="card kpi"><div class="label">Njangi Pot</div><div class="val" id="kPot">$0</div><div class="sub">Sum of contributions</div></div>
-        <div class="card kpi"><div class="label">Foundation</div><div class="val" id="kFoundation">$0</div><div class="sub">Available for loans</div></div>
-        <div class="card kpi"><div class="label">Outstanding Loans</div><div class="val" id="kLoans">$0</div><div class="sub">Total due</div></div>
-        <div class="card kpi"><div class="label">Members</div><div class="val" id="kMembers">0</div><div class="sub">Rotation list</div></div>
-      </div>
-
-      <div class="grid2" style="margin-top:12px;">
-        <div class="card">
-          <div class="row"><div style="font-weight:900;">Histogram: Contributions (Top 10)</div><span class="pill">Now</span></div>
-          <canvas id="histChart" height="140"></canvas>
-        </div>
-        <div class="card">
-          <div class="row"><div style="font-weight:900;">Pie: Pot vs Foundation vs Loans</div><span class="pill">Now</span></div>
-          <canvas id="pieChart" height="140"></canvas>
+  <!-- APP -->
+  <div id="app" class="wrap" style="display:none">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">YS</div>
+        <div>
+          <h1>The Young Shall Grow</h1>
+          <p>Njangi Admin Dashboard</p>
         </div>
       </div>
 
-      <div class="card" style="margin-top:12px;">
-        <div class="row"><div style="font-weight:900;">Recent Activity</div><span class="pill">Top 15</span></div>
-        <table>
-          <thead><tr><th>Time</th><th>Type</th><th>Member</th><th>Amount</th><th>Interest %</th><th>Total Due</th></tr></thead>
-          <tbody id="recentBody"></tbody>
-        </table>
+      <div class="nav">
+        <button id="tabBtn-dashboard" class="active" onclick="showTab('dashboard')">
+          <span>Dashboard</span><span class="pill">Overview</span>
+        </button>
+        <button id="tabBtn-members" onclick="showTab('members')">
+          <span>Members</span><span class="pill" id="memberCountPill">0</span>
+        </button>
+        <button id="tabBtn-ops" onclick="showTab('ops')">
+          <span>Contributions & Loans</span><span class="pill">Actions</span>
+        </button>
+        <button id="tabBtn-finance" onclick="showTab('finance')">
+          <span>Fines & Payouts</span><span class="pill">Records</span>
+        </button>
+        <button id="tabBtn-foundation" onclick="showTab('foundation')">
+          <span>Foundation & Sureties</span><span class="pill">New</span>
+        </button>
       </div>
-    </section>
 
-    <section id="members" class="section">
-      <div class="grid2">
-        <div class="card">
-          <div style="font-weight:900;">Add Member</div>
-          <label>Name</label><input id="mName" placeholder="e.g. John Doe" />
-          <label>Phone (optional)</label><input id="mPhone" placeholder="e.g. 301-000-0000" />
-          <label>Has benefits?</label>
-          <select id="mBenefits"><option value="false">No</option><option value="true">Yes</option></select>
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addMember()">Add Member</button>
+      <div class="sidecard">
+        <h3>Admin</h3>
+        <div class="kv"><span class="muted">Signed in</span><span id="who" class="mono">—</span></div>
+        <div class="kv"><span class="muted">Role</span><span id="role" class="mono">—</span></div>
+        <div class="kv"><span class="muted">Today</span><span id="today" class="mono">—</span></div>
+        <div class="btnRow">
+          <button class="btn" onclick="reloadAll()">Refresh</button>
+          <button class="btn danger" onclick="signOut()">Sign out</button>
         </div>
-
-        <div class="card">
-          <div class="row"><div style="font-weight:900;">Member List</div><span class="pill">Total: <span id="memberCount">0</span></span></div>
-          <table>
-            <thead><tr><th>Name</th><th>Njangi</th><th>Foundation</th><th>Loan Due</th><th>Payout Total</th><th>Benefits</th></tr></thead>
-            <tbody id="memberBody"></tbody>
-          </table>
-        </div>
+        <div id="sideErr" class="dangerBox"></div>
       </div>
-    </section>
+    </aside>
 
-    <section id="contrib" class="section">
-      <div class="grid2">
-        <div class="card">
-          <div style="font-weight:900;">Add Contribution</div>
-          <label>Member</label><select id="cMember"></select>
-          <label>Amount (multiple of 500)</label><input id="cAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addContribution()">Save Contribution</button>
-          <div class="sub" style="margin-top:12px">Rule: Contributions must be multiples of <b>500</b>.</div>
+    <!-- MAIN -->
+    <main class="main">
+      <div class="topbar">
+        <div class="left">
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="pageSub">Pot, foundation, loans, and rotation overview</p>
         </div>
-        <div class="card">
-          <div style="font-weight:900;">Set Contribution Total</div>
-          <label>Member</label><select id="cSetMember"></select>
-          <label>Set to amount</label><input id="cSetAmount" type="number" placeholder="e.g. 2000" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="setContribution()">Set Contribution</button>
+        <div class="right">
+          <div class="tag"><span class="muted">Rotation starts:</span> <span id="rotStart">2026-01-03</span></div>
+          <div class="tag"><span class="muted">Interest:</span> <strong>5%</strong></div>
         </div>
       </div>
-    </section>
 
-    <section id="foundation" class="section">
-      <div class="grid2">
-        <div class="card">
-          <div style="font-weight:900;">Foundation Balance</div>
-          <label>Add to Foundation</label><input id="fAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addToFoundation()">Add</button>
-          <hr style="border:0;border-top:1px solid rgba(255,255,255,.08);margin:14px 0;">
-          <label>Set Foundation Total</label><input id="fSetAmount" type="number" placeholder="e.g. 5000" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="setFoundation()">Set Foundation</button>
-        </div>
-
-        <div class="card">
-          <div style="font-weight:900;">Member Foundation Contribution</div>
-          <label>Member</label><select id="mfMember"></select>
-          <label>Amount</label><input id="mfAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addMemberFoundation()">Add Member Foundation</button>
-          <div class="sub" style="margin-top:12px">This increases member foundation and foundation balance.</div>
-        </div>
-      </div>
-    </section>
-
-    <section id="loans" class="section">
-      <div class="grid2">
-        <div class="card">
-          <div style="font-weight:900;">Issue Loan (5%)</div>
-          <label>Member</label><select id="lMember"></select>
-          <label>Loan amount</label><input id="lAmount" type="number" placeholder="e.g. 1000" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="issueLoan()">Issue Loan</button>
-          <div class="sub" style="margin-top:12px">
-            Rule: if benefits = Yes and foundation contrib ≤ 70% of loan → not qualified.
+      <!-- DASHBOARD TAB -->
+      <section id="tab-dashboard" class="grid">
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Key metrics</h3>
+              <div class="sub">Live from Supabase</div>
+            </div>
+            <div class="sub">Total interest generated: <strong id="kInterestMini">0</strong></div>
+          </div>
+          <div class="bd">
+            <div class="kpis">
+              <div class="kpi">
+                <div class="label">Pot (Contributions)</div>
+                <div class="value" id="kPot">$0</div>
+                <div class="mini">Total contributed by members</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Foundation Balance</div>
+                <div class="value" id="kFoundation">$0</div>
+                <div class="mini">From Foundation_payments.amount_paid</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Outstanding Loans</div>
+                <div class="value" id="kLoans">$0</div>
+                <div class="mini">Sum of member loan_due</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Members</div>
+                <div class="value" id="kMembers">0</div>
+                <div class="mini">Active list</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="card">
-          <div style="font-weight:900;">Record Repayment</div>
-          <label>Member</label><select id="rMember"></select>
-          <label>Repayment amount</label><input id="rAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="repayLoan()">Save Repayment</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="fines" class="section">
-      <div class="grid2">
-        <div class="card">
-          <div style="font-weight:900;">Add Fine</div>
-          <label>Member</label><select id="fineMember"></select>
-          <label>Fine amount</label><input id="fineAmount" type="number" placeholder="e.g. 500" />
-          <label>Reason</label><input id="fineReason" placeholder="Late payment..." />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addFine()">Save Fine</button>
-        </div>
-
-        <div class="card">
-          <div class="row"><div style="font-weight:900;">Fines</div><span class="pill">Newest first</span></div>
-          <table>
-            <thead><tr><th>Date</th><th>Member</th><th>Amount</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody id="fineBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="payouts" class="section">
-      <div class="grid2">
-        <div class="card">
-          <div style="font-weight:900;">Run Payout</div>
-          <div class="sub" style="margin-top:6px;">Start: Jan 3, 2026 • Every 14 days</div>
-          <button class="btn" style="width:100%;margin-top:12px" onclick="runPayout()">Run Now</button>
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Next payout (bi-weekly)</h3>
+              <div class="sub" id="nextInfo">—</div>
+            </div>
+            <div class="sub">Next: <strong id="nextName">—</strong></div>
+          </div>
+          <div class="bd twoCols">
+            <div>
+              <canvas id="histChart" height="140"></canvas>
+            </div>
+            <div>
+              <canvas id="pieChart" height="140"></canvas>
+              <div class="small" style="margin-top:8px">
+                Pie shows Pot vs Foundation vs Outstanding Loans.
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="card">
-          <div style="font-weight:900;">Payout History</div>
-          <table>
-            <thead><tr><th>Date</th><th>Member</th><th>Amount</th></tr></thead>
-            <tbody id="payoutBody"></tbody>
-          </table>
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Recent activity</h3>
+              <div class="sub">Latest 15 history entries</div>
+            </div>
+          </div>
+          <div class="bd">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Type</th>
+                  <th>Member</th>
+                  <th class="rightText">Amount</th>
+                  <th class="rightText">Interest %</th>
+                  <th class="rightText">Result</th>
+                </tr>
+              </thead>
+              <tbody id="recentBody"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section id="history" class="section">
-      <div class="card">
-        <div class="row"><div style="font-weight:900;">Full History</div><span class="pill">Latest first</span></div>
-        <table>
-          <thead><tr><th>Time</th><th>Type</th><th>Member</th><th>Amount</th><th>Interest %</th><th>Total Due</th></tr></thead>
-          <tbody id="historyBody"></tbody>
-        </table>
-      </div>
-    </section>
+      <!-- MEMBERS TAB -->
+      <section id="tab-members" class="grid" style="display:none">
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Members</h3>
+              <div class="sub">Manage member list and order</div>
+            </div>
+            <div class="sub"><span id="memberCount">0</span> total</div>
+          </div>
+          <div class="bd">
+            <div class="split">
+              <div class="card" style="box-shadow:none;border:none;background:transparent">
+                <div class="bd" style="padding:0">
+                  <h4 style="margin:0 0 10px">Add member</h4>
+                  <div class="formGrid">
+                    <div style="grid-column:span 7">
+                      <label>Name</label>
+                      <input id="mName" placeholder="Full name" />
+                    </div>
+                    <div style="grid-column:span 5">
+                      <label>Phone (optional)</label>
+                      <input id="mPhone" placeholder="301-..." />
+                    </div>
+                    <div style="grid-column:span 6">
+                      <label>Has benefits?</label>
+                      <select id="mBenefits">
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    </div>
+                    <div style="grid-column:span 6">
+                      <label>Position</label>
+                      <input id="mPos" type="number" value="1" min="1" />
+                    </div>
+                  </div>
+                  <div class="btnRow" style="margin-top:10px">
+                    <button class="btn primary" onclick="addMember()">Add member</button>
+                    <button class="btn" onclick="reindexPositions()">Reindex positions</button>
+                  </div>
+                  <div class="small" style="margin-top:8px">
+                    Reindex sets positions 1..N in current order.
+                  </div>
+                </div>
+              </div>
 
-    <!-- NEW: FOUNDATION PAYMENTS -->
-    <section id="foundation_payments" class="section">
-      <div class="grid2">
-        <div class="card">
-          <div style="font-weight:900;">Add Foundation Payment</div>
-          <label>Member</label><select id="fpMember"></select>
-          <label>Amount Paid</label><input id="fpPaid" type="number" placeholder="e.g. 500" />
-          <label>Amount Pending</label><input id="fpPending" type="number" placeholder="e.g. 1500" />
-          <label>Status</label>
-          <select id="fpStatus">
-            <option value="pending">pending</option>
-            <option value="partial">partial</option>
-            <option value="paid">paid</option>
-          </select>
-          <label>Notes (optional)</label><textarea id="fpNotes" placeholder="Notes..."></textarea>
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addFoundationPayment()">Save</button>
-          <div class="sub" style="margin-top:10px">DatePaid is auto (now()).</div>
+              <div class="card" style="box-shadow:none;border:none;background:transparent">
+                <div class="bd" style="padding:0">
+                  <h4 style="margin:0 0 10px">Set member position</h4>
+                  <div class="formGrid">
+                    <div style="grid-column:span 7">
+                      <label>Member</label>
+                      <select id="mSetMember"></select>
+                    </div>
+                    <div style="grid-column:span 5">
+                      <label>New position</label>
+                      <input id="mSetPos" type="number" min="1" value="1" />
+                    </div>
+                  </div>
+                  <div class="btnRow" style="margin-top:10px">
+                    <button class="btn primary" onclick="setPosition()">Update position</button>
+                    <button class="btn" onclick="rotateNext()">Advance next payout</button>
+                  </div>
+                  <div class="small" style="margin-top:8px">
+                    “Advance next payout” increments next_payout_index.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th class="rightText">Contributed</th>
+                    <th class="rightText">Foundation contrib</th>
+                    <th class="rightText">Loan due</th>
+                    <th class="rightText">Payout total</th>
+                    <th>Benefits</th>
+                  </tr>
+                </thead>
+                <tbody id="memberBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- OPS TAB -->
+      <section id="tab-ops" class="grid" style="display:none">
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Contributions</h3>
+              <div class="sub">Add contribution to member pot</div>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="formGrid">
+              <div style="grid-column:span 6">
+                <label>Member</label>
+                <select id="cMember"></select>
+              </div>
+              <div style="grid-column:span 6">
+                <label>Amount</label>
+                <input id="cAmount" type="number" min="0" placeholder="500" />
+              </div>
+            </div>
+            <div class="btnRow">
+              <button class="btn primary" onclick="addContribution()">Add contribution</button>
+            </div>
+          </div>
         </div>
 
-        <div class="card">
-          <div class="row"><div style="font-weight:900;">Foundation Payments</div><span class="pill">Newest first</span></div>
-          <table>
-            <thead><tr><th>Date</th><th>Member</th><th>Paid</th><th>Pending</th><th>Status</th><th>Notes</th></tr></thead>
-            <tbody id="fpBody"></tbody>
-          </table>
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Foundation</h3>
+              <div class="sub">Add to foundation or set total</div>
+            </div>
+          </div>
+          <div class="bd split">
+            <div>
+              <h4 style="margin:0 0 10px">Add to foundation</h4>
+              <label>Amount</label>
+              <input id="fAmount" type="number" min="0" placeholder="500" />
+              <div class="btnRow">
+                <button class="btn primary" onclick="addToFoundation()">Add</button>
+              </div>
+            </div>
+            <div>
+              <h4 style="margin:0 0 10px">Set foundation total</h4>
+              <label>New total</label>
+              <input id="fSetAmount" type="number" min="0" placeholder="10000" />
+              <div class="btnRow">
+                <button class="btn" onclick="setFoundation()">Set</button>
+              </div>
+              <div class="small" style="margin-top:8px">
+                This creates an adjustment so SUM(amount_paid) becomes the target.
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
 
-    <!-- NEW: SURETIES -->
-    <section id="sureties" class="section">
-      <div class="grid2">
-        <div class="card">
-          <div style="font-weight:900;">Add Surety Record</div>
-          <label>Surety Name</label><input id="sSuretyName" placeholder="Surety full name" />
-          <label>Borrower (select member)</label><select id="sBorrowerMember"></select>
-          <label>Amount Borrowed</label><input id="sAmountBorrowed" type="number" placeholder="e.g. 1000" />
-          <label>Surety Sign (text)</label><input id="sSuretySign" placeholder="Surety signature text" />
-          <label>Borrower Sign (text)</label><input id="sBorrowerSign" placeholder="Borrower signature text" />
-          <label>Status</label>
-          <select id="sStatus">
-            <option value="active">active</option>
-            <option value="cleared">cleared</option>
-            <option value="defaulted">defaulted</option>
-          </select>
-          <label>Notes (optional)</label><textarea id="sNotes" placeholder="Notes..."></textarea>
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addSurety()">Save</button>
-          <div class="sub" style="margin-top:10px">DateBorrowed is auto (now()).</div>
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Member foundation contribution</h3>
+              <div class="sub">Used for benefit eligibility (70% rule)</div>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="formGrid">
+              <div style="grid-column:span 6">
+                <label>Member</label>
+                <select id="mfMember"></select>
+              </div>
+              <div style="grid-column:span 6">
+                <label>Amount</label>
+                <input id="mfAmount" type="number" min="0" placeholder="500" />
+              </div>
+            </div>
+            <div class="btnRow">
+              <button class="btn primary" onclick="addMemberFoundation()">Save</button>
+            </div>
+          </div>
         </div>
 
-        <div class="card">
-          <div class="row"><div style="font-weight:900;">Sureties</div><span class="pill">Newest first</span></div>
-          <table>
-            <thead><tr><th>Date</th><th>Surety</th><th>Borrower</th><th>Amount</th><th>Status</th><th>Surety Sign</th><th>Borrower Sign</th></tr></thead>
-            <tbody id="sBody"></tbody>
-          </table>
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Loans</h3>
+              <div class="sub">Issue loan (5% interest) and repay</div>
+            </div>
+          </div>
+          <div class="bd split">
+            <div>
+              <h4 style="margin:0 0 10px">Issue loan</h4>
+              <div class="formGrid">
+                <div style="grid-column:span 7">
+                  <label>Member</label>
+                  <select id="lMember"></select>
+                </div>
+                <div style="grid-column:span 5">
+                  <label>Amount</label>
+                  <input id="lAmount" type="number" min="0" placeholder="500" />
+                </div>
+              </div>
+              <div class="btnRow">
+                <button class="btn primary" onclick="issueLoan()">Issue</button>
+              </div>
+              <div class="small" style="margin-top:8px">
+                Foundation availability is based on SUM(Foundation_payments.amount_paid).
+              </div>
+            </div>
+
+            <div>
+              <h4 style="margin:0 0 10px">Repay loan</h4>
+              <div class="formGrid">
+                <div style="grid-column:span 7">
+                  <label>Member</label>
+                  <select id="rMember"></select>
+                </div>
+                <div style="grid-column:span 5">
+                  <label>Amount</label>
+                  <input id="rAmount" type="number" min="0" placeholder="500" />
+                </div>
+              </div>
+              <div class="btnRow">
+                <button class="btn" onclick="repayLoan()">Save repayment</button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-  </main>
-</div>
+      <!-- FINANCE TAB -->
+      <section id="tab-finance" class="grid" style="display:none">
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Fines</h3>
+              <div class="sub">Record fines per member</div>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="formGrid">
+              <div style="grid-column:span 4">
+                <label>Member</label>
+                <select id="fineMember"></select>
+              </div>
+              <div style="grid-column:span 4">
+                <label>Amount</label>
+                <input id="fineAmount" type="number" min="0" placeholder="100" />
+              </div>
+              <div style="grid-column:span 4">
+                <label>Reason</label>
+                <input id="fineReason" placeholder="Late..." />
+              </div>
+            </div>
+            <div class="btnRow">
+              <button class="btn primary" onclick="addFine()">Add fine</button>
+            </div>
 
-<div id="toast"></div>
+            <div style="margin-top:14px">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Member</th>
+                    <th>Reason</th>
+                    <th class="rightText">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="fineBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Payouts</h3>
+              <div class="sub">Recorded payouts</div>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="formGrid">
+              <div style="grid-column:span 6">
+                <label>Member</label>
+                <select id="pMember"></select>
+              </div>
+              <div style="grid-column:span 6">
+                <label>Amount</label>
+                <input id="pAmount" type="number" min="0" placeholder="5000" />
+              </div>
+            </div>
+            <div class="btnRow">
+              <button class="btn primary" onclick="addPayout()">Record payout</button>
+            </div>
+
+            <div style="margin-top:14px">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Member</th>
+                    <th class="rightText">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="payoutBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOUNDATION TAB -->
+      <section id="tab-foundation" class="grid" style="display:none">
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Foundation Payments</h3>
+              <div class="sub">Track amount paid vs pending</div>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="formGrid">
+              <div style="grid-column:span 3">
+                <label>Member</label>
+                <select id="fpMember"></select>
+              </div>
+              <div style="grid-column:span 2">
+                <label>Amount paid</label>
+                <input id="fpPaid" type="number" min="0" placeholder="500" />
+              </div>
+              <div style="grid-column:span 2">
+                <label>Amount pending</label>
+                <input id="fpPending" type="number" min="0" placeholder="0" />
+              </div>
+              <div style="grid-column:span 2">
+                <label>Status</label>
+                <select id="fpStatus">
+                  <option value="pending">pending</option>
+                  <option value="partial">partial</option>
+                  <option value="paid">paid</option>
+                  <option value="loan">loan</option>
+                </select>
+              </div>
+              <div style="grid-column:span 3">
+                <label>Notes</label>
+                <input id="fpNotes" placeholder="Optional..." />
+              </div>
+            </div>
+            <div class="btnRow">
+              <button class="btn primary" onclick="addFoundationPayment()">Save payment</button>
+            </div>
+
+            <div style="margin-top:14px">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Member</th>
+                    <th class="rightText">Paid</th>
+                    <th class="rightText">Pending</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="fpBody"></tbody>
+              </table>
+            </div>
+
+            <div class="small" style="margin-top:10px">
+              Auto-rule: after <strong>15 days</strong> from <span class="mono">sessions.start_date</span>, any <span class="mono">amount_pending</span> is inserted into <span class="mono">loans.principal</span> for that member and marked as a loan.
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column:span 12">
+          <div class="hd">
+            <div>
+              <h3>Sureties</h3>
+              <div class="sub">Track surety/guarantee borrowing</div>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="formGrid">
+              <div style="grid-column:span 4">
+                <label>Borrower member</label>
+                <select id="sBorrowerMember"></select>
+              </div>
+              <div style="grid-column:span 4">
+                <label>Amount borrowed</label>
+                <input id="sAmountBorrowed" type="number" min="0" placeholder="500" />
+              </div>
+              <div style="grid-column:span 4">
+                <label>Collateral / Notes</label>
+                <input id="sCollateral" placeholder="ID card, etc..." />
+              </div>
+            </div>
+            <div class="btnRow">
+              <button class="btn primary" onclick="addSurety()">Save surety</button>
+            </div>
+
+            <div style="margin-top:14px">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Borrower</th>
+                    <th class="rightText">Amount</th>
+                    <th>Collateral</th>
+                  </tr>
+                </thead>
+                <tbody id="suretyBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="toast" id="toast">Saved</div>
+    </main>
+  </div>
 
 <script>
 /* ===========================
-   SUPABASE CONFIG
-=========================== */
-const SUPABASE_URL = "https://ficlrtvrrzfiakmciwel.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpY2xydHZycnpmaWFrbWNpd2VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMjk0MDQsImV4cCI6MjA4MjcwNTQwNH0.xWuH_-amYd_24R8PURbZXMUDjz--Q9R_RASOdGzsZJI";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-/* ===========================
-   CONSTANTS
+   CONFIG
 =========================== */
 const ROTATION_START = new Date("2026-01-03T00:00:00");
-const BIWEEK_MS = 14 * 24 * 60 * 60 * 1000;
+const BIWEEKLY_DAYS = 14;
 const INTEREST_RATE = 0.05;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const PENDING_TO_LOAN_DAYS = 15;
+
+// IMPORTANT: Put your URL and anon key here (or leave as-is if already correct)
+const SUPABASE_URL = "YOUR_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+/* ===========================
+   SUPABASE
+=========================== */
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ===========================
    STATE
 =========================== */
 let appState = { foundation:0, total_interest_generated:0, next_payout_index:0, next_payout_date:"2026-01-03" };
+let foundationBalance = 0; // computed from Foundation_payments.amount_paid (ledger)
+let FOUNDATION_TABLE = "foundation_payments"; // auto-fallback to "Foundation_payments" if needed
 let members = [];
 let history = [];
 let payouts = [];
@@ -492,56 +883,229 @@ let pieChart = null;
 /* ===========================
    HELPERS
 =========================== */
-const money = (x) => "$" + (Number(x)||0).toLocaleString();
-const isoDate = (d) => {
-  const z = new Date(d.getTime() - d.getTimezoneOffset()*60000);
-  return z.toISOString().slice(0,10);
-};
-const fromIso = (s) => new Date(s + "T00:00:00");
-
+function money(v){
+  const n = Number(v||0);
+  return n.toLocaleString(undefined, { style:"currency", currency:"USD" });
+}
+function isoDate(d){ return d.toISOString().slice(0,10); }
+function fromIso(s){
+  // expects YYYY-MM-DD
+  const [y,m,d] = String(s).split("-").map(Number);
+  return new Date(y, (m||1)-1, d||1);
+}
 function toast(msg){
-  const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.style.display = "block";
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => { el.style.display = "none"; }, 2800);
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1700);
 }
 function sideErr(msg){
-  const el = document.getElementById("sideErr");
-  el.style.display = msg ? "block" : "none";
-  el.textContent = msg || "";
+  const el=document.getElementById("sideErr");
+  if(!msg){ el.style.display="none"; el.textContent=""; return; }
+  el.style.display="block";
+  el.textContent=msg;
 }
 function appendErr(msg){
-  const el = document.getElementById("sideErr");
-  const current = el.textContent || "";
-  const next = current ? (current + "\n" + msg) : msg;
-  el.style.display = "block";
-  el.textContent = next;
+  const el=document.getElementById("sideErr");
+  el.style.display="block";
+  el.textContent = (el.textContent ? el.textContent + "\n" : "") + msg;
 }
-function show(sectionId, title){
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(sectionId).classList.add("active");
-  document.getElementById("pageTitle").textContent = title;
-
-  document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
-  const map = {
-    dash:"navDash",
-    members:"navMembers",
-    contrib:"navContrib",
-    foundation:"navFoundation",
-    loans:"navLoans",
-    fines:"navFines",
-    payouts:"navPayouts",
-    history:"navHistory",
-    foundation_payments:"navFPayments",
-    sureties:"navSureties"
+function authErr(msg){
+  const el=document.getElementById("authErr");
+  el.textContent = msg || "";
+}
+function setActiveTab(id){
+  ["dashboard","members","ops","finance","foundation"].forEach(t=>{
+    document.getElementById("tab-"+t).style.display = (t===id) ? "grid" : "none";
+    document.getElementById("tabBtn-"+t).classList.toggle("active", t===id);
+  });
+  const titles={
+    dashboard:["Dashboard","Pot, foundation, loans, and rotation overview"],
+    members:["Members","Manage list, positions, and rotation"],
+    ops:["Contributions & Loans","Add contributions, foundation, loans"],
+    finance:["Fines & Payouts","Record fines and payouts"],
+    foundation:["Foundation & Sureties","Foundation payments, pending, sureties"]
   };
-  document.getElementById(map[sectionId])?.classList.add("active");
+  document.getElementById("pageTitle").textContent = titles[id][0];
+  document.getElementById("pageSub").textContent = titles[id][1];
+}
+function showTab(id){ setActiveTab(id); }
+
+/* ===========================
+   NEW HELPERS (Foundation & Auto-Loan)
+=========================== */
+async function detectFoundationTable(){
+  // If your table name is actually "Foundation_payments" (capital F), this auto-detects it.
+  // If SELECT is blocked by RLS, detection may fail — we then keep the default name.
+  const candidates = ["foundation_payments", "Foundation_payments"];
+  for (const name of candidates){
+    const test = await sb.from(name).select("amount_paid").limit(1);
+    if(!test.error){
+      FOUNDATION_TABLE = name;
+      return;
+    }
+    const msg = (test.error?.message || "").toLowerCase();
+    if(msg.includes('does not exist') || msg.includes('relation') && msg.includes('does not exist')){
+      // try next candidate
+      continue;
+    } else {
+      // RLS or other error; don't keep trying
+      return;
+    }
+  }
 }
 
-/* show JS runtime errors */
-window.addEventListener("error", (e) => appendErr("JS error: " + (e?.message || "unknown")));
-window.addEventListener("unhandledrejection", (e) => appendErr("Promise error: " + (e?.reason?.message || String(e?.reason || "unknown"))));
+async function insertFoundationLedgerRow({ memberId=null, amountPaid=0, amountPending=0, status="paid", notes=null }){
+  // Writes into Foundation_payments / foundation_payments so foundationBalance = SUM(amount_paid)
+  // Fallback if your schema requires member_id NOT NULL.
+  let payload = {
+    member_id: memberId == null ? null : Number(memberId),
+    amount_paid: Number(amountPaid || 0),
+    amount_pending: Number(amountPending || 0),
+    status,
+    notes: notes || null
+  };
+
+  let r = await sb.from(FOUNDATION_TABLE).insert([payload]).select("id").maybeSingle();
+
+  if(r.error && (String(r.error.message||"").toLowerCase().includes("null value") || String(r.error.message||"").toLowerCase().includes("violates not-null"))){
+    // schema requires member_id; fallback to first member if available
+    if(!members.length) return r;
+    payload.member_id = Number(members[0].id);
+    payload.notes = (notes ? notes + " | " : "") + "Admin adjustment (member_id required by schema)";
+    r = await sb.from(FOUNDATION_TABLE).insert([payload]).select("id").maybeSingle();
+  }
+  return r;
+}
+
+async function tryInsertLoanRow(payload){
+  // Tries a few payload shapes so it works with different loans table schemas.
+  const payloads = [
+    payload,
+    { member_id: payload.member_id, principal: payload.principal },
+  ];
+
+  let lastErr = null;
+  for (const p of payloads){
+    const r = await sb.from("loans").insert([p]);
+    if(!r.error) return { ok:true };
+    lastErr = r.error;
+
+    const msg = String(r.error.message||"").toLowerCase();
+    // If table doesn't exist, don't keep retrying.
+    if(msg.includes('does not exist') && msg.includes('loans')) break;
+
+    // If it's a missing column error, try the smaller payload.
+    if(msg.includes("column") && msg.includes("does not exist")) continue;
+  }
+  return { ok:false, error:lastErr };
+}
+
+async function autoConvertPendingToLoansIfDue(){
+  // After session start_date + 15 days:
+  //   For each member with amount_pending > 0 in Foundation_payments,
+  //   insert that amount into loans.principal (member_id) and mark it as a loan.
+  //
+  // NOTE: this runs when the admin opens/refreshes the dashboard.
+  // For true daily automation, you'd move this logic into a scheduled Supabase Edge Function / cron.
+
+  // 1) get latest session start_date
+  const s = await sb.from("sessions").select("id,start_date").order("start_date", { ascending:false }).limit(1).maybeSingle();
+  if(s.error){
+    // sessions table might not exist yet; don't break the app
+    const msg = String(s.error.message||"");
+    if(!msg.toLowerCase().includes("does not exist")) appendErr("sessions: " + msg);
+    return false;
+  }
+  if(!s.data?.start_date) return false;
+
+  const start = fromIso(String(s.data.start_date));
+  const dueAt = new Date(start.getTime() + PENDING_TO_LOAN_DAYS * DAY_MS);
+  const today = fromIso(isoDate(new Date()));
+  if(today < dueAt) return false;
+
+  // 2) pick the most recent payment row PER MEMBER that still has amount_pending > 0
+  const byMember = new Map();
+  for(const row of (foundationPayments || [])){
+    const mid = row.member_id;
+    if(mid == null) continue;
+    const pending = Number(row.amount_pending || 0);
+    if(pending > 0 && !byMember.has(String(mid))){
+      byMember.set(String(mid), row); // foundationPayments is already newest-first from reloadAll
+    }
+  }
+  if(byMember.size === 0) return false;
+
+  // 3) convert each pending to a loan
+  let changed = false;
+  for(const [mid, row] of byMember.entries()){
+    const principal = Number(row.amount_pending || 0);
+    if(principal <= 0) continue;
+
+    const member = members.find(m => String(m.id) === String(mid));
+    const memberName = member?.name || String(mid);
+
+    const interest = Math.round(principal * INTEREST_RATE);
+    const totalDue = principal + interest;
+
+    // insert into loans table
+    const loanPayload = {
+      member_id: Number(mid),
+      principal: principal,
+      interest_percent: 5,
+      interest_amount: interest,
+      total_due: totalDue,
+      source: "foundation_pending",
+      session_start_date: String(s.data.start_date),
+      status: "active",
+      issued_at: new Date().toISOString()
+    };
+
+    const insLoan = await tryInsertLoanRow(loanPayload);
+    if(!insLoan.ok){
+      appendErr("auto loan insert (loans): " + (insLoan.error?.message || "unknown error"));
+      continue; // don't wipe pending if we couldn't create the loan
+    }
+
+    // update member loan_due
+    const oldDue = Number(member?.loan_due || 0);
+    const uMem = await sb.from("members").update({ loan_due: oldDue + totalDue }).eq("id", mid);
+    if(uMem.error){
+      appendErr("auto loan members.update: " + uMem.error.message);
+      continue;
+    }
+
+    // update total interest generated
+    const uSt = await sb.from("app_state").update({
+      total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
+      updated_at: new Date().toISOString()
+    }).eq("id", 1);
+    if(uSt.error){
+      appendErr("auto loan app_state.update: " + uSt.error.message);
+      // try to rollback member due
+      await sb.from("members").update({ loan_due: oldDue }).eq("id", mid);
+      continue;
+    }
+
+    // mark the payment row as converted to loan (prevents duplicates)
+    const newNotes = ((row.notes || "") + (row.notes ? " | " : "") + `Auto-converted to loan on ${new Date().toLocaleDateString()}`).slice(0, 2000);
+    let upPay;
+    if(row.id != null){
+      upPay = await sb.from(FOUNDATION_TABLE).update({ amount_pending: 0, status: "loan", notes: newNotes }).eq("id", row.id);
+    } else {
+      upPay = await sb.from(FOUNDATION_TABLE).update({ amount_pending: 0, status: "loan", notes: newNotes }).eq("member_id", mid);
+    }
+    if(upPay.error){
+      appendErr("auto loan foundation_payments.update: " + upPay.error.message);
+      // we still created the loan; leaving pending as-is would cause duplicates, so we warn but continue
+    }
+
+    await addHistoryRow("Auto Loan (Pending)", memberName, principal, 5, totalDue);
+    changed = true;
+  }
+
+  return changed;
+}
 
 /* ===========================
    AUTH / ADMIN GATE
@@ -596,13 +1160,14 @@ async function enforceAdminGate(){
 
 async function signIn(){
   sideErr("");
+  authErr("");
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
   if (!email || !password) return toast("Enter email and password");
 
   const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) return toast(error.message);
+  if (error) { authErr(error.message); return toast(error.message); }
 
   const ok = await enforceAdminGate();
   if (!ok) return toast("Access denied: admin only");
@@ -618,10 +1183,17 @@ async function signOut(){
 }
 
 /* ===========================
-   LOAD (FIX app_state single() crash)  ✅ (your requested part)
+   LOAD (FIX app_state single() crash)
 =========================== */
 async function reloadAll(){
   sideErr("");
+
+  // detect Foundation_payments table name once
+  if(!FOUNDATION_TABLE) FOUNDATION_TABLE = "foundation_payments";
+  if(!reloadAll._detectedFoundationTable){
+    reloadAll._detectedFoundationTable = true;
+    await detectFoundationTable();
+  }
 
   // FIX: maybeSingle + auto-seed app_state row
   let a = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
@@ -668,9 +1240,34 @@ async function reloadAll(){
   fines = f.data || [];
 
   // NEW TABLES (won't break if not created; errors show in sidebar)
-  const fp = await sb.from("foundation_payments").select("*").order("date_paid", { ascending: false }).limit(300);
+  const fp = await sb.from(FOUNDATION_TABLE).select("*").order("date_paid", { ascending: false }).limit(300);
   if (fp.error) appendErr("foundation_payments: " + fp.error.message);
   foundationPayments = fp.data || [];
+
+  // foundation balance now comes from Foundation_payments.amount_paid
+  foundationBalance = (foundationPayments || []).reduce((s,r)=> s + (Number(r.amount_paid)||0), 0);
+
+  // auto-convert pending to loans when session is 15+ days old
+  const autoChanged = await autoConvertPendingToLoansIfDue();
+  if(autoChanged){
+    // refresh key tables after auto-actions
+    const m2 = await sb.from("members").select("*").order("position", { ascending: true });
+    if (m2.error) appendErr("members (refresh): " + m2.error.message);
+    members = m2.data || members;
+
+    const h2 = await sb.from("history").select("*").order("created_at", { ascending: false }).limit(500);
+    if (h2.error) appendErr("history (refresh): " + h2.error.message);
+    history = h2.data || history;
+
+    const fp2 = await sb.from(FOUNDATION_TABLE).select("*").order("date_paid", { ascending: false }).limit(300);
+    if (fp2.error) appendErr("foundation_payments (refresh): " + fp2.error.message);
+    foundationPayments = fp2.data || foundationPayments;
+
+    foundationBalance = (foundationPayments || []).reduce((s,r)=> s + (Number(r.amount_paid)||0), 0);
+
+    const a2 = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
+    if (!a2.error && a2.data) appState = a2.data;
+  }
 
   const s = await sb.from("sureties").select("*").order("date_borrowed", { ascending: false }).limit(300);
   if (s.error) appendErr("sureties: " + s.error.message);
@@ -691,7 +1288,7 @@ function renderAll(){
   const outstanding = members.reduce((s,x)=>s+(Number(x.loan_due)||0),0);
 
   document.getElementById("kPot").textContent = money(pot);
-  document.getElementById("kFoundation").textContent = money(appState.foundation||0);
+  document.getElementById("kFoundation").textContent = money(foundationBalance);
   document.getElementById("kLoans").textContent = money(outstanding);
   document.getElementById("kMembers").textContent = String(members.length);
   document.getElementById("kInterestMini").textContent = money(appState.total_interest_generated||0);
@@ -706,255 +1303,225 @@ function renderAll(){
     : "Add members to start rotation";
 
   document.getElementById("memberCount").textContent = String(members.length);
+  document.getElementById("memberCountPill").textContent = String(members.length);
+
   document.getElementById("memberBody").innerHTML = members
     .slice().sort((a,b)=>(a.name||"").localeCompare(b.name||""))
     .map(x=>`
       <tr>
         <td>${x.name||""}</td>
-        <td>${money(x.contributed||0)}</td>
-        <td>${money(x.foundation_contrib||0)}</td>
-        <td>${money(x.loan_due||0)}</td>
-        <td>${money(x.payout_total||0)}</td>
+        <td class="rightText">${money(x.contributed||0)}</td>
+        <td class="rightText">${money(x.foundation_contrib||0)}</td>
+        <td class="rightText">${money(x.loan_due||0)}</td>
+        <td class="rightText">${money(x.payout_total||0)}</td>
         <td>${x.has_benefits ? "Yes":"No"}</td>
       </tr>
     `).join("");
 
   const opts = members.map(x=>`<option value="${x.id}">${x.name}</option>`).join("");
-  ["cMember","cSetMember","mfMember","lMember","rMember","fineMember","fpMember","sBorrowerMember"].forEach(id=>{
+  ["cMember","cSetMember","mfMember","lMember","rMember","fineMember","fpMember","sBorrowerMember","pMember"].forEach(id=>{
     const el=document.getElementById(id); if(el) el.innerHTML=opts;
   });
 
   const recent = history.slice(0,15);
   document.getElementById("recentBody").innerHTML = recent.map(x=>{
     const t=x.created_at?new Date(x.created_at).toLocaleString():"";
-    return `<tr><td>${t}</td><td>${x.type||""}</td><td>${x.member||""}</td><td>${money(x.amount||0)}</td><td>${x.interest_percent?Number(x.interest_percent)+"%":"-"}</td><td>${x.total_due!=null?money(x.total_due):"-"}</td></tr>`;
+    return `<tr><td>${t}</td><td>${x.type||""}</td><td>${x.member||""}</td><td class="rightText">${money(x.amount||0)}</td><td class="rightText">${x.interest_percent||0}</td><td class="rightText">${money(x.result||0)}</td></tr>`;
   }).join("");
-
-  document.getElementById("historyBody").innerHTML = history.map(x=>{
-    const t=x.created_at?new Date(x.created_at).toLocaleString():"";
-    return `<tr><td>${t}</td><td>${x.type||""}</td><td>${x.member||""}</td><td>${money(x.amount||0)}</td><td>${x.interest_percent?Number(x.interest_percent)+"%":"-"}</td><td>${x.total_due!=null?money(x.total_due):"-"}</td></tr>`;
-  }).join("");
-
-  document.getElementById("payoutBody").innerHTML = payouts.map(x=>`
-    <tr><td>${x.payout_date||""}</td><td>${x.member_name||""}</td><td>${money(x.payout_amount||0)}</td></tr>
-  `).join("");
 
   document.getElementById("fineBody").innerHTML = fines.map(x=>{
     const t=x.created_at?new Date(x.created_at).toLocaleString():"";
-    const action = (x.status||"unpaid")==="unpaid"
-      ? `<button class="btn ghost" onclick="markFinePaid(${x.id})">Mark Paid</button>`
-      : "-";
-    return `<tr><td>${t}</td><td>${x.member_name||""}</td><td>${money(x.amount||0)}</td><td>${x.reason||"-"}</td><td>${x.status||"unpaid"}</td><td>${action}</td></tr>`;
+    return `<tr><td>${t}</td><td>${x.member_name||""}</td><td>${x.reason||""}</td><td class="rightText">${money(x.amount||0)}</td></tr>`;
   }).join("");
 
-  // NEW: foundation payments table render
-  const membersById = Object.fromEntries(members.map(m => [String(m.id), m]));
-  document.getElementById("fpBody").innerHTML = (foundationPayments || []).map(r=>{
-    const t = r.date_paid ? new Date(r.date_paid).toLocaleString() : "";
-    const m = membersById[String(r.member_id)];
+  document.getElementById("payoutBody").innerHTML = payouts.map(x=>{
+    const t=x.created_at?new Date(x.created_at).toLocaleString():"";
+    return `<tr><td>${t}</td><td>${x.member_name||""}</td><td class="rightText">${money(x.amount||0)}</td></tr>`;
+  }).join("");
+
+  document.getElementById("fpBody").innerHTML = foundationPayments.map(x=>{
+    const t = x.date_paid ? new Date(x.date_paid).toLocaleDateString() : (x.created_at?new Date(x.created_at).toLocaleDateString():"");
+    const member = members.find(m=>String(m.id)===String(x.member_id));
     return `<tr>
       <td>${t}</td>
-      <td>${m ? m.name : (r.member_id ?? "")}</td>
-      <td>${money(r.amount_paid||0)}</td>
-      <td>${money(r.amount_pending||0)}</td>
-      <td>${r.status||""}</td>
-      <td>${(r.notes||"")}</td>
+      <td>${member?.name || x.member_id || ""}</td>
+      <td class="rightText">${money(x.amount_paid||0)}</td>
+      <td class="rightText">${money(x.amount_pending||0)}</td>
+      <td>${x.status||""}</td>
+      <td>${x.notes||""}</td>
     </tr>`;
   }).join("");
 
-  // NEW: sureties render
-  document.getElementById("sBody").innerHTML = (sureties || []).map(r=>{
-    const t = r.date_borrowed ? new Date(r.date_borrowed).toLocaleString() : "";
-    const borrower = r.borrower_name || (membersById[String(r.borrower_member_id)]?.name) || "";
+  document.getElementById("suretyBody").innerHTML = sureties.map(x=>{
+    const t=x.date_borrowed?new Date(x.date_borrowed).toLocaleDateString():(x.created_at?new Date(x.created_at).toLocaleDateString():"");
+    const borrower = members.find(m=>String(m.id)===String(x.borrower_member_id));
     return `<tr>
       <td>${t}</td>
-      <td>${r.surety_name||""}</td>
-      <td>${borrower}</td>
-      <td>${money(r.amount_borrowed||0)}</td>
-      <td>${r.status||""}</td>
-      <td>${r.surety_sign||""}</td>
-      <td>${r.borrower_sign||""}</td>
+      <td>${borrower?.name || x.borrower_member_id || ""}</td>
+      <td class="rightText">${money(x.amount_borrowed||0)}</td>
+      <td>${x.collateral||""}</td>
     </tr>`;
   }).join("");
 
-  renderCharts();
+  renderCharts(pot, foundationBalance, outstanding);
 }
 
-function renderCharts(){
-  if(typeof Chart === "undefined"){
-    appendErr("Chart.js not loaded. Charts disabled.");
-    return;
-  }
+function renderCharts(pot, foundationBalance, outstanding){
+  const labels = ["Pot", "Foundation", "Loans"];
+  const pieData = [pot, Number(foundationBalance||0), outstanding];
 
-  const top = members
-    .map(m => ({ name: m.name || "Member", v: Number(m.contributed || 0) }))
-    .sort((a,b)=>b.v-a.v)
-    .slice(0,10);
-
-  const hctx = document.getElementById("histChart").getContext("2d");
-  if(histChart) histChart.destroy();
-  histChart = new Chart(hctx,{
-    type:"bar",
-    data:{ labels: top.map(x=>x.name), datasets:[{ label:"Contributions", data: top.map(x=>x.v) }] },
+  if(pieChart) pieChart.destroy();
+  pieChart = new Chart(document.getElementById("pieChart"),{
+    type:"doughnut",
+    data:{
+      labels,
+      datasets:[{ data: pieData }]
+    },
     options:{
-      responsive:true,
-      plugins:{ legend:{display:false} },
-      scales:{
-        x:{ ticks:{color:"rgba(234,240,255,.7)"}, grid:{color:"rgba(255,255,255,.06)"} },
-        y:{ ticks:{color:"rgba(234,240,255,.7)"}, grid:{color:"rgba(255,255,255,.06)"} }
+      plugins:{
+        legend:{ labels:{ color:"#cfd8ff" } }
       }
     }
   });
 
-  const pot = members.reduce((s,x)=>s+(Number(x.contributed)||0),0);
-  const loans = members.reduce((s,x)=>s+(Number(x.loan_due)||0),0);
-  const foundation = Number(appState.foundation||0);
+  // history chart (simple last 10 history amounts)
+  const last = history.slice(0,10).reverse();
+  const xlab = last.map(x=>x.type||"");
+  const y = last.map(x=>Number(x.amount||0));
 
-  const pctx = document.getElementById("pieChart").getContext("2d");
-  if(pieChart) pieChart.destroy();
-  pieChart = new Chart(pctx,{
-    type:"pie",
-    data:{ labels:["Pot","Foundation","Loans Due"], datasets:[{ data:[pot, foundation, loans] }] },
+  if(histChart) histChart.destroy();
+  histChart = new Chart(document.getElementById("histChart"),{
+    type:"line",
+    data:{
+      labels:xlab,
+      datasets:[{ label:"Last actions amount", data:y }]
+    },
     options:{
-      responsive:true,
-      plugins:{ legend:{ position:"bottom", labels:{ color:"rgba(234,240,255,.75)" } } }
+      plugins:{ legend:{ labels:{ color:"#cfd8ff" } } },
+      scales:{
+        x:{ ticks:{ color:"#cfd8ff" } },
+        y:{ ticks:{ color:"#cfd8ff" } }
+      }
     }
   });
 }
 
 /* ===========================
-   WRITES
+   DB WRITES
 =========================== */
-async function addHistoryRow(type, member, amount, interestPercent=0, totalDue=null){
-  await sb.from("history").insert([{ type, member, amount, interest_percent:interestPercent, total_due:totalDue }]);
+async function addHistoryRow(type, member, amount, interest_percent, result){
+  const row = {
+    type, member,
+    amount: Number(amount||0),
+    interest_percent: Number(interest_percent||0),
+    result: Number(result||0),
+    created_at: new Date().toISOString()
+  };
+  const r = await sb.from("history").insert([row]);
+  if(r.error) appendErr("history.insert: " + r.error.message);
 }
 
-/* ADD MEMBER (FIX Math.max bug) ✅ */
 async function addMember(){
-  const name = document.getElementById("mName").value.trim();
-  const phone = document.getElementById("mPhone").value.trim();
-  const hasBenefits = document.getElementById("mBenefits").value === "true";
-  if(!name) return toast("Enter member name");
+  const name=document.getElementById("mName").value.trim();
+  const phone=document.getElementById("mPhone").value.trim();
+  const hasBenefits=document.getElementById("mBenefits").value==="true";
+  const pos=Number(document.getElementById("mPos").value||1);
+  if(!name) return toast("Enter name");
 
-  const pos = members.length ? (Math.max(...members.map(x => Number(x.position || 0))) + 1) : 1;
-
-  const r = await sb.from("members").insert([{ name, phone, has_benefits: hasBenefits, position: pos }]);
-  if (r.error) return toast(r.error.message);
-
-  await addHistoryRow("Member Added", name, 0, 0, null);
-  document.getElementById("mName").value = "";
-  document.getElementById("mPhone").value = "";
-  await reloadAll();
-  toast("Member added");
-}
-
-/* CONTRIBUTION (use RPC) ✅ with fallback */
-async function addContribution(){
-  const memberId = document.getElementById("cMember").value;
-  const amt = Number(document.getElementById("cAmount").value || 0);
-  if(!memberId) return toast("Select member");
-  if(!amt || amt <= 0) return toast("Enter amount");
-  if(amt % 500 !== 0) return toast("Must be multiple of 500");
-
-  // Try RPC first
-  const r = await sb.rpc("add_contribution", {
-    p_member_id: Number(memberId),
-    p_amount: amt
-  });
-
-  if (r.error) {
-    // fallback to direct update (won't break your app if RPC isn't created)
-    appendErr("add_contribution RPC failed (fallback used): " + r.error.message);
-
-    const m = members.find(x => String(x.id) === String(memberId));
-    if(!m) return toast("Member not found");
-    const newTotal = (Number(m.contributed)||0) + amt;
-
-    const u = await sb.from("members").update({ contributed: newTotal }).eq("id", memberId);
-    if (u.error) return toast(u.error.message);
-
-    await addHistoryRow("Contribution", m.name, amt, 0, newTotal);
-  }
-
-  document.getElementById("cAmount").value = "";
-  await reloadAll();
-  toast("Saved");
-}
-
-/* PAYOUT (use RPC) ✅ with fallback */
-async function runPayout(){
-  // Try RPC
-  const r = await sb.rpc("run_payout");
-  if (!r.error && r.data) {
-    await reloadAll();
-    toast(`Paid ${money(r.data.payout_amount)} to ${r.data.receiver_name}`);
-    return;
-  }
-
-  // Fallback to local payout logic
-  if (r.error) appendErr("run_payout RPC failed (fallback used): " + r.error.message);
-
-  if(!members.length) return toast("No members");
-  const pot = members.reduce((s,x)=>s+(Number(x.contributed)||0),0);
-  if(pot<=0) return toast("Pot is 0");
-
-  const idx = Number(appState.next_payout_index||0) % members.length;
-  const nextDate = appState.next_payout_date ? fromIso(appState.next_payout_date) : ROTATION_START;
-
-  const today = fromIso(isoDate(new Date()));
-  if(today < nextDate) return toast("Next payout: " + nextDate.toLocaleDateString());
-
-  const receiver = members[idx];
-
-  let ins = await sb.from("payouts").insert([{ member_id:receiver.id, member_name:receiver.name, payout_amount:pot, payout_date:isoDate(today) }]);
-  if(ins.error) return toast(ins.error.message);
-
-  let up = await sb.from("members").update({ payout_total:(Number(receiver.payout_total)||0)+pot, last_payout_at:new Date().toISOString() }).eq("id",receiver.id);
-  if(up.error) return toast(up.error.message);
-
-  let reset = await sb.from("members").update({contributed:0});
-  if(reset.error) return toast(reset.error.message);
-
-  const newIdx=(idx+1)%members.length;
-  const newNextDate=new Date(nextDate.getTime()+BIWEEK_MS);
-
-  let st = await sb.from("app_state").update({ next_payout_index:newIdx, next_payout_date:isoDate(newNextDate), updated_at:new Date().toISOString() }).eq("id",1);
-  if(st.error) return toast(st.error.message);
-
-  await addHistoryRow("Payout",receiver.name,pot,0,null);
-  await reloadAll();
-  toast(`Paid ${money(pot)} to ${receiver.name}`);
-}
-
-async function setContribution(){
-  const memberId=document.getElementById("cSetMember").value;
-  const amt=Number(document.getElementById("cSetAmount").value||0);
-  if(!memberId) return toast("Select member");
-  if(amt<0) return toast("Invalid amount");
-  const m=members.find(x=>String(x.id)===String(memberId));
-  const r=await sb.from("members").update({contributed:amt}).eq("id",memberId);
+  const r = await sb.from("members").insert([{
+    name, phone: phone||null, has_benefits: hasBenefits, position: pos
+  }]);
   if(r.error) return toast(r.error.message);
-  await addHistoryRow("Set Contribution", m.name, amt, 0, amt);
-  document.getElementById("cSetAmount").value="";
+
+  await addHistoryRow("Member Add", name, 0, 0, pos);
+  document.getElementById("mName").value="";
+  document.getElementById("mPhone").value="";
+  await reloadAll(); toast("Member added");
+}
+
+async function reindexPositions(){
+  const sorted = members.slice().sort((a,b)=>Number(a.position||0)-Number(b.position||0));
+  let i=1;
+  for(const m of sorted){
+    const r = await sb.from("members").update({ position:i }).eq("id", m.id);
+    if(r.error) { appendErr("reindex: " + r.error.message); break; }
+    i++;
+  }
+  await reloadAll(); toast("Reindexed");
+}
+
+async function setPosition(){
+  const memberId=document.getElementById("mSetMember").value;
+  const pos=Number(document.getElementById("mSetPos").value||1);
+  if(!memberId) return toast("Select member");
+  const r = await sb.from("members").update({ position: pos }).eq("id", memberId);
+  if(r.error) return toast(r.error.message);
+  await addHistoryRow("Position Set", members.find(x=>String(x.id)===String(memberId))?.name || "Member", 0,0,pos);
   await reloadAll(); toast("Updated");
 }
 
-async function addToFoundation(){
-  const amt=Number(document.getElementById("fAmount").value||0);
-  if(!amt||amt<=0) return toast("Enter amount");
-  const newFound=(Number(appState.foundation)||0)+amt;
-  const r=await sb.from("app_state").update({foundation:newFound,updated_at:new Date().toISOString()}).eq("id",1);
+async function rotateNext(){
+  const next = (Number(appState.next_payout_index||0)+1) % (members.length||1);
+  const r = await sb.from("app_state").update({ next_payout_index: next, updated_at: new Date().toISOString() }).eq("id", 1);
   if(r.error) return toast(r.error.message);
-  await addHistoryRow("Foundation Add","Admin",amt,0,newFound);
+  await addHistoryRow("Rotate Next", "Admin", 0, 0, next);
+  await reloadAll(); toast("Advanced");
+}
+
+async function addContribution(){
+  const memberId=document.getElementById("cMember").value;
+  const amt=Number(document.getElementById("cAmount").value||0);
+  if(!memberId) return toast("Select member");
+  if(!amt||amt<=0) return toast("Enter amount");
+
+  const m=members.find(x=>String(x.id)===String(memberId));
+  const newVal=(Number(m.contributed)||0)+amt;
+
+  const r=await sb.from("members").update({contributed:newVal}).eq("id",memberId);
+  if(r.error) return toast(r.error.message);
+
+  await addHistoryRow("Contribution", m.name, amt, 0, newVal);
+  document.getElementById("cAmount").value="";
+  await reloadAll(); toast("Saved");
+}
+
+async function addToFoundation(){
+  const amt = Number(document.getElementById("fAmount").value||0);
+  if(!amt || amt<=0) return toast("Enter amount");
+
+  // Add to foundation by writing a ledger row in Foundation_payments
+  const ins = await insertFoundationLedgerRow({
+    memberId: null,
+    amountPaid: amt,
+    amountPending: 0,
+    status: "admin_add",
+    notes: "Admin add to foundation"
+  });
+  if(ins.error) return toast(ins.error.message);
+
+  await addHistoryRow("Foundation Add","Admin",amt,0,(Number(foundationBalance)||0)+amt);
   document.getElementById("fAmount").value="";
   await reloadAll(); toast("Saved");
 }
 
 async function setFoundation(){
-  const amt=Number(document.getElementById("fSetAmount").value||0);
-  if(amt<0) return toast("Invalid amount");
-  const r=await sb.from("app_state").update({foundation:amt,updated_at:new Date().toISOString()}).eq("id",1);
-  if(r.error) return toast(r.error.message);
+  const amt = Number(document.getElementById("fSetAmount").value||0);
+  if(amt < 0) return toast("Invalid amount");
+
+  // Set foundation by inserting an adjustment so SUM(amount_paid) becomes the target
+  const current = Number(foundationBalance||0);
+  const diff = amt - current;
+  if(Math.abs(diff) < 1e-9) return toast("Already at that amount");
+
+  const ins = await insertFoundationLedgerRow({
+    memberId: null,
+    amountPaid: diff,
+    amountPending: 0,
+    status: "admin_set",
+    notes: `Admin set foundation to ${amt} (adjustment ${diff})`
+  });
+  if(ins.error) return toast(ins.error.message);
+
   await addHistoryRow("Foundation Set","Admin",amt,0,amt);
   document.getElementById("fSetAmount").value="";
   await reloadAll(); toast("Updated");
@@ -967,14 +1534,27 @@ async function addMemberFoundation(){
   if(!amt||amt<=0) return toast("Enter amount");
 
   const m=members.find(x=>String(x.id)===String(memberId));
-  const newMemberFound=(Number(m.foundation_contrib)||0)+amt;
+  const oldMemberFound = Number(m.foundation_contrib)||0;
+  const newMemberFound = oldMemberFound + amt;
 
-  let r=await sb.from("members").update({foundation_contrib:newMemberFound}).eq("id",memberId);
+  // 1) update member foundation_contrib (eligibility tracking)
+  let r = await sb.from("members").update({foundation_contrib:newMemberFound}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
-  const newFound=(Number(appState.foundation)||0)+amt;
-  r=await sb.from("app_state").update({foundation:newFound,updated_at:new Date().toISOString()}).eq("id",1);
-  if(r.error) return toast(r.error.message);
+  // 2) write into Foundation_payments so foundationBalance increases
+  const ins = await insertFoundationLedgerRow({
+    memberId,
+    amountPaid: amt,
+    amountPending: 0,
+    status: "member_foundation",
+    notes: `Member foundation contribution: ${m.name}`
+  });
+
+  if(ins.error){
+    // rollback member update
+    await sb.from("members").update({foundation_contrib: oldMemberFound}).eq("id",memberId);
+    return toast(ins.error.message);
+  }
 
   await addHistoryRow("Member Foundation",m.name,amt,0,newMemberFound);
   document.getElementById("mfAmount").value="";
@@ -987,7 +1567,7 @@ async function issueLoan(){
   if(!memberId) return toast("Select member");
   if(!amt||amt<=0) return toast("Enter loan amount");
   const m=members.find(x=>String(x.id)===String(memberId));
-  const foundation=Number(appState.foundation||0);
+  const foundation=Number(foundationBalance||0);
   if(amt>foundation) return toast("Loan exceeds foundation");
 
   const minReq=0.70*amt;
@@ -997,15 +1577,58 @@ async function issueLoan(){
   const interest=Math.round(amt*INTEREST_RATE);
   const totalDue=amt+interest;
 
-  let r=await sb.from("members").update({loan_due:(Number(m.loan_due)||0)+totalDue}).eq("id",memberId);
+  const oldDue = Number(m.loan_due)||0;
+
+  // 1) update member loan_due
+  let r=await sb.from("members").update({loan_due: oldDue + totalDue}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
+  // 2) update interest generated (keep app_state for interest + rotation metadata)
   r=await sb.from("app_state").update({
-    foundation: foundation-amt,
     total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
     updated_at:new Date().toISOString()
   }).eq("id",1);
-  if(r.error) return toast(r.error.message);
+  if(r.error){
+    // rollback member
+    await sb.from("members").update({loan_due: oldDue}).eq("id",memberId);
+    return toast(r.error.message);
+  }
+
+  // 3) reduce foundation by writing a negative ledger row
+  const ins = await insertFoundationLedgerRow({
+    memberId,
+    amountPaid: -amt,
+    amountPending: 0,
+    status: "loan_out",
+    notes: `Loan issued to ${m.name}`
+  });
+
+  if(ins.error){
+    // rollback member + interest
+    await sb.from("members").update({loan_due: oldDue}).eq("id",memberId);
+    await sb.from("app_state").update({
+      total_interest_generated: (Number(appState.total_interest_generated)||0),
+      updated_at:new Date().toISOString()
+    }).eq("id",1);
+    return toast(ins.error.message);
+  }
+
+  // 4) optional: also write into loans table (safe across schemas)
+  const loanPayload = {
+    member_id: Number(memberId),
+    principal: amt,
+    interest_percent: 5,
+    interest_amount: interest,
+    total_due: totalDue,
+    source: "manual_loan",
+    status: "active",
+    issued_at: new Date().toISOString()
+  };
+  const insLoan = await tryInsertLoanRow(loanPayload);
+  if(!insLoan.ok){
+    // Not fatal to the dashboard; show in sidebar
+    appendErr("loans insert (manual): " + (insLoan.error?.message || "unknown error"));
+  }
 
   await addHistoryRow("Loan",m.name,amt,5,totalDue);
   document.getElementById("lAmount").value="";
@@ -1025,14 +1648,24 @@ async function repayLoan(){
   const pay=Math.min(amt,due);
   const newDue=due-pay;
 
+  // 1) update member loan_due
   let r=await sb.from("members").update({loan_due:newDue}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
-  r=await sb.from("app_state").update({
-    foundation:(Number(appState.foundation)||0)+pay,
-    updated_at:new Date().toISOString()
-  }).eq("id",1);
-  if(r.error) return toast(r.error.message);
+  // 2) add repayment back into foundation ledger
+  const ins = await insertFoundationLedgerRow({
+    memberId,
+    amountPaid: pay,
+    amountPending: 0,
+    status: "repayment_in",
+    notes: `Loan repayment from ${m.name}`
+  });
+
+  if(ins.error){
+    // rollback member update
+    await sb.from("members").update({loan_due: due}).eq("id",memberId);
+    return toast(ins.error.message);
+  }
 
   await addHistoryRow("Repayment",m.name,pay,0,newDue);
   document.getElementById("rAmount").value="";
@@ -1044,99 +1677,116 @@ async function addFine(){
   const amt=Number(document.getElementById("fineAmount").value||0);
   const reason=document.getElementById("fineReason").value.trim();
   if(!memberId) return toast("Select member");
-  if(!amt||amt<=0) return toast("Enter fine amount");
-
+  if(!amt||amt<=0) return toast("Enter amount");
   const m=members.find(x=>String(x.id)===String(memberId));
-  const r=await sb.from("fines").insert([{ member_id:m.id, member_name:m.name, amount:amt, reason, status:"unpaid" }]);
+  const r=await sb.from("fines").insert([{
+    member_id: Number(memberId),
+    member_name: m?.name || "",
+    amount: amt,
+    reason: reason || null,
+    created_at: new Date().toISOString()
+  }]);
   if(r.error) return toast(r.error.message);
 
-  await addHistoryRow("Fine",m.name,amt,0,null);
+  await addHistoryRow("Fine", m?.name || "Member", amt, 0, 0);
   document.getElementById("fineAmount").value="";
   document.getElementById("fineReason").value="";
-  await reloadAll(); toast("Fine saved");
+  await reloadAll(); toast("Fine added");
 }
 
-async function markFinePaid(fineId){
-  const r=await sb.from("fines").update({status:"paid",paid_at:new Date().toISOString()}).eq("id",fineId);
+async function addPayout(){
+  const memberId=document.getElementById("pMember").value;
+  const amt=Number(document.getElementById("pAmount").value||0);
+  if(!memberId) return toast("Select member");
+  if(!amt||amt<=0) return toast("Enter amount");
+
+  const m=members.find(x=>String(x.id)===String(memberId));
+  const newTotal = (Number(m.payout_total)||0) + amt;
+
+  // update member payout_total and last_payout_at
+  let r=await sb.from("members").update({
+    payout_total: newTotal,
+    last_payout_at: new Date().toISOString()
+  }).eq("id",memberId);
   if(r.error) return toast(r.error.message);
-  await reloadAll(); toast("Marked paid");
+
+  // insert payout record
+  r=await sb.from("payouts").insert([{
+    member_id: Number(memberId),
+    member_name: m?.name || "",
+    amount: amt,
+    created_at: new Date().toISOString()
+  }]);
+  if(r.error) return toast(r.error.message);
+
+  await addHistoryRow("Payout", m?.name || "Member", amt, 0, newTotal);
+  document.getElementById("pAmount").value="";
+  await reloadAll(); toast("Payout recorded");
 }
 
-/* NEW: Foundation Payments insert */
 async function addFoundationPayment(){
-  const memberId = document.getElementById("fpMember").value;
-  const paid = Number(document.getElementById("fpPaid").value || 0);
-  const pending = Number(document.getElementById("fpPending").value || 0);
-  const status = document.getElementById("fpStatus").value;
-  const notes = document.getElementById("fpNotes").value.trim();
+  const memberId=document.getElementById("fpMember").value;
+  const paid=Number(document.getElementById("fpPaid").value||0);
+  const pending=Number(document.getElementById("fpPending").value||0);
+  const status=document.getElementById("fpStatus").value;
+  const notes=document.getElementById("fpNotes").value.trim();
 
   if(!memberId) return toast("Select member");
-  if(paid < 0 || pending < 0) return toast("Amounts must be >= 0");
+  if(paid<0 || pending<0) return toast("Invalid amounts");
 
-  const r = await sb.from("foundation_payments").insert([{
+  const r = await sb.from(FOUNDATION_TABLE).insert([{
     member_id: Number(memberId),
     amount_paid: paid,
     amount_pending: pending,
     status,
-    notes
+    notes: notes || null,
+    date_paid: new Date().toISOString()
   }]);
 
   if(r.error) return toast(r.error.message);
 
-  document.getElementById("fpPaid").value = "";
-  document.getElementById("fpPending").value = "";
-  document.getElementById("fpNotes").value = "";
-  await reloadAll();
-  toast("Saved");
+  await addHistoryRow("Foundation Payment", members.find(x=>String(x.id)===String(memberId))?.name || "Member", paid, 0, pending);
+  document.getElementById("fpPaid").value="";
+  document.getElementById("fpPending").value="";
+  document.getElementById("fpNotes").value="";
+  await reloadAll(); toast("Saved");
 }
 
-/* NEW: Surety insert */
 async function addSurety(){
-  const suretyName = document.getElementById("sSuretyName").value.trim();
-  const borrowerMemberId = document.getElementById("sBorrowerMember").value;
-  const amountBorrowed = Number(document.getElementById("sAmountBorrowed").value || 0);
-  const suretySign = document.getElementById("sSuretySign").value.trim();
-  const borrowerSign = document.getElementById("sBorrowerSign").value.trim();
-  const status = document.getElementById("sStatus").value;
-  const notes = document.getElementById("sNotes").value.trim();
-
-  if(!suretyName) return toast("Enter surety name");
-  if(!borrowerMemberId) return toast("Select borrower");
-  if(!amountBorrowed || amountBorrowed <= 0) return toast("Enter amount borrowed");
-
-  const borrower = members.find(m => String(m.id) === String(borrowerMemberId));
-  const borrowerName = borrower ? borrower.name : "Unknown";
+  const borrowerId=document.getElementById("sBorrowerMember").value;
+  const amt=Number(document.getElementById("sAmountBorrowed").value||0);
+  const collateral=document.getElementById("sCollateral").value.trim();
+  if(!borrowerId) return toast("Select borrower");
+  if(!amt||amt<=0) return toast("Enter amount");
 
   const r = await sb.from("sureties").insert([{
-    surety_name: suretyName,
-    borrower_member_id: Number(borrowerMemberId),
-    borrower_name: borrowerName,
-    amount_borrowed: amountBorrowed,
-    surety_sign: suretySign || null,
-    borrower_sign: borrowerSign || null,
-    status,
-    notes: notes || null
+    borrower_member_id: Number(borrowerId),
+    amount_borrowed: amt,
+    collateral: collateral || null,
+    date_borrowed: new Date().toISOString()
   }]);
 
   if(r.error) return toast(r.error.message);
 
-  document.getElementById("sSuretyName").value = "";
-  document.getElementById("sAmountBorrowed").value = "";
-  document.getElementById("sSuretySign").value = "";
-  document.getElementById("sBorrowerSign").value = "";
-  document.getElementById("sNotes").value = "";
-  await reloadAll();
-  toast("Saved");
+  await addHistoryRow("Surety", members.find(x=>String(x.id)===String(borrowerId))?.name || "Borrower", amt, 0, 0);
+  document.getElementById("sAmountBorrowed").value="";
+  document.getElementById("sCollateral").value="";
+  await reloadAll(); toast("Saved");
 }
 
 /* ===========================
    INIT
 =========================== */
 (async function init(){
-  document.getElementById("app").style.display="none";
-  document.getElementById("locked").style.display="flex";
+  document.getElementById("rotStart").textContent = "2026-01-03";
+
   const ok = await enforceAdminGate();
-  if(ok) await reloadAll();
+  if(ok){
+    setActiveTab("dashboard");
+    await reloadAll();
+  } else {
+    setActiveTab("dashboard");
+  }
 })();
 </script>
 
