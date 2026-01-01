@@ -1112,8 +1112,13 @@ async function autoConvertPendingToLoansIfDue(){
    AUTH / ADMIN GATE
 =========================== */
 async function enforceAdminGate(){
-  const { data } = await sb.auth.getUser();
+  const { data, error: userErr } = await sb.auth.getUser();
   const user = data?.user;
+
+  if (userErr) {
+    authErr(userErr.message);
+    return false;
+  }
 
   if(!user){
     document.getElementById("app").style.display = "none";
@@ -1121,7 +1126,6 @@ async function enforceAdminGate(){
     return false;
   }
 
-  // Admin check via RPC (more reliable with RLS)
   const { data: isAdmin, error } = await sb.rpc("is_admin");
 
   if (error) {
@@ -1140,31 +1144,6 @@ async function enforceAdminGate(){
     return false;
   }
 
-
-  if(error){
-    sideErr("profiles: " + error.message);
-    await sb.auth.signOut();
-    document.getElementById("app").style.display = "none";
-    document.getElementById("locked").style.display = "flex";
-    return false;
-  }
-
-  if(!profile){
-    sideErr("profiles: no row for this user (create a profiles row + role='admin').");
-    await sb.auth.signOut();
-    document.getElementById("app").style.display = "none";
-    document.getElementById("locked").style.display = "flex";
-    return false;
-  }
-
-  if(profile.role !== "admin"){
-    sideErr("Access denied: role is not admin.");
-    await sb.auth.signOut();
-    document.getElementById("app").style.display = "none";
-    document.getElementById("locked").style.display = "flex";
-    return false;
-  }
-
   document.getElementById("locked").style.display = "none";
   document.getElementById("app").style.display = "flex";
   document.getElementById("who").textContent = user.email || "admin";
@@ -1173,29 +1152,6 @@ async function enforceAdminGate(){
   return true;
 }
 
-async function signIn(){
-  sideErr("");
-  authErr("");
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
-
-  if (!email || !password) return toast("Enter email and password");
-
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) { authErr(error.message); return toast(error.message); }
-
-  const ok = await enforceAdminGate();
-  if (!ok) return toast("Access denied: admin only");
-
-  await reloadAll();
-  toast("Welcome");
-}
-
-async function signOut(){
-  await sb.auth.signOut();
-  document.getElementById("app").style.display = "none";
-  document.getElementById("locked").style.display = "flex";
-}
 
 /* ===========================
    LOAD (FIX app_state single() crash)
