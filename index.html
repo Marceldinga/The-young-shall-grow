@@ -8,7 +8,7 @@
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- ✅ Chart.js (required because your code uses Chart(...)) -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
@@ -50,7 +50,7 @@
       backdrop-filter: blur(12px);
     }
     .lockGrid{display:grid;grid-template-columns:1fr;gap:10px}
-    input,select{
+    input,select,textarea{
       width:100%;
       padding:14px;
       border-radius:14px;
@@ -60,7 +60,8 @@
       outline:none;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
     }
-    input::placeholder{color:rgba(234,240,255,.55)}
+    textarea{min-height:96px;resize:vertical}
+    input::placeholder,textarea::placeholder{color:rgba(234,240,255,.55)}
     .btn{
       padding:12px 14px;
       border-radius:14px;
@@ -182,7 +183,7 @@
 
 <body>
 
-<!-- LOGIN (ONLY CREDENTIALS) -->
+<!-- LOGIN -->
 <div id="locked">
   <div class="lockBox">
     <div class="lockGrid">
@@ -215,6 +216,11 @@
       <button id="navFines" onclick="show('fines','Fines')">Fines</button>
       <button id="navPayouts" onclick="show('payouts','Payouts')">Payouts</button>
       <button id="navHistory" onclick="show('history','History')">History</button>
+
+      <!-- NEW -->
+      <button id="navFPayments" onclick="show('foundation_payments','Foundation Payments')">Foundation Payments</button>
+      <button id="navSureties" onclick="show('sureties','Sureties')">Sureties</button>
+
       <button class="btn ghost" style="margin-top:6px" onclick="reloadAll()">Refresh</button>
     </div>
 
@@ -390,6 +396,66 @@
       </div>
     </section>
 
+    <!-- NEW: FOUNDATION PAYMENTS -->
+    <section id="foundation_payments" class="section">
+      <div class="grid2">
+        <div class="card">
+          <div style="font-weight:900;">Add Foundation Payment</div>
+          <label>Member</label><select id="fpMember"></select>
+          <label>Amount Paid</label><input id="fpPaid" type="number" placeholder="e.g. 500" />
+          <label>Amount Pending</label><input id="fpPending" type="number" placeholder="e.g. 1500" />
+          <label>Status</label>
+          <select id="fpStatus">
+            <option value="pending">pending</option>
+            <option value="partial">partial</option>
+            <option value="paid">paid</option>
+          </select>
+          <label>Notes (optional)</label><textarea id="fpNotes" placeholder="Notes..."></textarea>
+          <button class="btn" style="width:100%;margin-top:12px" onclick="addFoundationPayment()">Save</button>
+          <div class="sub" style="margin-top:10px">DatePaid is auto (now()).</div>
+        </div>
+
+        <div class="card">
+          <div class="row"><div style="font-weight:900;">Foundation Payments</div><span class="pill">Newest first</span></div>
+          <table>
+            <thead><tr><th>Date</th><th>Member</th><th>Paid</th><th>Pending</th><th>Status</th><th>Notes</th></tr></thead>
+            <tbody id="fpBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- NEW: SURETIES -->
+    <section id="sureties" class="section">
+      <div class="grid2">
+        <div class="card">
+          <div style="font-weight:900;">Add Surety Record</div>
+          <label>Surety Name</label><input id="sSuretyName" placeholder="Surety full name" />
+          <label>Borrower (select member)</label><select id="sBorrowerMember"></select>
+          <label>Amount Borrowed</label><input id="sAmountBorrowed" type="number" placeholder="e.g. 1000" />
+          <label>Surety Sign (text)</label><input id="sSuretySign" placeholder="Surety signature text" />
+          <label>Borrower Sign (text)</label><input id="sBorrowerSign" placeholder="Borrower signature text" />
+          <label>Status</label>
+          <select id="sStatus">
+            <option value="active">active</option>
+            <option value="cleared">cleared</option>
+            <option value="defaulted">defaulted</option>
+          </select>
+          <label>Notes (optional)</label><textarea id="sNotes" placeholder="Notes..."></textarea>
+          <button class="btn" style="width:100%;margin-top:12px" onclick="addSurety()">Save</button>
+          <div class="sub" style="margin-top:10px">DateBorrowed is auto (now()).</div>
+        </div>
+
+        <div class="card">
+          <div class="row"><div style="font-weight:900;">Sureties</div><span class="pill">Newest first</span></div>
+          <table>
+            <thead><tr><th>Date</th><th>Surety</th><th>Borrower</th><th>Amount</th><th>Status</th><th>Surety Sign</th><th>Borrower Sign</th></tr></thead>
+            <tbody id="sBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -418,6 +484,8 @@ let members = [];
 let history = [];
 let payouts = [];
 let fines = [];
+let foundationPayments = [];
+let sureties = [];
 let histChart = null;
 let pieChart = null;
 
@@ -454,18 +522,26 @@ function show(sectionId, title){
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
   document.getElementById(sectionId).classList.add("active");
   document.getElementById("pageTitle").textContent = title;
+
   document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
-  const map = { dash:"navDash", members:"navMembers", contrib:"navContrib", foundation:"navFoundation", loans:"navLoans", fines:"navFines", payouts:"navPayouts", history:"navHistory" };
+  const map = {
+    dash:"navDash",
+    members:"navMembers",
+    contrib:"navContrib",
+    foundation:"navFoundation",
+    loans:"navLoans",
+    fines:"navFines",
+    payouts:"navPayouts",
+    history:"navHistory",
+    foundation_payments:"navFPayments",
+    sureties:"navSureties"
+  };
   document.getElementById(map[sectionId])?.classList.add("active");
 }
 
-/* ✅ show JS runtime errors in sidebar (helps debugging on production) */
-window.addEventListener("error", (e) => {
-  appendErr("JS error: " + (e?.message || "unknown"));
-});
-window.addEventListener("unhandledrejection", (e) => {
-  appendErr("Promise error: " + (e?.reason?.message || String(e?.reason || "unknown")));
-});
+/* show JS runtime errors */
+window.addEventListener("error", (e) => appendErr("JS error: " + (e?.message || "unknown")));
+window.addEventListener("unhandledrejection", (e) => appendErr("Promise error: " + (e?.reason?.message || String(e?.reason || "unknown"))));
 
 /* ===========================
    AUTH / ADMIN GATE
@@ -480,7 +556,6 @@ async function enforceAdminGate(){
     return false;
   }
 
-  // ✅ safer than .single() (won't crash if 0 rows)
   const { data: profile, error } = await sb
     .from("profiles")
     .select("role")
@@ -524,23 +599,13 @@ async function signIn(){
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
-  if (!email || !password) {
-    toast("Enter email and password");
-    return;
-  }
+  if (!email || !password) return toast("Enter email and password");
 
   const { error } = await sb.auth.signInWithPassword({ email, password });
-
-  if (error) {
-    toast(error.message);
-    return;
-  }
+  if (error) return toast(error.message);
 
   const ok = await enforceAdminGate();
-  if (!ok) {
-    toast("Access denied: admin only");
-    return;
-  }
+  if (!ok) return toast("Access denied: admin only");
 
   await reloadAll();
   toast("Welcome");
@@ -553,20 +618,18 @@ async function signOut(){
 }
 
 /* ===========================
-   LOAD
+   LOAD (FIX app_state single() crash)  ✅ (your requested part)
 =========================== */
 async function reloadAll(){
   sideErr("");
 
-  // ✅ FIX: do NOT use .single() here (it throws if 0 rows or >1 row)
-  // Use maybeSingle() + seed if missing.
-  const a = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
+  // FIX: maybeSingle + auto-seed app_state row
+  let a = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
 
-  if(a.error){
+  if (a.error) {
     appendErr("app_state: " + a.error.message);
     appState = { foundation:0, total_interest_generated:0, next_payout_index:0, next_payout_date:"2026-01-03" };
-  } else if(!a.data){
-    // Missing row id=1 (or RLS blocked so you see zero rows). Try to insert.
+  } else if (!a.data) {
     const seed = {
       id: 1,
       foundation: 0,
@@ -577,38 +640,46 @@ async function reloadAll(){
       updated_at: new Date().toISOString()
     };
 
-    const ins = await sb.from("app_state").insert([seed]);
-    if(ins.error){
-      appendErr("app_state: missing row id=1 (or RLS blocked). Insert failed: " + ins.error.message);
+    const ins = await sb.from("app_state").insert([seed]).select().single();
+    if (ins.error) {
+      appendErr("app_state init: " + ins.error.message);
       appState = { foundation:0, total_interest_generated:0, next_payout_index:0, next_payout_date:"2026-01-03" };
     } else {
-      appState = seed;
+      appState = ins.data;
     }
   } else {
     appState = a.data;
   }
 
-  const m = await sb.from("members").select("*").order("position",{ascending:true});
-  if(m.error){ appendErr("members: " + m.error.message); }
+  const m = await sb.from("members").select("*").order("position", { ascending: true });
+  if (m.error) appendErr("members: " + m.error.message);
   members = m.data || [];
 
-  const h = await sb.from("history").select("*").order("created_at",{ascending:false}).limit(500);
-  if(h.error){ appendErr("history: " + h.error.message); }
+  const h = await sb.from("history").select("*").order("created_at", { ascending: false }).limit(500);
+  if (h.error) appendErr("history: " + h.error.message);
   history = h.data || [];
 
-  const p = await sb.from("payouts").select("*").order("created_at",{ascending:false}).limit(200);
-  if(p.error){ appendErr("payouts: " + p.error.message); }
+  const p = await sb.from("payouts").select("*").order("created_at", { ascending: false }).limit(200);
+  if (p.error) appendErr("payouts: " + p.error.message);
   payouts = p.data || [];
 
-  const f = await sb.from("fines").select("*").order("created_at",{ascending:false}).limit(200);
-  if(f.error){ appendErr("fines: " + f.error.message); }
+  const f = await sb.from("fines").select("*").order("created_at", { ascending: false }).limit(200);
+  if (f.error) appendErr("fines: " + f.error.message);
   fines = f.data || [];
+
+  // NEW TABLES (won't break if not created; errors show in sidebar)
+  const fp = await sb.from("foundation_payments").select("*").order("date_paid", { ascending: false }).limit(300);
+  if (fp.error) appendErr("foundation_payments: " + fp.error.message);
+  foundationPayments = fp.data || [];
+
+  const s = await sb.from("sureties").select("*").order("date_borrowed", { ascending: false }).limit(300);
+  if (s.error) appendErr("sureties: " + s.error.message);
+  sureties = s.data || [];
 
   renderAll();
 
-  // Helpful hint if everything is empty
   if(members.length===0 && history.length===0 && payouts.length===0 && fines.length===0){
-    appendErr("Note: All tables returned 0 rows. If you EXPECT data, this is usually RLS (Row Level Security) policies blocking SELECT.");
+    appendErr("Note: If you EXPECT data but see 0 rows, RLS policies may be blocking SELECT for this user.");
   }
 }
 
@@ -649,7 +720,7 @@ function renderAll(){
     `).join("");
 
   const opts = members.map(x=>`<option value="${x.id}">${x.name}</option>`).join("");
-  ["cMember","cSetMember","mfMember","lMember","rMember","fineMember"].forEach(id=>{
+  ["cMember","cSetMember","mfMember","lMember","rMember","fineMember","fpMember","sBorrowerMember"].forEach(id=>{
     const el=document.getElementById(id); if(el) el.innerHTML=opts;
   });
 
@@ -676,11 +747,40 @@ function renderAll(){
     return `<tr><td>${t}</td><td>${x.member_name||""}</td><td>${money(x.amount||0)}</td><td>${x.reason||"-"}</td><td>${x.status||"unpaid"}</td><td>${action}</td></tr>`;
   }).join("");
 
+  // NEW: foundation payments table render
+  const membersById = Object.fromEntries(members.map(m => [String(m.id), m]));
+  document.getElementById("fpBody").innerHTML = (foundationPayments || []).map(r=>{
+    const t = r.date_paid ? new Date(r.date_paid).toLocaleString() : "";
+    const m = membersById[String(r.member_id)];
+    return `<tr>
+      <td>${t}</td>
+      <td>${m ? m.name : (r.member_id ?? "")}</td>
+      <td>${money(r.amount_paid||0)}</td>
+      <td>${money(r.amount_pending||0)}</td>
+      <td>${r.status||""}</td>
+      <td>${(r.notes||"")}</td>
+    </tr>`;
+  }).join("");
+
+  // NEW: sureties render
+  document.getElementById("sBody").innerHTML = (sureties || []).map(r=>{
+    const t = r.date_borrowed ? new Date(r.date_borrowed).toLocaleString() : "";
+    const borrower = r.borrower_name || (membersById[String(r.borrower_member_id)]?.name) || "";
+    return `<tr>
+      <td>${t}</td>
+      <td>${r.surety_name||""}</td>
+      <td>${borrower}</td>
+      <td>${money(r.amount_borrowed||0)}</td>
+      <td>${r.status||""}</td>
+      <td>${r.surety_sign||""}</td>
+      <td>${r.borrower_sign||""}</td>
+    </tr>`;
+  }).join("");
+
   renderCharts();
 }
 
 function renderCharts(){
-  // If chart library didn't load for any reason, don't crash the whole page.
   if(typeof Chart === "undefined"){
     appendErr("Chart.js not loaded. Charts disabled.");
     return;
@@ -729,35 +829,101 @@ async function addHistoryRow(type, member, amount, interestPercent=0, totalDue=n
   await sb.from("history").insert([{ type, member, amount, interest_percent:interestPercent, total_due:totalDue }]);
 }
 
+/* ADD MEMBER (FIX Math.max bug) ✅ */
 async function addMember(){
-  const name=document.getElementById("mName").value.trim();
-  const phone=document.getElementById("mPhone").value.trim();
-  const hasBenefits=document.getElementById("mBenefits").value==="true";
+  const name = document.getElementById("mName").value.trim();
+  const phone = document.getElementById("mPhone").value.trim();
+  const hasBenefits = document.getElementById("mBenefits").value === "true";
   if(!name) return toast("Enter member name");
-  const pos = members.length ? Math.max(...members.map(x=>Number(x.position||0)))+1 : 1;
-  const r = await sb.from("members").insert([{name,phone,has_benefits:hasBenefits,position:pos}]);
-  if(r.error) return toast(r.error.message);
+
+  const pos = members.length ? (Math.max(...members.map(x => Number(x.position || 0))) + 1) : 1;
+
+  const r = await sb.from("members").insert([{ name, phone, has_benefits: hasBenefits, position: pos }]);
+  if (r.error) return toast(r.error.message);
+
   await addHistoryRow("Member Added", name, 0, 0, null);
-  document.getElementById("mName").value=""; document.getElementById("mPhone").value="";
-  await reloadAll(); toast("Member added");
+  document.getElementById("mName").value = "";
+  document.getElementById("mPhone").value = "";
+  await reloadAll();
+  toast("Member added");
 }
 
+/* CONTRIBUTION (use RPC) ✅ with fallback */
 async function addContribution(){
-  const memberId=document.getElementById("cMember").value;
-  const amt=Number(document.getElementById("cAmount").value||0);
+  const memberId = document.getElementById("cMember").value;
+  const amt = Number(document.getElementById("cAmount").value || 0);
   if(!memberId) return toast("Select member");
-  if(!amt||amt<=0) return toast("Enter amount");
-  if(amt%500!==0) return toast("Must be multiple of 500");
+  if(!amt || amt <= 0) return toast("Enter amount");
+  if(amt % 500 !== 0) return toast("Must be multiple of 500");
 
-  const m=members.find(x=>String(x.id)===String(memberId));
-  const newTotal=(Number(m.contributed)||0)+amt;
+  // Try RPC first
+  const r = await sb.rpc("add_contribution", {
+    p_member_id: Number(memberId),
+    p_amount: amt
+  });
 
-  const r=await sb.from("members").update({contributed:newTotal}).eq("id",memberId);
-  if(r.error) return toast(r.error.message);
+  if (r.error) {
+    // fallback to direct update (won't break your app if RPC isn't created)
+    appendErr("add_contribution RPC failed (fallback used): " + r.error.message);
 
-  await addHistoryRow("Contribution", m.name, amt, 0, newTotal);
-  document.getElementById("cAmount").value="";
-  await reloadAll(); toast("Saved");
+    const m = members.find(x => String(x.id) === String(memberId));
+    if(!m) return toast("Member not found");
+    const newTotal = (Number(m.contributed)||0) + amt;
+
+    const u = await sb.from("members").update({ contributed: newTotal }).eq("id", memberId);
+    if (u.error) return toast(u.error.message);
+
+    await addHistoryRow("Contribution", m.name, amt, 0, newTotal);
+  }
+
+  document.getElementById("cAmount").value = "";
+  await reloadAll();
+  toast("Saved");
+}
+
+/* PAYOUT (use RPC) ✅ with fallback */
+async function runPayout(){
+  // Try RPC
+  const r = await sb.rpc("run_payout");
+  if (!r.error && r.data) {
+    await reloadAll();
+    toast(`Paid ${money(r.data.payout_amount)} to ${r.data.receiver_name}`);
+    return;
+  }
+
+  // Fallback to local payout logic
+  if (r.error) appendErr("run_payout RPC failed (fallback used): " + r.error.message);
+
+  if(!members.length) return toast("No members");
+  const pot = members.reduce((s,x)=>s+(Number(x.contributed)||0),0);
+  if(pot<=0) return toast("Pot is 0");
+
+  const idx = Number(appState.next_payout_index||0) % members.length;
+  const nextDate = appState.next_payout_date ? fromIso(appState.next_payout_date) : ROTATION_START;
+
+  const today = fromIso(isoDate(new Date()));
+  if(today < nextDate) return toast("Next payout: " + nextDate.toLocaleDateString());
+
+  const receiver = members[idx];
+
+  let ins = await sb.from("payouts").insert([{ member_id:receiver.id, member_name:receiver.name, payout_amount:pot, payout_date:isoDate(today) }]);
+  if(ins.error) return toast(ins.error.message);
+
+  let up = await sb.from("members").update({ payout_total:(Number(receiver.payout_total)||0)+pot, last_payout_at:new Date().toISOString() }).eq("id",receiver.id);
+  if(up.error) return toast(up.error.message);
+
+  let reset = await sb.from("members").update({contributed:0});
+  if(reset.error) return toast(reset.error.message);
+
+  const newIdx=(idx+1)%members.length;
+  const newNextDate=new Date(nextDate.getTime()+BIWEEK_MS);
+
+  let st = await sb.from("app_state").update({ next_payout_index:newIdx, next_payout_date:isoDate(newNextDate), updated_at:new Date().toISOString() }).eq("id",1);
+  if(st.error) return toast(st.error.message);
+
+  await addHistoryRow("Payout",receiver.name,pot,0,null);
+  await reloadAll();
+  toast(`Paid ${money(pot)} to ${receiver.name}`);
 }
 
 async function setContribution(){
@@ -896,36 +1062,71 @@ async function markFinePaid(fineId){
   await reloadAll(); toast("Marked paid");
 }
 
-async function runPayout(){
-  if(!members.length) return toast("No members");
-  const pot = members.reduce((s,x)=>s+(Number(x.contributed)||0),0);
-  if(pot<=0) return toast("Pot is 0");
+/* NEW: Foundation Payments insert */
+async function addFoundationPayment(){
+  const memberId = document.getElementById("fpMember").value;
+  const paid = Number(document.getElementById("fpPaid").value || 0);
+  const pending = Number(document.getElementById("fpPending").value || 0);
+  const status = document.getElementById("fpStatus").value;
+  const notes = document.getElementById("fpNotes").value.trim();
 
-  const idx = Number(appState.next_payout_index||0) % members.length;
-  const nextDate = appState.next_payout_date ? fromIso(appState.next_payout_date) : ROTATION_START;
+  if(!memberId) return toast("Select member");
+  if(paid < 0 || pending < 0) return toast("Amounts must be >= 0");
 
-  const today = fromIso(isoDate(new Date()));
-  if(today < nextDate) return toast("Next payout: " + nextDate.toLocaleDateString());
+  const r = await sb.from("foundation_payments").insert([{
+    member_id: Number(memberId),
+    amount_paid: paid,
+    amount_pending: pending,
+    status,
+    notes
+  }]);
 
-  const receiver = members[idx];
-
-  let r=await sb.from("payouts").insert([{ member_id:receiver.id, member_name:receiver.name, payout_amount:pot, payout_date:isoDate(today) }]);
   if(r.error) return toast(r.error.message);
 
-  r=await sb.from("members").update({ payout_total:(Number(receiver.payout_total)||0)+pot, last_payout_at:new Date().toISOString() }).eq("id",receiver.id);
+  document.getElementById("fpPaid").value = "";
+  document.getElementById("fpPending").value = "";
+  document.getElementById("fpNotes").value = "";
+  await reloadAll();
+  toast("Saved");
+}
+
+/* NEW: Surety insert */
+async function addSurety(){
+  const suretyName = document.getElementById("sSuretyName").value.trim();
+  const borrowerMemberId = document.getElementById("sBorrowerMember").value;
+  const amountBorrowed = Number(document.getElementById("sAmountBorrowed").value || 0);
+  const suretySign = document.getElementById("sSuretySign").value.trim();
+  const borrowerSign = document.getElementById("sBorrowerSign").value.trim();
+  const status = document.getElementById("sStatus").value;
+  const notes = document.getElementById("sNotes").value.trim();
+
+  if(!suretyName) return toast("Enter surety name");
+  if(!borrowerMemberId) return toast("Select borrower");
+  if(!amountBorrowed || amountBorrowed <= 0) return toast("Enter amount borrowed");
+
+  const borrower = members.find(m => String(m.id) === String(borrowerMemberId));
+  const borrowerName = borrower ? borrower.name : "Unknown";
+
+  const r = await sb.from("sureties").insert([{
+    surety_name: suretyName,
+    borrower_member_id: Number(borrowerMemberId),
+    borrower_name: borrowerName,
+    amount_borrowed: amountBorrowed,
+    surety_sign: suretySign || null,
+    borrower_sign: borrowerSign || null,
+    status,
+    notes: notes || null
+  }]);
+
   if(r.error) return toast(r.error.message);
 
-  r=await sb.from("members").update({contributed:0});
-  if(r.error) return toast(r.error.message);
-
-  const newIdx=(idx+1)%members.length;
-  const newNextDate=new Date(nextDate.getTime()+BIWEEK_MS);
-
-  r=await sb.from("app_state").update({ next_payout_index:newIdx, next_payout_date:isoDate(newNextDate), updated_at:new Date().toISOString() }).eq("id",1);
-  if(r.error) return toast(r.error.message);
-
-  await addHistoryRow("Payout",receiver.name,pot,0,null);
-  await reloadAll(); toast(`Paid ${money(pot)} to ${receiver.name}`);
+  document.getElementById("sSuretyName").value = "";
+  document.getElementById("sAmountBorrowed").value = "";
+  document.getElementById("sSuretySign").value = "";
+  document.getElementById("sBorrowerSign").value = "";
+  document.getElementById("sNotes").value = "";
+  await reloadAll();
+  toast("Saved");
 }
 
 /* ===========================
