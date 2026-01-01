@@ -8,6 +8,8 @@
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- ✅ Chart.js (required because your code uses Chart(...)) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     :root{
@@ -441,6 +443,13 @@ function sideErr(msg){
   el.style.display = msg ? "block" : "none";
   el.textContent = msg || "";
 }
+function appendErr(msg){
+  const el = document.getElementById("sideErr");
+  const current = el.textContent || "";
+  const next = current ? (current + "\n" + msg) : msg;
+  el.style.display = "block";
+  el.textContent = next;
+}
 function show(sectionId, title){
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
   document.getElementById(sectionId).classList.add("active");
@@ -449,6 +458,14 @@ function show(sectionId, title){
   const map = { dash:"navDash", members:"navMembers", contrib:"navContrib", foundation:"navFoundation", loans:"navLoans", fines:"navFines", payouts:"navPayouts", history:"navHistory" };
   document.getElementById(map[sectionId])?.classList.add("active");
 }
+
+/* ✅ show JS runtime errors in sidebar (helps debugging on production) */
+window.addEventListener("error", (e) => {
+  appendErr("JS error: " + (e?.message || "unknown"));
+});
+window.addEventListener("unhandledrejection", (e) => {
+  appendErr("Promise error: " + (e?.reason?.message || String(e?.reason || "unknown")));
+});
 
 /* ===========================
    AUTH / ADMIN GATE
@@ -463,13 +480,31 @@ async function enforceAdminGate(){
     return false;
   }
 
+  // ✅ safer than .single() (won't crash if 0 rows)
   const { data: profile, error } = await sb
     .from("profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if(error || profile?.role !== "admin"){
+  if(error){
+    sideErr("profiles: " + error.message);
+    await sb.auth.signOut();
+    document.getElementById("app").style.display = "none";
+    document.getElementById("locked").style.display = "flex";
+    return false;
+  }
+
+  if(!profile){
+    sideErr("profiles: no row for this user (create a profiles row + role='admin').");
+    await sb.auth.signOut();
+    document.getElementById("app").style.display = "none";
+    document.getElementById("locked").style.display = "flex";
+    return false;
+  }
+
+  if(profile.role !== "admin"){
+    sideErr("Access denied: role is not admin.");
     await sb.auth.signOut();
     document.getElementById("app").style.display = "none";
     document.getElementById("locked").style.display = "flex";
@@ -485,6 +520,7 @@ async function enforceAdminGate(){
 }
 
 async function signIn(){
+  sideErr("");
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
@@ -522,27 +558,58 @@ async function signOut(){
 async function reloadAll(){
   sideErr("");
 
-  const a = await sb.from("app_state").select("*").eq("id",1).single();
-  if(a.error){ sideErr("app_state: " + a.error.message); }
-  else appState = a.data;
+  // ✅ FIX: do NOT use .single() here (it throws if 0 rows or >1 row)
+  // Use maybeSingle() + seed if missing.
+  const a = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
+
+  if(a.error){
+    appendErr("app_state: " + a.error.message);
+    appState = { foundation:0, total_interest_generated:0, next_payout_index:0, next_payout_date:"2026-01-03" };
+  } else if(!a.data){
+    // Missing row id=1 (or RLS blocked so you see zero rows). Try to insert.
+    const seed = {
+      id: 1,
+      foundation: 0,
+      next_payout_index: 0,
+      rotation_start_date: "2026-01-03",
+      next_payout_date: "2026-01-03",
+      total_interest_generated: 0,
+      updated_at: new Date().toISOString()
+    };
+
+    const ins = await sb.from("app_state").insert([seed]);
+    if(ins.error){
+      appendErr("app_state: missing row id=1 (or RLS blocked). Insert failed: " + ins.error.message);
+      appState = { foundation:0, total_interest_generated:0, next_payout_index:0, next_payout_date:"2026-01-03" };
+    } else {
+      appState = seed;
+    }
+  } else {
+    appState = a.data;
+  }
 
   const m = await sb.from("members").select("*").order("position",{ascending:true});
-  if(m.error){ sideErr((document.getElementById("sideErr").textContent?document.getElementById("sideErr").textContent+"\n":"") + "members: " + m.error.message); }
+  if(m.error){ appendErr("members: " + m.error.message); }
   members = m.data || [];
 
   const h = await sb.from("history").select("*").order("created_at",{ascending:false}).limit(500);
-  if(h.error){ sideErr((document.getElementById("sideErr").textContent?document.getElementById("sideErr").textContent+"\n":"") + "history: " + h.error.message); }
+  if(h.error){ appendErr("history: " + h.error.message); }
   history = h.data || [];
 
   const p = await sb.from("payouts").select("*").order("created_at",{ascending:false}).limit(200);
-  if(p.error){ sideErr((document.getElementById("sideErr").textContent?document.getElementById("sideErr").textContent+"\n":"") + "payouts: " + p.error.message); }
+  if(p.error){ appendErr("payouts: " + p.error.message); }
   payouts = p.data || [];
 
   const f = await sb.from("fines").select("*").order("created_at",{ascending:false}).limit(200);
-  if(f.error){ sideErr((document.getElementById("sideErr").textContent?document.getElementById("sideErr").textContent+"\n":"") + "fines: " + f.error.message); }
+  if(f.error){ appendErr("fines: " + f.error.message); }
   fines = f.data || [];
 
   renderAll();
+
+  // Helpful hint if everything is empty
+  if(members.length===0 && history.length===0 && payouts.length===0 && fines.length===0){
+    appendErr("Note: All tables returned 0 rows. If you EXPECT data, this is usually RLS (Row Level Security) policies blocking SELECT.");
+  }
 }
 
 /* ===========================
@@ -613,6 +680,12 @@ function renderAll(){
 }
 
 function renderCharts(){
+  // If chart library didn't load for any reason, don't crash the whole page.
+  if(typeof Chart === "undefined"){
+    appendErr("Chart.js not loaded. Charts disabled.");
+    return;
+  }
+
   const top = members
     .map(m => ({ name: m.name || "Member", v: Number(m.contributed || 0) }))
     .sort((a,b)=>b.v-a.v)
@@ -856,7 +929,7 @@ async function runPayout(){
 }
 
 /* ===========================
-   INIT (correct IIFE)
+   INIT
 =========================== */
 (async function init(){
   document.getElementById("app").style.display="none";
