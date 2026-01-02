@@ -2,1808 +2,858 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>TheYoungShallGrow Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Young Shall Grow — Njangi Admin</title>
 
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
   <style>
     :root{
       --bg:#070b18;
-      --panel:rgba(255,255,255,.04);
+      --panel:rgba(255,255,255,.05);
       --panel2:rgba(255,255,255,.03);
       --border:rgba(255,255,255,.10);
       --text:#eaf0ff;
-      --muted:rgba(234,240,255,.65);
+      --muted:rgba(234,240,255,.70);
       --accent:#4f7cff;
       --accent2:#1bd6a7;
       --danger:#ff4f6d;
-      --warn:#ffcc66;
-      --ok:#39d98a;
       --radius:18px;
-      --shadow:0 12px 40px rgba(0,0,0,.35);
+      --shadow:0 14px 50px rgba(0,0,0,.35);
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
     body{
       margin:0;
-      font-family:var(--sans);
-      background: radial-gradient(1200px 800px at 10% 10%, rgba(79,124,255,.20), transparent 60%),
-                  radial-gradient(1000px 700px at 90% 20%, rgba(27,214,167,.12), transparent 60%),
-                  radial-gradient(900px 650px at 40% 90%, rgba(255,79,109,.10), transparent 60%),
-                  var(--bg);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
       color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 15% 10%, rgba(79,124,255,.22), transparent 55%),
+        radial-gradient(900px 700px at 85% 15%, rgba(27,214,167,.15), transparent 55%),
+        radial-gradient(700px 600px at 55% 95%, rgba(255,79,109,.12), transparent 60%),
+        linear-gradient(180deg, #050814 0%, #050814 40%, #040612 100%);
+      min-height:100vh;
     }
-    a{color:inherit}
-    .wrap{display:flex; min-height:100%}
-    .sidebar{
-      width:320px;
-      padding:18px;
-      border-right:1px solid var(--border);
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-      position:sticky; top:0; height:100vh; overflow:auto;
+
+    .wrap{max-width:1200px; margin:0 auto; padding:22px;}
+    .top{
+      display:flex; gap:14px; align-items:center; justify-content:space-between;
+      padding:16px 18px; border:1px solid var(--border); border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      box-shadow:var(--shadow);
     }
-    .brand{
-      display:flex; gap:12px; align-items:center; padding:12px 10px; border-radius:14px;
-      background:rgba(255,255,255,.03); border:1px solid var(--border);
-      box-shadow: var(--shadow);
-    }
+    .brand{display:flex; gap:12px; align-items:center;}
     .logo{
-      width:44px; height:44px; border-radius:14px;
-      background:linear-gradient(135deg, var(--accent), var(--accent2));
+      width:42px; height:42px; border-radius:14px;
+      background:linear-gradient(135deg, rgba(79,124,255,.95), rgba(27,214,167,.85));
       display:grid; place-items:center; font-weight:800;
     }
-    .brand h1{font-size:14px; margin:0; line-height:1.1}
-    .brand p{margin:2px 0 0; color:var(--muted); font-size:12px}
+    .brand h1{font-size:20px; margin:0; letter-spacing:.2px;}
+    .brand .sub{color:var(--muted); font-size:13px; margin-top:2px;}
 
-    .nav{margin-top:14px; display:flex; flex-direction:column; gap:8px}
-    .nav button{
-      width:100%;
-      padding:10px 12px;
-      border-radius:14px;
-      background:rgba(255,255,255,.03);
-      border:1px solid var(--border);
-      color:var(--text);
-      cursor:pointer;
-      display:flex; justify-content:space-between; align-items:center;
-    }
-    .nav button.active{
-      background:rgba(79,124,255,.18);
-      border-color:rgba(79,124,255,.35);
-    }
     .pill{
-      font-size:11px; padding:2px 8px; border-radius:999px;
-      background:rgba(255,255,255,.06); border:1px solid var(--border); color:var(--muted);
-    }
-    .sidecard{
-      margin-top:14px;
+      display:inline-flex; gap:8px; align-items:center;
+      border:1px solid var(--border); padding:8px 10px; border-radius:999px;
       background:rgba(255,255,255,.03);
+      color:var(--muted);
+      font-size:13px;
+      max-width:520px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .dot{width:10px;height:10px;border-radius:50%; background:var(--accent2); box-shadow:0 0 0 3px rgba(27,214,167,.12);}
+
+    .grid{display:grid; grid-template-columns: 320px 1fr; gap:18px; margin-top:18px;}
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+
+    .card{
       border:1px solid var(--border);
       border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow:var(--shadow);
+    }
+    .card .hd{padding:16px 16px 10px 16px; border-bottom:1px solid rgba(255,255,255,.06);}
+    .card .hd h2{margin:0; font-size:18px;}
+    .card .hd .sub{color:var(--muted); margin-top:6px; font-size:13px;}
+    .card .bd{padding:14px 16px 16px 16px;}
+    .kpiRow{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;}
+    @media (max-width: 980px){ .kpiRow{grid-template-columns:1fr} }
+    .kpi{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
       padding:12px;
+      background:rgba(255,255,255,.03);
     }
-    .sidecard h3{margin:0 0 8px; font-size:13px; color:var(--muted)}
-    .sidecard .kv{display:flex; justify-content:space-between; gap:10px; font-size:12px; padding:6px 0; border-bottom:1px dashed rgba(255,255,255,.10)}
-    .sidecard .kv:last-child{border-bottom:none}
-    .dangerBox{
-      margin-top:10px;
-      border:1px solid rgba(255,79,109,.45);
-      background:rgba(255,79,109,.08);
-      border-radius:14px;
-      padding:10px;
-      font-size:12px;
-      color:#ffd3dc;
-      display:none;
-      white-space:pre-wrap;
-    }
-    .btnRow{display:flex; gap:10px; margin-top:10px}
-    .btn{
+    .kpi .lab{color:var(--muted); font-size:12px;}
+    .kpi .val{font-size:24px; font-weight:800; margin-top:6px;}
+    .kpi .tiny{color:var(--muted); font-size:12px; margin-top:6px;}
+
+    .tabs{display:flex; gap:8px; flex-wrap:wrap;}
+    .tab{
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
       padding:10px 12px;
+      border-radius:999px;
+      cursor:pointer;
+      user-select:none;
+      font-weight:650;
+      font-size:13px;
+    }
+    .tab.active{color:var(--text); background:rgba(79,124,255,.16); border-color:rgba(79,124,255,.35);}
+
+    .btn{
+      border:none; cursor:pointer;
+      padding:12px 14px;
       border-radius:14px;
-      border:1px solid var(--border);
+      color:#fff;
+      background:linear-gradient(135deg, rgba(79,124,255,.95), rgba(121,94,255,.75));
+      box-shadow:0 10px 30px rgba(79,124,255,.20);
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .btn:disabled{opacity:.55; cursor:not-allowed}
+    .btnGhost{
+      border:1px solid rgba(255,255,255,.12);
       background:rgba(255,255,255,.03);
       color:var(--text);
-      cursor:pointer;
-      flex:1;
-    }
-    .btn.primary{background:rgba(79,124,255,.20); border-color:rgba(79,124,255,.35)}
-    .btn.danger{background:rgba(255,79,109,.12); border-color:rgba(255,79,109,.35)}
-    .btn:disabled{opacity:.5; cursor:not-allowed}
-
-    .main{flex:1; padding:18px 18px 28px}
-    .topbar{
-      display:flex; justify-content:space-between; align-items:center;
-      padding:12px 14px;
-      border-radius:var(--radius);
-      background:rgba(255,255,255,.03);
-      border:1px solid var(--border);
-      box-shadow: var(--shadow);
-      gap:12px;
-    }
-    .topbar .left{display:flex; flex-direction:column; gap:2px}
-    .topbar h2{margin:0; font-size:16px}
-    .topbar p{margin:0; font-size:12px; color:var(--muted)}
-    .topbar .right{display:flex; gap:10px; align-items:center}
-    .tag{
-      font-size:12px; padding:6px 10px; border-radius:999px;
-      background:rgba(255,255,255,.04);
-      border:1px solid var(--border);
-      color:var(--muted);
-    }
-
-    .grid{
-      margin-top:16px;
-      display:grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap:14px;
-    }
-    .card{
-      grid-column: span 12;
-      background:rgba(255,255,255,.03);
-      border:1px solid var(--border);
-      border-radius:var(--radius);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .card .hd{
-      padding:12px 14px;
-      display:flex; justify-content:space-between; align-items:center;
-      border-bottom:1px solid rgba(255,255,255,.06);
-    }
-    .card .hd h3{margin:0; font-size:14px}
-    .card .hd .sub{color:var(--muted); font-size:12px}
-    .card .bd{padding:14px}
-
-    .kpis{
-      display:grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap:12px;
-    }
-    .kpi{
-      padding:12px;
-      border-radius:16px;
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.03);
-    }
-    .kpi .label{font-size:12px; color:var(--muted)}
-    .kpi .value{font-size:18px; margin-top:6px; font-weight:800}
-    .kpi .mini{font-size:11px; margin-top:6px; color:var(--muted)}
-    .kpi .mini strong{color:var(--text)}
-    .twoCols{display:grid; grid-template-columns: 1.3fr .7fr; gap:14px}
-    canvas{max-width:100%}
-    .formGrid{display:grid; grid-template-columns: repeat(12, 1fr); gap:10px}
-    label{font-size:12px; color:var(--muted)}
-    input, select, textarea{
-      width:100%;
-      padding:10px 12px;
+      padding:11px 12px;
       border-radius:14px;
-      border:1px solid var(--border);
-      background:rgba(0,0,0,.20);
+      cursor:pointer;
+      font-weight:750;
+    }
+
+    input, select{
+      width:100%;
+      padding:11px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.22);
       color:var(--text);
       outline:none;
     }
-    textarea{min-height:86px; resize:vertical}
-    .row{display:flex; gap:10px; align-items:end}
-    .row > div{flex:1}
-    table{
-      width:100%;
-      border-collapse:collapse;
-      overflow:hidden;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.08);
-    }
-    th, td{
-      text-align:left;
-      padding:10px 10px;
-      border-bottom:1px solid rgba(255,255,255,.07);
+    label{display:block; color:var(--muted); font-size:12px; margin:10px 0 6px;}
+    .row{display:flex; gap:10px; align-items:center;}
+    .row > *{flex:1}
+    .hint{color:var(--muted); font-size:12px; margin-top:8px;}
+    .err{
+      display:none;
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,79,109,.35);
+      background:rgba(255,79,109,.10);
+      color:#ffd7de;
+      font-family:var(--mono);
       font-size:12px;
+      white-space:pre-wrap;
     }
-    th{color:var(--muted); font-weight:700; background:rgba(255,255,255,.02)}
-    tr:last-child td{border-bottom:none}
-    .muted{color:var(--muted)}
-    .rightText{text-align:right}
-    .split{display:grid; grid-template-columns: 1fr 1fr; gap:14px}
-    .small{font-size:11px; color:var(--muted)}
+    table{width:100%; border-collapse:collapse; overflow:hidden; border-radius:14px;}
+    th, td{padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.06); font-size:13px;}
+    th{color:var(--muted); text-align:left; font-weight:800; letter-spacing:.2px;}
+    td.mono{font-family:var(--mono); color:rgba(234,240,255,.85)}
+    td.right, th.right{text-align:right}
     .toast{
-      position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-      background:rgba(0,0,0,.65);
-      border:1px solid rgba(255,255,255,.16);
+      position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      background:rgba(0,0,0,.55);
+      border:1px solid rgba(255,255,255,.10);
+      padding:10px 12px; border-radius:999px;
       color:var(--text);
-      padding:10px 14px;
-      border-radius:999px;
       font-size:13px;
-      opacity:0;
-      pointer-events:none;
-      transition:opacity .18s ease;
-      box-shadow: var(--shadow);
-    }
-    .toast.show{opacity:1}
-
-    /* auth screen */
-    .locked{
-      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-      padding:18px;
-      background:radial-gradient(900px 700px at 20% 20%, rgba(79,124,255,.18), transparent 60%),
-                 radial-gradient(900px 700px at 80% 20%, rgba(27,214,167,.10), transparent 60%),
-                 var(--bg);
-    }
-    .auth{
-      width:min(540px, 96vw);
-      border-radius:22px;
-      background:rgba(255,255,255,.04);
-      border:1px solid var(--border);
-      box-shadow: var(--shadow);
-      padding:18px;
-    }
-    .auth h2{margin:0 0 6px}
-    .auth p{margin:0 0 12px; color:var(--muted); font-size:13px}
-    .auth .row{margin-top:10px}
-    .auth .btn{width:100%}
-    .hint{
-      margin-top:10px; font-size:12px; color:var(--muted);
-      border-top:1px solid rgba(255,255,255,.07);
-      padding-top:10px;
-    }
-
-    @media (max-width: 980px){
-      .wrap{flex-direction:column}
-      .sidebar{width:100%; height:auto; position:relative}
-      .kpis{grid-template-columns: repeat(2, minmax(0, 1fr))}
-      .twoCols{grid-template-columns:1fr}
-      .split{grid-template-columns:1fr}
+      display:none;
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(10px);
     }
   </style>
 </head>
 
 <body>
-  <!-- LOCKED / LOGIN -->
-  <div id="locked" class="locked">
-    <div class="auth">
-      <div class="brand" style="box-shadow:none">
-        <div class="logo">YS</div>
-        <div>
-          <h1 style="font-size:16px;margin:0">The Young Shall Grow</h1>
-          <p style="margin:2px 0 0;color:var(--muted);font-size:12px">Admin Dashboard • Secure Login</p>
-        </div>
-      </div>
-
-      <h2 style="margin-top:14px">Sign in</h2>
-      <p>Only admins can access the dashboard.</p>
-
-      <div class="formGrid" style="margin-top:10px">
-        <div style="grid-column:span 12">
-          <label>Email</label>
-          <input id="email" type="email" placeholder="admin@email.com" autocomplete="username" />
-        </div>
-        <div style="grid-column:span 12">
-          <label>Password</label>
-          <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" />
-        </div>
-      </div>
-
-      <div class="btnRow">
-        <button class="btn primary" onclick="signIn()">Sign in</button>
-      </div>
-
-      <div class="hint">
-        <div><strong>Tip:</strong> Your Supabase Auth user must have a row in <span class="mono">profiles</span> with <span class="mono">role='admin'</span>.</div>
-      </div>
-
-      <div id="authErr" class="dangerBox" style="display:block;margin-top:10px"></div>
-    </div>
-  </div>
-
-  <!-- APP -->
-  <div id="app" class="wrap" style="display:none">
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
+  <div class="wrap">
+    <div class="top">
       <div class="brand">
         <div class="logo">YS</div>
         <div>
           <h1>The Young Shall Grow</h1>
-          <p>Njangi Admin Dashboard</p>
+          <div class="sub">Njangi Admin Dashboard • Secure Login</div>
+        </div>
+      </div>
+      <div class="pill" title="Signed in user">
+        <span class="dot"></span>
+        <span id="who">Not signed in</span>
+        <span style="opacity:.65">•</span>
+        <span id="role">—</span>
+        <span style="opacity:.65">•</span>
+        <span id="today">—</span>
+      </div>
+    </div>
+
+    <!-- LOCKED (LOGIN) -->
+    <div id="locked" class="grid" style="margin-top:18px;">
+      <div class="card">
+        <div class="hd">
+          <h2>Sign in</h2>
+          <div class="sub">Only admins can access the dashboard.</div>
+        </div>
+        <div class="bd">
+          <label>Email</label>
+          <input id="email" type="email" placeholder="you@example.com" />
+          <label>Password</label>
+          <input id="password" type="password" placeholder="••••••••" />
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <button class="btn" id="btnLogin">Sign in</button>
+            <button class="btnGhost" id="btnMagic">Send magic link</button>
+          </div>
+          <div class="hint">Tip: Your Supabase Auth user must have a row in <span class="mono">profiles</span> with <span class="mono">role='admin'</span>, and RPC <span class="mono">is_admin()</span> must exist.</div>
+          <div class="err" id="authErr"></div>
         </div>
       </div>
 
-      <div class="nav">
-        <button id="tabBtn-dashboard" class="active" onclick="showTab('dashboard')">
-          <span>Dashboard</span><span class="pill">Overview</span>
-        </button>
-        <button id="tabBtn-members" onclick="showTab('members')">
-          <span>Members</span><span class="pill" id="memberCountPill">0</span>
-        </button>
-        <button id="tabBtn-ops" onclick="showTab('ops')">
-          <span>Contributions & Loans</span><span class="pill">Actions</span>
-        </button>
-        <button id="tabBtn-finance" onclick="showTab('finance')">
-          <span>Fines & Payouts</span><span class="pill">Records</span>
-        </button>
-        <button id="tabBtn-foundation" onclick="showTab('foundation')">
-          <span>Foundation & Sureties</span><span class="pill">New</span>
-        </button>
-      </div>
-
-      <div class="sidecard">
-        <h3>Admin</h3>
-        <div class="kv"><span class="muted">Signed in</span><span id="who" class="mono">—</span></div>
-        <div class="kv"><span class="muted">Role</span><span id="role" class="mono">—</span></div>
-        <div class="kv"><span class="muted">Today</span><span id="today" class="mono">—</span></div>
-        <div class="btnRow">
-          <button class="btn" onclick="reloadAll()">Refresh</button>
-          <button class="btn danger" onclick="signOut()">Sign out</button>
+      <div class="card">
+        <div class="hd">
+          <h2>Setup checklist</h2>
+          <div class="sub">If login works locally but fails on your domain, these are the common causes.</div>
         </div>
-        <div id="sideErr" class="dangerBox"></div>
-      </div>
-    </aside>
-
-    <!-- MAIN -->
-    <main class="main">
-      <div class="topbar">
-        <div class="left">
-          <h2 id="pageTitle">Dashboard</h2>
-          <p id="pageSub">Pot, foundation, loans, and rotation overview</p>
-        </div>
-        <div class="right">
-          <div class="tag"><span class="muted">Rotation starts:</span> <span id="rotStart">2026-01-03</span></div>
-          <div class="tag"><span class="muted">Interest:</span> <strong>5%</strong></div>
+        <div class="bd">
+          <ol style="margin:0; padding-left:18px; color:var(--muted); line-height:1.6">
+            <li>Supabase URL + anon key are correct in this HTML.</li>
+            <li>Supabase Auth → URL Configuration includes your site domain in Redirect URLs.</li>
+            <li>RLS policies allow admins to read/write <span class="mono">members</span>, <span class="mono">app_state</span>, <span class="mono">payouts</span>.</li>
+            <li><span class="mono">profiles</span> table exists and your user has <span class="mono">role='admin'</span>.</li>
+          </ol>
         </div>
       </div>
+    </div>
 
-      <!-- DASHBOARD TAB -->
-      <section id="tab-dashboard" class="grid">
-        <div class="card" style="grid-column:span 12">
+    <!-- APP -->
+    <div id="app" style="display:none; margin-top:18px;">
+      <div class="grid">
+        <!-- LEFT SIDEBAR -->
+        <div class="card">
           <div class="hd">
-            <div>
-              <h3>Key metrics</h3>
-              <div class="sub">Live from Supabase</div>
-            </div>
-            <div class="sub">Total interest generated: <strong id="kInterestMini">0</strong></div>
+            <h2>Njangi Admin</h2>
+            <div class="sub">Manage members, pot, and payouts</div>
           </div>
           <div class="bd">
-            <div class="kpis">
-              <div class="kpi">
-                <div class="label">Pot (Contributions)</div>
-                <div class="value" id="kPot">$0</div>
-                <div class="mini">Total contributed by members</div>
-              </div>
-              <div class="kpi">
-                <div class="label">Foundation Balance</div>
-                <div class="value" id="kFoundation">$0</div>
-                <div class="mini">From Foundation_payments.amount_paid</div>
-              </div>
-              <div class="kpi">
-                <div class="label">Outstanding Loans</div>
-                <div class="value" id="kLoans">$0</div>
-                <div class="mini">Sum of member loan_due</div>
-              </div>
-              <div class="kpi">
-                <div class="label">Members</div>
-                <div class="value" id="kMembers">0</div>
-                <div class="mini">Active list</div>
-              </div>
+            <div class="tabs">
+              <div class="tab active" data-tab="dash">Dashboard</div>
+              <div class="tab" data-tab="members">Members</div>
+              <div class="tab" data-tab="payouts">Payouts</div>
             </div>
+
+            <div style="margin-top:14px; display:grid; gap:10px">
+              <button class="btnGhost" id="btnReload">Reload data</button>
+              <button class="btnGhost" id="btnLogout">Logout</button>
+            </div>
+
+            <div class="err" id="sideErr"></div>
           </div>
         </div>
 
-        <div class="card" style="grid-column:span 12">
-          <div class="hd">
-            <div>
-              <h3>Next payout (bi-weekly)</h3>
-              <div class="sub" id="nextInfo">—</div>
+        <!-- MAIN -->
+        <div>
+          <!-- DASH -->
+          <section id="tab-dash" class="card">
+            <div class="hd">
+              <h2>Dashboard</h2>
+              <div class="sub">Current pot + next beneficiary (bi-weekly rotation)</div>
             </div>
-            <div class="sub">Next: <strong id="nextName">—</strong></div>
-          </div>
-          <div class="bd twoCols">
-            <div>
-              <canvas id="histChart" height="140"></canvas>
-            </div>
-            <div>
-              <canvas id="pieChart" height="140"></canvas>
-              <div class="small" style="margin-top:8px">
-                Pie shows Pot vs Foundation vs Outstanding Loans.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="grid-column:span 12">
-          <div class="hd">
-            <div>
-              <h3>Recent activity</h3>
-              <div class="sub">Latest 15 history entries</div>
-            </div>
-          </div>
-          <div class="bd">
-            <table>
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Type</th>
-                  <th>Member</th>
-                  <th class="rightText">Amount</th>
-                  <th class="rightText">Interest %</th>
-                  <th class="rightText">Result</th>
-                </tr>
-              </thead>
-              <tbody id="recentBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- MEMBERS TAB -->
-      <section id="tab-members" class="grid" style="display:none">
-        <div class="card" style="grid-column:span 12">
-          <div class="hd">
-            <div>
-              <h3>Members</h3>
-              <div class="sub">Manage member list and order</div>
-            </div>
-            <div class="sub"><span id="memberCount">0</span> total</div>
-          </div>
-          <div class="bd">
-            <div class="split">
-              <div class="card" style="box-shadow:none;border:none;background:transparent">
-                <div class="bd" style="padding:0">
-                  <h4 style="margin:0 0 10px">Add member</h4>
-                  <div class="formGrid">
-                    <div style="grid-column:span 7">
-                      <label>Name</label>
-                      <input id="mName" placeholder="Full name" />
-                    </div>
-                    <div style="grid-column:span 5">
-                      <label>Phone (optional)</label>
-                      <input id="mPhone" placeholder="301-..." />
-                    </div>
-                    <div style="grid-column:span 6">
-                      <label>Has benefits?</label>
-                      <select id="mBenefits">
-                        <option value="false">No</option>
-                        <option value="true">Yes</option>
-                      </select>
-                    </div>
-                    <div style="grid-column:span 6">
-                      <label>Position</label>
-                      <input id="mPos" type="number" value="1" min="1" />
-                    </div>
-                  </div>
-                  <div class="btnRow" style="margin-top:10px">
-                    <button class="btn primary" onclick="addMember()">Add member</button>
-                    <button class="btn" onclick="reindexPositions()">Reindex positions</button>
-                  </div>
-                  <div class="small" style="margin-top:8px">
-                    Reindex sets positions 1..N in current order.
-                  </div>
+            <div class="bd">
+              <div class="kpiRow">
+                <div class="kpi">
+                  <div class="lab">Njangi Pot (sum of contributed)</div>
+                  <div class="val" id="kPot">$0</div>
+                  <div class="tiny" id="kPotHint">—</div>
+                </div>
+                <div class="kpi">
+                  <div class="lab">Rotation Start</div>
+                  <div class="val" id="kStart">—</div>
+                  <div class="tiny">Every 14 days</div>
+                </div>
+                <div class="kpi">
+                  <div class="lab">Next payout</div>
+                  <div class="val" id="kNextDate">—</div>
+                  <div class="tiny" id="kNextWho">—</div>
                 </div>
               </div>
 
-              <div class="card" style="box-shadow:none;border:none;background:transparent">
-                <div class="bd" style="padding:0">
-                  <h4 style="margin:0 0 10px">Set member position</h4>
-                  <div class="formGrid">
-                    <div style="grid-column:span 7">
-                      <label>Member</label>
-                      <select id="mSetMember"></select>
-                    </div>
-                    <div style="grid-column:span 5">
-                      <label>New position</label>
-                      <input id="mSetPos" type="number" min="1" value="1" />
-                    </div>
-                  </div>
-                  <div class="btnRow" style="margin-top:10px">
-                    <button class="btn primary" onclick="setPosition()">Update position</button>
-                    <button class="btn" onclick="rotateNext()">Advance next payout</button>
-                  </div>
-                  <div class="small" style="margin-top:8px">
-                    “Advance next payout” increments next_payout_index.
-                  </div>
+              <div style="margin-top:14px" class="kpi">
+                <div class="lab">Quick actions</div>
+                <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap">
+                  <button class="btn" id="btnRunPayout">Run Payout (Run Now)</button>
+                  <button class="btnGhost" id="btnResetStart">Reset start to 2026-01-03</button>
+                </div>
+                <div class="hint">
+                  Run Payout will: insert into <span class="mono">payouts</span> (with <span class="mono">member_id</span>), add pot to beneficiary payout_total, reset all contributed to 0, then advance next payout by 14 days.
                 </div>
               </div>
             </div>
+          </section>
 
-            <div style="margin-top:14px">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th class="rightText">Contributed</th>
-                    <th class="rightText">Foundation contrib</th>
-                    <th class="rightText">Loan due</th>
-                    <th class="rightText">Payout total</th>
-                    <th>Benefits</th>
-                  </tr>
-                </thead>
-                <tbody id="memberBody"></tbody>
-              </table>
+          <!-- MEMBERS -->
+          <section id="tab-members" class="card" style="display:none; margin-top:18px;">
+            <div class="hd">
+              <h2>Members</h2>
+              <div class="sub">Add contributions and manage list</div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- OPS TAB -->
-      <section id="tab-ops" class="grid" style="display:none">
-        <div class="card" style="grid-column:span 12">
-          <div class="hd">
-            <div>
-              <h3>Contributions</h3>
-              <div class="sub">Add contribution to member pot</div>
-            </div>
-          </div>
-          <div class="bd">
-            <div class="formGrid">
-              <div style="grid-column:span 6">
-                <label>Member</label>
-                <select id="cMember"></select>
-              </div>
-              <div style="grid-column:span 6">
-                <label>Amount</label>
-                <input id="cAmount" type="number" min="0" placeholder="500" />
-              </div>
-            </div>
-            <div class="btnRow">
-              <button class="btn primary" onclick="addContribution()">Add contribution</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="grid-column:span 12">
-          <div class="hd">
-            <div>
-              <h3>Foundation</h3>
-              <div class="sub">Add to foundation or set total</div>
-            </div>
-          </div>
-          <div class="bd split">
-            <div>
-              <h4 style="margin:0 0 10px">Add to foundation</h4>
-              <label>Amount</label>
-              <input id="fAmount" type="number" min="0" placeholder="500" />
-              <div class="btnRow">
-                <button class="btn primary" onclick="addToFoundation()">Add</button>
-              </div>
-            </div>
-            <div>
-              <h4 style="margin:0 0 10px">Set foundation total</h4>
-              <label>New total</label>
-              <input id="fSetAmount" type="number" min="0" placeholder="10000" />
-              <div class="btnRow">
-                <button class="btn" onclick="setFoundation()">Set</button>
-              </div>
-              <div class="small" style="margin-top:8px">
-                This creates an adjustment so SUM(amount_paid) becomes the target.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="grid-column:span 12">
-          <div class="hd">
-            <div>
-              <h3>Member foundation contribution</h3>
-              <div class="sub">Used for benefit eligibility (70% rule)</div>
-            </div>
-          </div>
-          <div class="bd">
-            <div class="formGrid">
-              <div style="grid-column:span 6">
-                <label>Member</label>
-                <select id="mfMember"></select>
-              </div>
-              <div style="grid-column:span 6">
-                <label>Amount</label>
-                <input id="mfAmount" type="number" min="0" placeholder="500" />
-              </div>
-            </div>
-            <div class="btnRow">
-              <button class="btn primary" onclick="addMemberFoundation()">Save</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="grid-column:span 12">
-          <div class="hd">
-            <div>
-              <h3>Loans</h3>
-              <div class="sub">Issue loan (5% interest) and repay</div>
-            </div>
-          </div>
-          <div class="bd split">
-            <div>
-              <h4 style="margin:0 0 10px">Issue loan</h4>
-              <div class="formGrid">
-                <div style="grid-column:span 7">
+            <div class="bd">
+              <div class="row">
+                <div>
                   <label>Member</label>
-                  <select id="lMember"></select>
+                  <select id="mPick"></select>
                 </div>
-                <div style="grid-column:span 5">
-                  <label>Amount</label>
-                  <input id="lAmount" type="number" min="0" placeholder="500" />
+                <div>
+                  <label>Add contribution</label>
+                  <input id="mAddAmt" type="number" min="0" placeholder="0" />
                 </div>
-              </div>
-              <div class="btnRow">
-                <button class="btn primary" onclick="issueLoan()">Issue</button>
-              </div>
-              <div class="small" style="margin-top:8px">
-                Foundation availability is based on SUM(Foundation_payments.amount_paid).
-              </div>
-            </div>
-
-            <div>
-              <h4 style="margin:0 0 10px">Repay loan</h4>
-              <div class="formGrid">
-                <div style="grid-column:span 7">
-                  <label>Member</label>
-                  <select id="rMember"></select>
-                </div>
-                <div style="grid-column:span 5">
-                  <label>Amount</label>
-                  <input id="rAmount" type="number" min="0" placeholder="500" />
+                <div style="align-self:end">
+                  <button class="btn" id="btnAddContrib">Add</button>
                 </div>
               </div>
-              <div class="btnRow">
-                <button class="btn" onclick="repayLoan()">Save repayment</button>
+
+              <div class="row" style="margin-top:10px;">
+                <div>
+                  <label>New member name</label>
+                  <input id="mNewName" placeholder="Full name" />
+                </div>
+                <div style="align-self:end">
+                  <button class="btnGhost" id="btnAddMember">Add member</button>
+                </div>
+              </div>
+
+              <div style="margin-top:14px">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Name</th>
+                      <th class="right">Contributed</th>
+                      <th class="right">Payout Total</th>
+                      <th>Last payout</th>
+                    </tr>
+                  </thead>
+                  <tbody id="membersBody"></tbody>
+                </table>
               </div>
             </div>
-          </div>
+          </section>
+
+          <!-- PAYOUTS -->
+          <section id="tab-payouts" class="card" style="display:none; margin-top:18px;">
+            <div class="hd">
+              <h2>Payouts</h2>
+              <div class="sub">History + beneficiary details</div>
+            </div>
+            <div class="bd">
+              <div class="kpiRow">
+                <div class="kpi">
+                  <div class="lab">Next beneficiary</div>
+                  <div class="val" id="pNextWho">—</div>
+                  <div class="tiny" id="pNextMeta">—</div>
+                </div>
+                <div class="kpi">
+                  <div class="lab">Next payout date</div>
+                  <div class="val" id="pNextDate">—</div>
+                  <div class="tiny">Start: <span id="pStart">—</span></div>
+                </div>
+                <div class="kpi">
+                  <div class="lab">Current pot</div>
+                  <div class="val" id="pPot">$0</div>
+                  <div class="tiny">Will be paid to next beneficiary</div>
+                </div>
+              </div>
+
+              <div style="margin-top:12px">
+                <button class="btn" id="btnRunPayout2">Run Now</button>
+              </div>
+
+              <div style="margin-top:14px">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Created</th>
+                      <th>Payout date</th>
+                      <th>Member</th>
+                      <th>Member ID</th>
+                      <th class="right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody id="payoutBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
         </div>
-      </section>
-
-      <!-- FINANCE TAB -->
-      <section id="tab-finance" class="grid" style="display:none">
-        <div class="card" style="grid-column:span 12">
-          <div class="hd">
-            <div>
-              <h3>Fines</h3>
-              <div class="sub">Record fines per member</div>
-            </div>
-          </div>
-          <div class="bd">
-            <div class="formGrid">
-              <div style="grid-column:span 4">
-                <label>Member</label>
-                <select id="fineMember"></select>
-              </div>
-              <div style="grid-column:span 4">
-                <label>Amount</label>
-                <input id="fineAmount" type="number" min="0" placeholder="100" />
-              </div>
-              <div style="grid-column:span 4">
-                <label>Reason</label>
-                <input id="fineReason" placeholder="Late..." />
-              </div>
-            </div>
-            <div class="btnRow">
-              <button class="btn primary" onclick="addFine()">Add fine</button>
-            </div>
-
-            <div style="margin-top:14px">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Member</th>
-                    <th>Reason</th>
-                    <th class="rightText">Amount</th>
-                  </tr>
-                </thead>
-                <tbody id="fineBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="grid-column:span 12">
-          <div class="hd">
-            <div>
-              <h3>Payouts</h3>
-              <div class="sub">Recorded payouts</div>
-            </div>
-          </div>
-          <div class="bd">
-            <div class="formGrid">
-              <div style="grid-column:span 6">
-                <label>Member</label>
-                <select id="pMember"></select>
-              </div>
-              <div style="grid-column:span 6">
-                <label>Amount</label>
-                <input id="pAmount" type="number" min="0" placeholder="5000" />
-              </div>
-            </div>
-            <div class="btnRow">
-              <button class="btn primary" onclick="addPayout()">Record payout</button>
-            </div>
-
-            <div style="margin-top:14px">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Time</th>
-                    <th>Member</th>
-                    <th class="rightText">Amount</th>
-                  </tr>
-                </thead>
-                <tbody id="payoutBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- FOUNDATION TAB -->
-      <section id="tab-foundation" class="grid" style="display:none">
-        <div class="card" style="grid-column:span 12">
-          <div class="hd">
-            <div>
-              <h3>Foundation Payments</h3>
-              <div class="sub">Track amount paid vs pending</div>
-            </div>
-          </div>
-          <div class="bd">
-            <div class="formGrid">
-              <div style="grid-column:span 3">
-                <label>Member</label>
-                <select id="fpMember"></select>
-              </div>
-              <div style="grid-column:span 2">
-                <label>Amount paid</label>
-                <input id="fpPaid" type="number" min="0" placeholder="500" />
-              </div>
-              <div style="grid-column:span 2">
-                <label>Amount pending</label>
-                <input id="fpPending" type="number" min="0" placeholder="0" />
-              </div>
-              <div style="grid-column:span 2">
-                <label>Status</label>
-                <select id="fpStatus">
-                  <option value="pending">pending</option>
-                  <option value="partial">partial</option>
-                  <option value="paid">paid</option>
-                  <option value="loan">loan</option>
-                </select>
-              </div>
-              <div style="grid-column:span 3">
-                <label>Notes</label>
-                <input id="fpNotes" placeholder="Optional..." />
-              </div>
-            </div>
-            <div class="btnRow">
-              <button class="btn primary" onclick="addFoundationPayment()">Save payment</button>
-            </div>
-
-            <div style="margin-top:14px">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Member</th>
-                    <th class="rightText">Paid</th>
-                    <th class="rightText">Pending</th>
-                    <th>Status</th>
-                    <th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody id="fpBody"></tbody>
-              </table>
-            </div>
-
-            <div class="small" style="margin-top:10px">
-              Auto-rule: after <strong>15 days</strong> from <span class="mono">sessions.start_date</span>, any <span class="mono">amount_pending</span> is inserted into <span class="mono">loans.principal</span> for that member and marked as a loan.
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="grid-column:span 12">
-          <div class="hd">
-            <div>
-              <h3>Sureties</h3>
-              <div class="sub">Track surety/guarantee borrowing</div>
-            </div>
-          </div>
-          <div class="bd">
-            <div class="formGrid">
-              <div style="grid-column:span 4">
-                <label>Borrower member</label>
-                <select id="sBorrowerMember"></select>
-              </div>
-              <div style="grid-column:span 4">
-                <label>Amount borrowed</label>
-                <input id="sAmountBorrowed" type="number" min="0" placeholder="500" />
-              </div>
-              <div style="grid-column:span 4">
-                <label>Collateral / Notes</label>
-                <input id="sCollateral" placeholder="ID card, etc..." />
-              </div>
-            </div>
-            <div class="btnRow">
-              <button class="btn primary" onclick="addSurety()">Save surety</button>
-            </div>
-
-            <div style="margin-top:14px">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Borrower</th>
-                    <th class="rightText">Amount</th>
-                    <th>Collateral</th>
-                  </tr>
-                </thead>
-                <tbody id="suretyBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div class="toast" id="toast">Saved</div>
-    </main>
+      </div>
+    </div>
   </div>
+
+  <div class="toast" id="toast"></div>
 
 <script>
 /* ===========================
-   CONFIG
+   CONFIG — FILL THESE
 =========================== */
-const ROTATION_START = new Date("2026-01-03T00:00:00");
+const SUPABASE_URL = "YOUR_SUPABASE_URL";      // e.g. https://xxxx.supabase.co
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+/* Rotation rules */
+const DEFAULT_ROTATION_START_ISO = "2026-01-03"; // first beneficiary date
 const BIWEEKLY_DAYS = 14;
-const INTEREST_RATE = 0.05;
-const DAY_MS = 24 * 60 * 60 * 1000;
-const PENDING_TO_LOAN_DAYS = 15;
 
-// IMPORTANT: Put your URL and anon key here (or leave as-is if already correct)
-const SUPABASE_URL = "https://ficlrtvrrzfiakmciwel.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpY2xydHZycnpmaWFrbWNpd2VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMjk0MDQsImV4cCI6MjA4MjcwNTQwNH0.xWuH_-amYd_24R8PURbZXMUDjz--Q9R_RASOdGzsZJI";
-
-
-/* ===========================
-   SUPABASE
-=========================== */
+/* Supabase client */
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ===========================
-   STATE
+   SMALL HELPERS
 =========================== */
-let appState = { foundation:0, total_interest_generated:0, next_payout_index:0, next_payout_date:"2026-01-03" };
-let foundationBalance = 0; // computed from Foundation_payments.amount_paid (ledger)
-let FOUNDATION_TABLE = "foundation_payments"; // auto-fallback to "Foundation_payments" if needed
-let members = [];
-let history = [];
-let payouts = [];
-let fines = [];
-let foundationPayments = [];
-let sureties = [];
-let histChart = null;
-let pieChart = null;
-
-/* ===========================
-   HELPERS
-=========================== */
-function money(v){
-  const n = Number(v||0);
-  return n.toLocaleString(undefined, { style:"currency", currency:"USD" });
-}
-function isoDate(d){ return d.toISOString().slice(0,10); }
-function fromIso(s){
-  // expects YYYY-MM-DD
-  const [y,m,d] = String(s).split("-").map(Number);
-  return new Date(y, (m||1)-1, d||1);
-}
+const $ = (id)=>document.getElementById(id);
 function toast(msg){
-  const t=document.getElementById("toast");
-  t.textContent=msg;
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"), 1700);
+  const t=$("toast");
+  t.textContent = msg;
+  t.style.display="block";
+  clearTimeout(toast._t);
+  toast._t=setTimeout(()=>t.style.display="none", 1800);
 }
-function sideErr(msg){
-  const el=document.getElementById("sideErr");
+function setErr(id,msg){
+  const el=$(id);
   if(!msg){ el.style.display="none"; el.textContent=""; return; }
   el.style.display="block";
   el.textContent=msg;
 }
-function appendErr(msg){
-  const el=document.getElementById("sideErr");
-  el.style.display="block";
-  el.textContent = (el.textContent ? el.textContent + "\n" : "") + msg;
+function money(n){
+  const x = Number(n||0);
+  return x.toLocaleString("en-US", { style:"currency", currency:"USD" });
 }
-function authErr(msg){
-  const el=document.getElementById("authErr");
-  el.textContent = msg || "";
+function parseISODateUTC(iso){ // YYYY-MM-DD -> Date at UTC midnight
+  if(!iso) return null;
+  const [y,m,d] = String(iso).slice(0,10).split("-").map(Number);
+  if(!y||!m||!d) return null;
+  return new Date(Date.UTC(y, m-1, d));
 }
-function setActiveTab(id){
-  ["dashboard","members","ops","finance","foundation"].forEach(t=>{
-    document.getElementById("tab-"+t).style.display = (t===id) ? "grid" : "none";
-    document.getElementById("tabBtn-"+t).classList.toggle("active", t===id);
-  });
-  const titles={
-    dashboard:["Dashboard","Pot, foundation, loans, and rotation overview"],
-    members:["Members","Manage list, positions, and rotation"],
-    ops:["Contributions & Loans","Add contributions, foundation, loans"],
-    finance:["Fines & Payouts","Record fines and payouts"],
-    foundation:["Foundation & Sureties","Foundation payments, pending, sureties"]
-  };
-  document.getElementById("pageTitle").textContent = titles[id][0];
-  document.getElementById("pageSub").textContent = titles[id][1];
+function fmtDateUTC(date){
+  if(!(date instanceof Date)) return "—";
+  return date.toLocaleDateString("en-US", { timeZone:"UTC" });
 }
-function showTab(id){ setActiveTab(id); }
+function isoDateUTC(date){
+  if(!(date instanceof Date)) return null;
+  return date.toISOString().slice(0,10);
+}
+function addDaysUTC(date, days){
+  const d=new Date(date.getTime());
+  d.setUTCDate(d.getUTCDate()+days);
+  return d;
+}
+function nowIso(){ return new Date().toISOString(); }
 
 /* ===========================
-   NEW HELPERS (Foundation & Auto-Loan)
+   STATE
 =========================== */
-async function detectFoundationTable(){
-  // If your table name is actually "Foundation_payments" (capital F), this auto-detects it.
-  // If SELECT is blocked by RLS, detection may fail — we then keep the default name.
-  const candidates = ["foundation_payments", "Foundation_payments"];
-  for (const name of candidates){
-    const test = await sb.from(name).select("amount_paid").limit(1);
-    if(!test.error){
-      FOUNDATION_TABLE = name;
-      return;
-    }
-    const msg = (test.error?.message || "").toLowerCase();
-    if(msg.includes('does not exist') || msg.includes('relation') && msg.includes('does not exist')){
-      // try next candidate
-      continue;
-    } else {
-      // RLS or other error; don't keep trying
-      return;
-    }
-  }
-}
-
-async function insertFoundationLedgerRow({ memberId=null, amountPaid=0, amountPending=0, status="paid", notes=null }){
-  // Writes into Foundation_payments / foundation_payments so foundationBalance = SUM(amount_paid)
-  // Fallback if your schema requires member_id NOT NULL.
-  let payload = {
-    member_id: memberId == null ? null : Number(memberId),
-    amount_paid: Number(amountPaid || 0),
-    amount_pending: Number(amountPending || 0),
-    status,
-    notes: notes || null
-  };
-
-  let r = await sb.from(FOUNDATION_TABLE).insert([payload]).select("id").maybeSingle();
-
-  if(r.error && (String(r.error.message||"").toLowerCase().includes("null value") || String(r.error.message||"").toLowerCase().includes("violates not-null"))){
-    // schema requires member_id; fallback to first member if available
-    if(!members.length) return r;
-    payload.member_id = Number(members[0].id);
-    payload.notes = (notes ? notes + " | " : "") + "Admin adjustment (member_id required by schema)";
-    r = await sb.from(FOUNDATION_TABLE).insert([payload]).select("id").maybeSingle();
-  }
-  return r;
-}
-
-async function tryInsertLoanRow(payload){
-  // Tries a few payload shapes so it works with different loans table schemas.
-  const payloads = [
-    payload,
-    { member_id: payload.member_id, principal: payload.principal },
-  ];
-
-  let lastErr = null;
-  for (const p of payloads){
-    const r = await sb.from("loans").insert([p]);
-    if(!r.error) return { ok:true };
-    lastErr = r.error;
-
-    const msg = String(r.error.message||"").toLowerCase();
-    // If table doesn't exist, don't keep retrying.
-    if(msg.includes('does not exist') && msg.includes('loans')) break;
-
-    // If it's a missing column error, try the smaller payload.
-    if(msg.includes("column") && msg.includes("does not exist")) continue;
-  }
-  return { ok:false, error:lastErr };
-}
-
-async function autoConvertPendingToLoansIfDue(){
-  // After session start_date + 15 days:
-  //   For each member with amount_pending > 0 in Foundation_payments,
-  //   insert that amount into loans.principal (member_id) and mark it as a loan.
-  //
-  // NOTE: this runs when the admin opens/refreshes the dashboard.
-  // For true daily automation, you'd move this logic into a scheduled Supabase Edge Function / cron.
-
-  // 1) get latest session start_date
-  const s = await sb.from("sessions").select("id,start_date").order("start_date", { ascending:false }).limit(1).maybeSingle();
-  if(s.error){
-    // sessions table might not exist yet; don't break the app
-    const msg = String(s.error.message||"");
-    if(!msg.toLowerCase().includes("does not exist")) appendErr("sessions: " + msg);
-    return false;
-  }
-  if(!s.data?.start_date) return false;
-
-  const start = fromIso(String(s.data.start_date));
-  const dueAt = new Date(start.getTime() + PENDING_TO_LOAN_DAYS * DAY_MS);
-  const today = fromIso(isoDate(new Date()));
-  if(today < dueAt) return false;
-
-  // 2) pick the most recent payment row PER MEMBER that still has amount_pending > 0
-  const byMember = new Map();
-  for(const row of (foundationPayments || [])){
-    const mid = row.member_id;
-    if(mid == null) continue;
-    const pending = Number(row.amount_pending || 0);
-    if(pending > 0 && !byMember.has(String(mid))){
-      byMember.set(String(mid), row); // foundationPayments is already newest-first from reloadAll
-    }
-  }
-  if(byMember.size === 0) return false;
-
-  // 3) convert each pending to a loan
-  let changed = false;
-  for(const [mid, row] of byMember.entries()){
-    const principal = Number(row.amount_pending || 0);
-    if(principal <= 0) continue;
-
-    const member = members.find(m => String(m.id) === String(mid));
-    const memberName = member?.name || String(mid);
-
-    const interest = Math.round(principal * INTEREST_RATE);
-    const totalDue = principal + interest;
-
-    // insert into loans table
-    const loanPayload = {
-      member_id: Number(mid),
-      principal: principal,
-      interest_percent: 5,
-      interest_amount: interest,
-      total_due: totalDue,
-      source: "foundation_pending",
-      session_start_date: String(s.data.start_date),
-      status: "active",
-      issued_at: new Date().toISOString()
-    };
-
-    const insLoan = await tryInsertLoanRow(loanPayload);
-    if(!insLoan.ok){
-      appendErr("auto loan insert (loans): " + (insLoan.error?.message || "unknown error"));
-      continue; // don't wipe pending if we couldn't create the loan
-    }
-
-    // update member loan_due
-    const oldDue = Number(member?.loan_due || 0);
-    const uMem = await sb.from("members").update({ loan_due: oldDue + totalDue }).eq("id", mid);
-    if(uMem.error){
-      appendErr("auto loan members.update: " + uMem.error.message);
-      continue;
-    }
-
-    // update total interest generated
-    const uSt = await sb.from("app_state").update({
-      total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
-      updated_at: new Date().toISOString()
-    }).eq("id", 1);
-    if(uSt.error){
-      appendErr("auto loan app_state.update: " + uSt.error.message);
-      // try to rollback member due
-      await sb.from("members").update({ loan_due: oldDue }).eq("id", mid);
-      continue;
-    }
-
-    // mark the payment row as converted to loan (prevents duplicates)
-    const newNotes = ((row.notes || "") + (row.notes ? " | " : "") + `Auto-converted to loan on ${new Date().toLocaleDateString()}`).slice(0, 2000);
-    let upPay;
-    if(row.id != null){
-      upPay = await sb.from(FOUNDATION_TABLE).update({ amount_pending: 0, status: "loan", notes: newNotes }).eq("id", row.id);
-    } else {
-      upPay = await sb.from(FOUNDATION_TABLE).update({ amount_pending: 0, status: "loan", notes: newNotes }).eq("member_id", mid);
-    }
-    if(upPay.error){
-      appendErr("auto loan foundation_payments.update: " + upPay.error.message);
-      // we still created the loan; leaving pending as-is would cause duplicates, so we warn but continue
-    }
-
-    await addHistoryRow("Auto Loan (Pending)", memberName, principal, 5, totalDue);
-    changed = true;
-  }
-
-  return changed;
-}
+let members = [];
+let payouts = [];
+let appState = null;
 
 /* ===========================
-   AUTH / ADMIN GATE
+   ADMIN GATE
 =========================== */
 async function enforceAdminGate(){
-  const { data } = await sb.auth.getUser();
-  const user = data?.user;
+  setErr("authErr","");
+  setErr("sideErr","");
 
-  if(!user){
-    document.getElementById("app").style.display = "none";
-    document.getElementById("locked").style.display = "flex";
-    return false;
-  }
-
-  // Admin check via RPC (more reliable with RLS)
-  const { data: isAdmin, error } = await sb.rpc("is_admin");
-
-  if (error) {
-    sideErr("is_admin: " + error.message);
-    await sb.auth.signOut();
-    document.getElementById("app").style.display = "none";
-    document.getElementById("locked").style.display = "flex";
-    return false;
-  }
-
-  if (!isAdmin) {
-    sideErr("Access denied: role is not admin.");
-    await sb.auth.signOut();
-    document.getElementById("app").style.display = "none";
-    document.getElementById("locked").style.display = "flex";
-    return false;
-  }
-
-
+  const { data, error } = await sb.auth.getUser();
   if(error){
-    sideErr("profiles: " + error.message);
-    await sb.auth.signOut();
-    document.getElementById("app").style.display = "none";
-    document.getElementById("locked").style.display = "flex";
+    setErr("authErr", error.message);
+    $("locked").style.display="grid";
+    $("app").style.display="none";
+    return false;
+  }
+  const user = data?.user;
+  if(!user){
+    $("locked").style.display="grid";
+    $("app").style.display="none";
+    $("who").textContent = "Not signed in";
+    $("role").textContent = "—";
+    $("today").textContent = new Date().toLocaleDateString();
     return false;
   }
 
-  if(!profile){
-    sideErr("profiles: no row for this user (create a profiles row + role='admin').");
+  // Check admin via RPC is_admin()
+  const r = await sb.rpc("is_admin");
+  if(r.error){
+    setErr("authErr", "is_admin RPC error: " + r.error.message);
     await sb.auth.signOut();
-    document.getElementById("app").style.display = "none";
-    document.getElementById("locked").style.display = "flex";
+    $("locked").style.display="grid";
+    $("app").style.display="none";
+    return false;
+  }
+  if(!r.data){
+    setErr("authErr", "Access denied: your role is not admin.");
+    await sb.auth.signOut();
+    $("locked").style.display="grid";
+    $("app").style.display="none";
     return false;
   }
 
-  if(profile.role !== "admin"){
-    sideErr("Access denied: role is not admin.");
-    await sb.auth.signOut();
-    document.getElementById("app").style.display = "none";
-    document.getElementById("locked").style.display = "flex";
-    return false;
-  }
-
-  document.getElementById("locked").style.display = "none";
-  document.getElementById("app").style.display = "flex";
-  document.getElementById("who").textContent = user.email || "admin";
-  document.getElementById("role").textContent = "admin";
-  document.getElementById("today").textContent = new Date().toLocaleDateString();
+  $("locked").style.display="none";
+  $("app").style.display="block";
+  $("who").textContent = user.email || "admin";
+  $("role").textContent = "admin";
+  $("today").textContent = new Date().toLocaleDateString();
   return true;
 }
 
-async function signIn(){
-  sideErr("");
-  authErr("");
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
-
-  if (!email || !password) return toast("Enter email and password");
-
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) { authErr(error.message); return toast(error.message); }
-
-  const ok = await enforceAdminGate();
-  if (!ok) return toast("Access denied: admin only");
-
-  await reloadAll();
-  toast("Welcome");
-}
-
-async function signOut(){
-  await sb.auth.signOut();
-  document.getElementById("app").style.display = "none";
-  document.getElementById("locked").style.display = "flex";
-}
-
 /* ===========================
-   LOAD (FIX app_state single() crash)
+   LOADERS + RENDER
 =========================== */
-async function reloadAll(){
-  sideErr("");
+async function loadMembers(){
+  const r = await sb.from("members")
+    .select("id,name,contributed,payout_total,last_payout_at")
+    .order("id", { ascending:true });
+  if(r.error) throw new Error("members: " + r.error.message);
+  members = r.data || [];
+}
+async function loadPayouts(){
+  const r = await sb.from("payouts")
+    .select("*")
+    .order("created_at", { ascending:false })
+    .limit(200);
+  if(r.error) throw new Error("payouts: " + r.error.message);
+  payouts = r.data || [];
+}
+async function loadAppState(){
+  const r = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
+  if(r.error) throw new Error("app_state: " + r.error.message);
+  appState = r.data || null;
 
-  // detect Foundation_payments table name once
-  if(!FOUNDATION_TABLE) FOUNDATION_TABLE = "foundation_payments";
-  if(!reloadAll._detectedFoundationTable){
-    reloadAll._detectedFoundationTable = true;
-    await detectFoundationTable();
-  }
-
-  // FIX: maybeSingle + auto-seed app_state row
-  let a = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
-
-  if (a.error) {
-    appendErr("app_state: " + a.error.message);
-    appState = { foundation:0, total_interest_generated:0, next_payout_index:0, next_payout_date:"2026-01-03" };
-  } else if (!a.data) {
-    const seed = {
+  // If missing, try to create (requires admin RLS policy)
+  if(!appState){
+    const ins = await sb.from("app_state").insert([{
       id: 1,
-      foundation: 0,
+      rotation_start_date: DEFAULT_ROTATION_START_ISO,
       next_payout_index: 0,
-      rotation_start_date: "2026-01-03",
-      next_payout_date: "2026-01-03",
-      total_interest_generated: 0,
-      updated_at: new Date().toISOString()
-    };
+      next_payout_date: DEFAULT_ROTATION_START_ISO,
+      updated_at: nowIso()
+    }]);
+    if(ins.error) throw new Error("app_state insert: " + ins.error.message);
+    const r2 = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
+    if(r2.error) throw new Error("app_state reload: " + r2.error.message);
+    appState = r2.data;
+  }
 
-    const ins = await sb.from("app_state").insert([seed]).select().single();
-    if (ins.error) {
-      appendErr("app_state init: " + ins.error.message);
-      appState = { foundation:0, total_interest_generated:0, next_payout_index:0, next_payout_date:"2026-01-03" };
-    } else {
-      appState = ins.data;
+  // Normalize start behavior: if NO payouts yet, first beneficiary date must be start date.
+  const startIso = String(appState.rotation_start_date || DEFAULT_ROTATION_START_ISO).slice(0,10);
+  if((payouts||[]).length === 0){
+    if(String(appState.next_payout_date||"").slice(0,10) !== startIso || Number(appState.next_payout_index||0) !== 0){
+      const u = await sb.from("app_state").update({
+        next_payout_index: 0,
+        next_payout_date: startIso,
+        updated_at: nowIso()
+      }).eq("id", 1);
+      if(!u.error){
+        appState.next_payout_index = 0;
+        appState.next_payout_date = startIso;
+      }
     }
-  } else {
-    appState = a.data;
-  }
-
-  const m = await sb.from("members").select("*").order("position", { ascending: true });
-  if (m.error) appendErr("members: " + m.error.message);
-  members = m.data || [];
-
-  const h = await sb.from("history").select("*").order("created_at", { ascending: false }).limit(500);
-  if (h.error) appendErr("history: " + h.error.message);
-  history = h.data || [];
-
-  const p = await sb.from("payouts").select("*").order("created_at", { ascending: false }).limit(200);
-  if (p.error) appendErr("payouts: " + p.error.message);
-  payouts = p.data || [];
-
-  const f = await sb.from("fines").select("*").order("created_at", { ascending: false }).limit(200);
-  if (f.error) appendErr("fines: " + f.error.message);
-  fines = f.data || [];
-
-  // NEW TABLES (won't break if not created; errors show in sidebar)
-  const fp = await sb.from(FOUNDATION_TABLE).select("*").order("date_paid", { ascending: false }).limit(300);
-  if (fp.error) appendErr("foundation_payments: " + fp.error.message);
-  foundationPayments = fp.data || [];
-
-  // foundation balance now comes from Foundation_payments.amount_paid
-  foundationBalance = (foundationPayments || []).reduce((s,r)=> s + (Number(r.amount_paid)||0), 0);
-
-  // auto-convert pending to loans when session is 15+ days old
-  const autoChanged = await autoConvertPendingToLoansIfDue();
-  if(autoChanged){
-    // refresh key tables after auto-actions
-    const m2 = await sb.from("members").select("*").order("position", { ascending: true });
-    if (m2.error) appendErr("members (refresh): " + m2.error.message);
-    members = m2.data || members;
-
-    const h2 = await sb.from("history").select("*").order("created_at", { ascending: false }).limit(500);
-    if (h2.error) appendErr("history (refresh): " + h2.error.message);
-    history = h2.data || history;
-
-    const fp2 = await sb.from(FOUNDATION_TABLE).select("*").order("date_paid", { ascending: false }).limit(300);
-    if (fp2.error) appendErr("foundation_payments (refresh): " + fp2.error.message);
-    foundationPayments = fp2.data || foundationPayments;
-
-    foundationBalance = (foundationPayments || []).reduce((s,r)=> s + (Number(r.amount_paid)||0), 0);
-
-    const a2 = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
-    if (!a2.error && a2.data) appState = a2.data;
-  }
-
-  const s = await sb.from("sureties").select("*").order("date_borrowed", { ascending: false }).limit(300);
-  if (s.error) appendErr("sureties: " + s.error.message);
-  sureties = s.data || [];
-
-  renderAll();
-
-  if(members.length===0 && history.length===0 && payouts.length===0 && fines.length===0){
-    appendErr("Note: If you EXPECT data but see 0 rows, RLS policies may be blocking SELECT for this user.");
   }
 }
 
-/* ===========================
-   RENDER
-=========================== */
+function computePot(){
+  return (members||[]).reduce((s,m)=>s+(Number(m.contributed)||0),0);
+}
+
+function computeNext(){
+  const startIso = String(appState?.rotation_start_date || DEFAULT_ROTATION_START_ISO).slice(0,10);
+  const start = parseISODateUTC(startIso) || parseISODateUTC(DEFAULT_ROTATION_START_ISO);
+  const idx = Number(appState?.next_payout_index||0);
+  const nextDate = addDaysUTC(start, BIWEEKLY_DAYS * idx);
+  const who = (members||[]).length ? members[idx % members.length] : null;
+  return { startIso, start, idx, nextDate, who };
+}
+
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
 function renderAll(){
-  const pot = members.reduce((s,x)=>s+(Number(x.contributed)||0),0);
-  const outstanding = members.reduce((s,x)=>s+(Number(x.loan_due)||0),0);
+  const pot = computePot();
+  const { startIso, nextDate, idx, who } = computeNext();
 
-  document.getElementById("kPot").textContent = money(pot);
-  document.getElementById("kFoundation").textContent = money(foundationBalance);
-  document.getElementById("kLoans").textContent = money(outstanding);
-  document.getElementById("kMembers").textContent = String(members.length);
-  document.getElementById("kInterestMini").textContent = money(appState.total_interest_generated||0);
+  // KPIs
+  $("kPot").textContent = money(pot);
+  $("kPotHint").textContent = members.length ? `${members.length} members • contributions reset after payout` : "Add members first";
+  $("kStart").textContent = startIso ? fmtDateUTC(parseISODateUTC(startIso)) : "—";
+  $("kNextDate").textContent = fmtDateUTC(nextDate);
+  $("kNextWho").textContent = who ? `${who.name} • position ${idx+1}/${members.length}` : "—";
 
-  const idx = Number(appState.next_payout_index||0);
-  const nextDate = appState.next_payout_date ? fromIso(appState.next_payout_date) : ROTATION_START;
-  const nextMember = members.length ? members[idx % members.length] : null;
+  // Payouts tab header KPIs
+  $("pNextWho").textContent = who ? who.name : "—";
+  $("pNextMeta").textContent = who ? `Position ${idx+1}/${members.length}` : "—";
+  $("pNextDate").textContent = fmtDateUTC(nextDate);
+  $("pStart").textContent = startIso ? fmtDateUTC(parseISODateUTC(startIso)) : "—";
+  $("pPot").textContent = money(pot);
 
-  document.getElementById("nextName").textContent = nextMember ? nextMember.name : "No members";
-  document.getElementById("nextInfo").textContent = members.length
-    ? `Next payout: ${nextDate.toLocaleDateString()} • Position ${(idx%members.length)+1}/${members.length} • Payout: ${money(pot)}`
-    : "Add members to start rotation";
+  // Members select
+  $("mPick").innerHTML = members.map(m=>`<option value="${m.id}">${escapeHtml(m.name||"")}</option>`).join("");
 
-  document.getElementById("memberCount").textContent = String(members.length);
-  document.getElementById("memberCountPill").textContent = String(members.length);
-
-  document.getElementById("memberBody").innerHTML = members
-    .slice().sort((a,b)=>(a.name||"").localeCompare(b.name||""))
-    .map(x=>`
-      <tr>
-        <td>${x.name||""}</td>
-        <td class="rightText">${money(x.contributed||0)}</td>
-        <td class="rightText">${money(x.foundation_contrib||0)}</td>
-        <td class="rightText">${money(x.loan_due||0)}</td>
-        <td class="rightText">${money(x.payout_total||0)}</td>
-        <td>${x.has_benefits ? "Yes":"No"}</td>
-      </tr>
-    `).join("");
-
-  const opts = members.map(x=>`<option value="${x.id}">${x.name}</option>`).join("");
-  ["cMember","cSetMember","mfMember","lMember","rMember","fineMember","fpMember","sBorrowerMember","pMember"].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.innerHTML=opts;
-  });
-
-  const recent = history.slice(0,15);
-  document.getElementById("recentBody").innerHTML = recent.map(x=>{
-    const t=x.created_at?new Date(x.created_at).toLocaleString():"";
-    return `<tr><td>${t}</td><td>${x.type||""}</td><td>${x.member||""}</td><td class="rightText">${money(x.amount||0)}</td><td class="rightText">${x.interest_percent||0}</td><td class="rightText">${money(x.result||0)}</td></tr>`;
-  }).join("");
-
-  document.getElementById("fineBody").innerHTML = fines.map(x=>{
-    const t=x.created_at?new Date(x.created_at).toLocaleString():"";
-    return `<tr><td>${t}</td><td>${x.member_name||""}</td><td>${x.reason||""}</td><td class="rightText">${money(x.amount||0)}</td></tr>`;
-  }).join("");
-
-  document.getElementById("payoutBody").innerHTML = payouts.map(x=>{
-    const t=x.created_at?new Date(x.created_at).toLocaleString():"";
-    return `<tr><td>${t}</td><td>${x.member_name||""}</td><td class="rightText">${money(x.amount||0)}</td></tr>`;
-  }).join("");
-
-  document.getElementById("fpBody").innerHTML = foundationPayments.map(x=>{
-    const t = x.date_paid ? new Date(x.date_paid).toLocaleDateString() : (x.created_at?new Date(x.created_at).toLocaleDateString():"");
-    const member = members.find(m=>String(m.id)===String(x.member_id));
+  // Members table
+  const mb = $("membersBody");
+  mb.innerHTML = members.map(m=>{
+    const last = m.last_payout_at ? new Date(m.last_payout_at).toLocaleString() : "—";
     return `<tr>
-      <td>${t}</td>
-      <td>${member?.name || x.member_id || ""}</td>
-      <td class="rightText">${money(x.amount_paid||0)}</td>
-      <td class="rightText">${money(x.amount_pending||0)}</td>
-      <td>${x.status||""}</td>
-      <td>${x.notes||""}</td>
+      <td class="mono">${escapeHtml(m.id)}</td>
+      <td>${escapeHtml(m.name||"")}</td>
+      <td class="right">${money(m.contributed)}</td>
+      <td class="right">${money(m.payout_total)}</td>
+      <td class="mono">${escapeHtml(last)}</td>
     </tr>`;
   }).join("");
 
-  document.getElementById("suretyBody").innerHTML = sureties.map(x=>{
-    const t=x.date_borrowed?new Date(x.date_borrowed).toLocaleDateString():(x.created_at?new Date(x.created_at).toLocaleDateString():"");
-    const borrower = members.find(m=>String(m.id)===String(x.borrower_member_id));
+  // Payouts table
+  const pb = $("payoutBody");
+  pb.innerHTML = payouts.map(p=>{
+    const created = p.created_at ? new Date(p.created_at).toLocaleString() : "—";
+    const pdate = p.payout_date ? fmtDateUTC(parseISODateUTC(String(p.payout_date).slice(0,10))) : "—";
+    const name = p.member_name || p.name || "—";
+    const mid = (p.member_id ?? "—");
+    const amt = (p.amount ?? p.payout_amount ?? p.paid_amount ?? 0);
     return `<tr>
-      <td>${t}</td>
-      <td>${borrower?.name || x.borrower_member_id || ""}</td>
-      <td class="rightText">${money(x.amount_borrowed||0)}</td>
-      <td>${x.collateral||""}</td>
+      <td class="mono">${escapeHtml(created)}</td>
+      <td class="mono">${escapeHtml(pdate)}</td>
+      <td>${escapeHtml(String(name))}</td>
+      <td class="mono">${escapeHtml(String(mid))}</td>
+      <td class="right">${money(amt)}</td>
     </tr>`;
   }).join("");
-
-  renderCharts(pot, foundationBalance, outstanding);
 }
 
-function renderCharts(pot, foundationBalance, outstanding){
-  const labels = ["Pot", "Foundation", "Loans"];
-  const pieData = [pot, Number(foundationBalance||0), outstanding];
-
-  if(pieChart) pieChart.destroy();
-  pieChart = new Chart(document.getElementById("pieChart"),{
-    type:"doughnut",
-    data:{
-      labels,
-      datasets:[{ data: pieData }]
-    },
-    options:{
-      plugins:{
-        legend:{ labels:{ color:"#cfd8ff" } }
-      }
-    }
-  });
-
-  // history chart (simple last 10 history amounts)
-  const last = history.slice(0,10).reverse();
-  const xlab = last.map(x=>x.type||"");
-  const y = last.map(x=>Number(x.amount||0));
-
-  if(histChart) histChart.destroy();
-  histChart = new Chart(document.getElementById("histChart"),{
-    type:"line",
-    data:{
-      labels:xlab,
-      datasets:[{ label:"Last actions amount", data:y }]
-    },
-    options:{
-      plugins:{ legend:{ labels:{ color:"#cfd8ff" } } },
-      scales:{
-        x:{ ticks:{ color:"#cfd8ff" } },
-        y:{ ticks:{ color:"#cfd8ff" } }
-      }
-    }
-  });
+async function reloadAll(){
+  setErr("sideErr","");
+  try{
+    await loadMembers();
+    await loadPayouts();
+    await loadAppState();  // uses payouts for normalization
+    renderAll();
+  }catch(e){
+    setErr("sideErr", e?.message || String(e));
+  }
 }
 
 /* ===========================
-   DB WRITES
+   PAYOUT — FIXED (NO UPDATE WITHOUT WHERE)
 =========================== */
-async function addHistoryRow(type, member, amount, interest_percent, result){
-  const row = {
-    type, member,
-    amount: Number(amount||0),
-    interest_percent: Number(interest_percent||0),
-    result: Number(result||0),
-    created_at: new Date().toISOString()
-  };
-  const r = await sb.from("history").insert([row]);
-  if(r.error) appendErr("history.insert: " + r.error.message);
+async function runPayout(){
+  setErr("sideErr","");
+  try{
+    if(!members.length) return toast("Add members first.");
+    const pot = computePot();
+    if(!pot || pot <= 0) return toast("Pot is 0. Add contributions first.");
+
+    const { startIso, start, idx, who } = computeNext();
+    if(!who) return toast("No beneficiary found.");
+
+    const payoutDate = addDaysUTC(start, BIWEEKLY_DAYS * idx);
+    const payoutDateIso = isoDateUTC(payoutDate);
+    const createdAt = nowIso();
+
+    // 1) Insert payout row with member_id (fallback if schema is missing columns)
+    let ins = await sb.from("payouts").insert([{
+      member_id: who.id,
+      member_name: who.name,
+      payout_date: payoutDateIso,
+      amount: pot,
+      created_at: createdAt
+    }]);
+
+    if(ins.error && ins.error.message && ins.error.message.toLowerCase().includes("does not exist")){
+      // fallback: try with only safe columns
+      ins = await sb.from("payouts").insert([{
+        member_name: who.name,
+        amount: pot,
+        created_at: createdAt
+      }]);
+    }
+    if(ins.error) throw new Error("payouts insert: " + ins.error.message);
+
+    // 2) Update beneficiary totals (must include WHERE)
+    const oldTotal = Number(who.payout_total||0);
+    const upBen = await sb.from("members").update({
+      payout_total: oldTotal + pot,
+      last_payout_at: createdAt
+    }).eq("id", who.id);
+
+    // If payout_total column doesn't exist, don't fail the whole payout
+    if(upBen.error && !String(upBen.error.message||"").toLowerCase().includes("does not exist")){
+      throw new Error("beneficiary update: " + upBen.error.message);
+    }
+
+    // 3) Reset contributions for ALL members (Supabase requires WHERE)
+    const reset = await sb.from("members").update({ contributed: 0 }).gt("id", 0);
+    if(reset.error) throw new Error("reset contributions: " + reset.error.message);
+
+    // 4) Advance next index/date (must include WHERE)
+    const nextIdx = (idx + 1) % members.length;
+    const nextDate = addDaysUTC(start, BIWEEKLY_DAYS * nextIdx);
+    const nextDateIso = isoDateUTC(nextDate);
+
+    const upState = await sb.from("app_state").update({
+      rotation_start_date: startIso,
+      next_payout_index: nextIdx,
+      next_payout_date: nextDateIso,
+      updated_at: createdAt
+    }).eq("id", 1);
+
+    if(upState.error) throw new Error("app_state update: " + upState.error.message);
+
+    toast(`Paid ${money(pot)} to ${who.name}`);
+    await reloadAll();
+  }catch(e){
+    setErr("sideErr", e?.message || String(e));
+  }
 }
 
+/* ===========================
+   MEMBERS: ADD MEMBER + ADD CONTRIBUTION
+=========================== */
 async function addMember(){
-  const name=document.getElementById("mName").value.trim();
-  const phone=document.getElementById("mPhone").value.trim();
-  const hasBenefits=document.getElementById("mBenefits").value==="true";
-  const pos=Number(document.getElementById("mPos").value||1);
-  if(!name) return toast("Enter name");
-
-  const r = await sb.from("members").insert([{
-    name, phone: phone||null, has_benefits: hasBenefits, position: pos
-  }]);
-  if(r.error) return toast(r.error.message);
-
-  await addHistoryRow("Member Add", name, 0, 0, pos);
-  document.getElementById("mName").value="";
-  document.getElementById("mPhone").value="";
-  await reloadAll(); toast("Member added");
-}
-
-async function reindexPositions(){
-  const sorted = members.slice().sort((a,b)=>Number(a.position||0)-Number(b.position||0));
-  let i=1;
-  for(const m of sorted){
-    const r = await sb.from("members").update({ position:i }).eq("id", m.id);
-    if(r.error) { appendErr("reindex: " + r.error.message); break; }
-    i++;
+  setErr("sideErr","");
+  try{
+    const name = $("mNewName").value.trim();
+    if(!name) return toast("Enter a name");
+    const r = await sb.from("members").insert([{ name, contributed: 0, payout_total: 0 }]);
+    if(r.error) throw new Error(r.error.message);
+    $("mNewName").value="";
+    await reloadAll();
+    toast("Member added");
+  }catch(e){
+    setErr("sideErr", e?.message || String(e));
   }
-  await reloadAll(); toast("Reindexed");
 }
-
-async function setPosition(){
-  const memberId=document.getElementById("mSetMember").value;
-  const pos=Number(document.getElementById("mSetPos").value||1);
-  if(!memberId) return toast("Select member");
-  const r = await sb.from("members").update({ position: pos }).eq("id", memberId);
-  if(r.error) return toast(r.error.message);
-  await addHistoryRow("Position Set", members.find(x=>String(x.id)===String(memberId))?.name || "Member", 0,0,pos);
-  await reloadAll(); toast("Updated");
-}
-
-async function rotateNext(){
-  const next = (Number(appState.next_payout_index||0)+1) % (members.length||1);
-  const r = await sb.from("app_state").update({ next_payout_index: next, updated_at: new Date().toISOString() }).eq("id", 1);
-  if(r.error) return toast(r.error.message);
-  await addHistoryRow("Rotate Next", "Admin", 0, 0, next);
-  await reloadAll(); toast("Advanced");
-}
-
 async function addContribution(){
-  const memberId=document.getElementById("cMember").value;
-  const amt=Number(document.getElementById("cAmount").value||0);
-  if(!memberId) return toast("Select member");
-  if(!amt||amt<=0) return toast("Enter amount");
+  setErr("sideErr","");
+  try{
+    const id = $("mPick").value;
+    const amt = Number($("mAddAmt").value||0);
+    if(!id) return toast("Pick a member");
+    if(!amt || amt<=0) return toast("Enter an amount > 0");
 
-  const m=members.find(x=>String(x.id)===String(memberId));
-  const newVal=(Number(m.contributed)||0)+amt;
+    const m = members.find(x=>String(x.id)===String(id));
+    if(!m) return toast("Member not found");
 
-  const r=await sb.from("members").update({contributed:newVal}).eq("id",memberId);
-  if(r.error) return toast(r.error.message);
+    const r = await sb.from("members")
+      .update({ contributed: (Number(m.contributed)||0) + amt })
+      .eq("id", id);
 
-  await addHistoryRow("Contribution", m.name, amt, 0, newVal);
-  document.getElementById("cAmount").value="";
-  await reloadAll(); toast("Saved");
-}
-
-async function addToFoundation(){
-  const amt = Number(document.getElementById("fAmount").value||0);
-  if(!amt || amt<=0) return toast("Enter amount");
-
-  // Add to foundation by writing a ledger row in Foundation_payments
-  const ins = await insertFoundationLedgerRow({
-    memberId: null,
-    amountPaid: amt,
-    amountPending: 0,
-    status: "admin_add",
-    notes: "Admin add to foundation"
-  });
-  if(ins.error) return toast(ins.error.message);
-
-  await addHistoryRow("Foundation Add","Admin",amt,0,(Number(foundationBalance)||0)+amt);
-  document.getElementById("fAmount").value="";
-  await reloadAll(); toast("Saved");
-}
-
-async function setFoundation(){
-  const amt = Number(document.getElementById("fSetAmount").value||0);
-  if(amt < 0) return toast("Invalid amount");
-
-  // Set foundation by inserting an adjustment so SUM(amount_paid) becomes the target
-  const current = Number(foundationBalance||0);
-  const diff = amt - current;
-  if(Math.abs(diff) < 1e-9) return toast("Already at that amount");
-
-  const ins = await insertFoundationLedgerRow({
-    memberId: null,
-    amountPaid: diff,
-    amountPending: 0,
-    status: "admin_set",
-    notes: `Admin set foundation to ${amt} (adjustment ${diff})`
-  });
-  if(ins.error) return toast(ins.error.message);
-
-  await addHistoryRow("Foundation Set","Admin",amt,0,amt);
-  document.getElementById("fSetAmount").value="";
-  await reloadAll(); toast("Updated");
-}
-
-async function addMemberFoundation(){
-  const memberId=document.getElementById("mfMember").value;
-  const amt=Number(document.getElementById("mfAmount").value||0);
-  if(!memberId) return toast("Select member");
-  if(!amt||amt<=0) return toast("Enter amount");
-
-  const m=members.find(x=>String(x.id)===String(memberId));
-  const oldMemberFound = Number(m.foundation_contrib)||0;
-  const newMemberFound = oldMemberFound + amt;
-
-  // 1) update member foundation_contrib (eligibility tracking)
-  let r = await sb.from("members").update({foundation_contrib:newMemberFound}).eq("id",memberId);
-  if(r.error) return toast(r.error.message);
-
-  // 2) write into Foundation_payments so foundationBalance increases
-  const ins = await insertFoundationLedgerRow({
-    memberId,
-    amountPaid: amt,
-    amountPending: 0,
-    status: "member_foundation",
-    notes: `Member foundation contribution: ${m.name}`
-  });
-
-  if(ins.error){
-    // rollback member update
-    await sb.from("members").update({foundation_contrib: oldMemberFound}).eq("id",memberId);
-    return toast(ins.error.message);
+    if(r.error) throw new Error(r.error.message);
+    $("mAddAmt").value="";
+    await reloadAll();
+    toast("Contribution added");
+  }catch(e){
+    setErr("sideErr", e?.message || String(e));
   }
-
-  await addHistoryRow("Member Foundation",m.name,amt,0,newMemberFound);
-  document.getElementById("mfAmount").value="";
-  await reloadAll(); toast("Saved");
 }
 
-async function issueLoan(){
-  const memberId=document.getElementById("lMember").value;
-  const amt=Number(document.getElementById("lAmount").value||0);
-  if(!memberId) return toast("Select member");
-  if(!amt||amt<=0) return toast("Enter loan amount");
-  const m=members.find(x=>String(x.id)===String(memberId));
-  const foundation=Number(foundationBalance||0);
-  if(amt>foundation) return toast("Loan exceeds foundation");
-
-  const minReq=0.70*amt;
-  const memberFound=Number(m.foundation_contrib||0);
-  if(m.has_benefits && memberFound<=minReq) return toast("Not qualified");
-
-  const interest=Math.round(amt*INTEREST_RATE);
-  const totalDue=amt+interest;
-
-  const oldDue = Number(m.loan_due)||0;
-
-  // 1) update member loan_due
-  let r=await sb.from("members").update({loan_due: oldDue + totalDue}).eq("id",memberId);
-  if(r.error) return toast(r.error.message);
-
-  // 2) update interest generated (keep app_state for interest + rotation metadata)
-  r=await sb.from("app_state").update({
-    total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
-    updated_at:new Date().toISOString()
-  }).eq("id",1);
-  if(r.error){
-    // rollback member
-    await sb.from("members").update({loan_due: oldDue}).eq("id",memberId);
-    return toast(r.error.message);
+/* ===========================
+   RESET START (UI button)
+=========================== */
+async function resetStart(){
+  setErr("sideErr","");
+  try{
+    const createdAt = nowIso();
+    const r = await sb.from("app_state").update({
+      rotation_start_date: DEFAULT_ROTATION_START_ISO,
+      next_payout_index: 0,
+      next_payout_date: DEFAULT_ROTATION_START_ISO,
+      updated_at: createdAt
+    }).eq("id", 1);
+    if(r.error) throw new Error(r.error.message);
+    toast("Reset rotation to Jan 3, 2026");
+    await reloadAll();
+  }catch(e){
+    setErr("sideErr", e?.message || String(e));
   }
+}
 
-  // 3) reduce foundation by writing a negative ledger row
-  const ins = await insertFoundationLedgerRow({
-    memberId,
-    amountPaid: -amt,
-    amountPending: 0,
-    status: "loan_out",
-    notes: `Loan issued to ${m.name}`
+/* ===========================
+   UI WIRING
+=========================== */
+function setTab(name){
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.classList.toggle("active", t.dataset.tab === name);
   });
+  $("tab-dash").style.display = name==="dash" ? "block" : "none";
+  $("tab-members").style.display = name==="members" ? "block" : "none";
+  $("tab-payouts").style.display = name==="payouts" ? "block" : "none";
+}
+document.querySelectorAll(".tab").forEach(t=>{
+  t.addEventListener("click", ()=> setTab(t.dataset.tab));
+});
 
-  if(ins.error){
-    // rollback member + interest
-    await sb.from("members").update({loan_due: oldDue}).eq("id",memberId);
-    await sb.from("app_state").update({
-      total_interest_generated: (Number(appState.total_interest_generated)||0),
-      updated_at:new Date().toISOString()
-    }).eq("id",1);
-    return toast(ins.error.message);
+$("btnReload").addEventListener("click", reloadAll);
+$("btnRunPayout").addEventListener("click", runPayout);
+$("btnRunPayout2").addEventListener("click", runPayout);
+$("btnResetStart").addEventListener("click", resetStart);
+
+$("btnAddMember").addEventListener("click", addMember);
+$("btnAddContrib").addEventListener("click", addContribution);
+
+$("btnLogout").addEventListener("click", async ()=>{
+  await sb.auth.signOut();
+  location.reload();
+});
+
+/* Login */
+$("btnLogin").addEventListener("click", async ()=>{
+  setErr("authErr","");
+  try{
+    const email = $("email").value.trim();
+    const password = $("password").value;
+    const r = await sb.auth.signInWithPassword({ email, password });
+    if(r.error) throw new Error(r.error.message);
+    const ok = await enforceAdminGate();
+    if(ok) await reloadAll();
+  }catch(e){
+    setErr("authErr", e?.message || String(e));
   }
+});
 
-  // 4) optional: also write into loans table (safe across schemas)
-  const loanPayload = {
-    member_id: Number(memberId),
-    principal: amt,
-    interest_percent: 5,
-    interest_amount: interest,
-    total_due: totalDue,
-    source: "manual_loan",
-    status: "active",
-    issued_at: new Date().toISOString()
-  };
-  const insLoan = await tryInsertLoanRow(loanPayload);
-  if(!insLoan.ok){
-    // Not fatal to the dashboard; show in sidebar
-    appendErr("loans insert (manual): " + (insLoan.error?.message || "unknown error"));
+/* Magic link */
+$("btnMagic").addEventListener("click", async ()=>{
+  setErr("authErr","");
+  try{
+    const email = $("email").value.trim();
+    if(!email) return setErr("authErr","Enter email first.");
+    const r = await sb.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.href }
+    });
+    if(r.error) throw new Error(r.error.message);
+    toast("Magic link sent. Check your email.");
+  }catch(e){
+    setErr("authErr", e?.message || String(e));
   }
-
-  await addHistoryRow("Loan",m.name,amt,5,totalDue);
-  document.getElementById("lAmount").value="";
-  await reloadAll(); toast("Loan issued");
-}
-
-async function repayLoan(){
-  const memberId=document.getElementById("rMember").value;
-  const amt=Number(document.getElementById("rAmount").value||0);
-  if(!memberId) return toast("Select member");
-  if(!amt||amt<=0) return toast("Enter amount");
-
-  const m=members.find(x=>String(x.id)===String(memberId));
-  const due=Number(m.loan_due||0);
-  if(due<=0) return toast("No loan due");
-
-  const pay=Math.min(amt,due);
-  const newDue=due-pay;
-
-  // 1) update member loan_due
-  let r=await sb.from("members").update({loan_due:newDue}).eq("id",memberId);
-  if(r.error) return toast(r.error.message);
-
-  // 2) add repayment back into foundation ledger
-  const ins = await insertFoundationLedgerRow({
-    memberId,
-    amountPaid: pay,
-    amountPending: 0,
-    status: "repayment_in",
-    notes: `Loan repayment from ${m.name}`
-  });
-
-  if(ins.error){
-    // rollback member update
-    await sb.from("members").update({loan_due: due}).eq("id",memberId);
-    return toast(ins.error.message);
-  }
-
-  await addHistoryRow("Repayment",m.name,pay,0,newDue);
-  document.getElementById("rAmount").value="";
-  await reloadAll(); toast("Repayment saved");
-}
-
-async function addFine(){
-  const memberId=document.getElementById("fineMember").value;
-  const amt=Number(document.getElementById("fineAmount").value||0);
-  const reason=document.getElementById("fineReason").value.trim();
-  if(!memberId) return toast("Select member");
-  if(!amt||amt<=0) return toast("Enter amount");
-  const m=members.find(x=>String(x.id)===String(memberId));
-  const r=await sb.from("fines").insert([{
-    member_id: Number(memberId),
-    member_name: m?.name || "",
-    amount: amt,
-    reason: reason || null,
-    created_at: new Date().toISOString()
-  }]);
-  if(r.error) return toast(r.error.message);
-
-  await addHistoryRow("Fine", m?.name || "Member", amt, 0, 0);
-  document.getElementById("fineAmount").value="";
-  document.getElementById("fineReason").value="";
-  await reloadAll(); toast("Fine added");
-}
-
-async function addPayout(){
-  const memberId=document.getElementById("pMember").value;
-  const amt=Number(document.getElementById("pAmount").value||0);
-  if(!memberId) return toast("Select member");
-  if(!amt||amt<=0) return toast("Enter amount");
-
-  const m=members.find(x=>String(x.id)===String(memberId));
-  const newTotal = (Number(m.payout_total)||0) + amt;
-
-  // update member payout_total and last_payout_at
-  let r=await sb.from("members").update({
-    payout_total: newTotal,
-    last_payout_at: new Date().toISOString()
-  }).eq("id",memberId);
-  if(r.error) return toast(r.error.message);
-
-  // insert payout record
-  r=await sb.from("payouts").insert([{
-    member_id: Number(memberId),
-    member_name: m?.name || "",
-    amount: amt,
-    created_at: new Date().toISOString()
-  }]);
-  if(r.error) return toast(r.error.message);
-
-  await addHistoryRow("Payout", m?.name || "Member", amt, 0, newTotal);
-  document.getElementById("pAmount").value="";
-  await reloadAll(); toast("Payout recorded");
-}
-
-async function addFoundationPayment(){
-  const memberId=document.getElementById("fpMember").value;
-  const paid=Number(document.getElementById("fpPaid").value||0);
-  const pending=Number(document.getElementById("fpPending").value||0);
-  const status=document.getElementById("fpStatus").value;
-  const notes=document.getElementById("fpNotes").value.trim();
-
-  if(!memberId) return toast("Select member");
-  if(paid<0 || pending<0) return toast("Invalid amounts");
-
-  const r = await sb.from(FOUNDATION_TABLE).insert([{
-    member_id: Number(memberId),
-    amount_paid: paid,
-    amount_pending: pending,
-    status,
-    notes: notes || null,
-    date_paid: new Date().toISOString()
-  }]);
-
-  if(r.error) return toast(r.error.message);
-
-  await addHistoryRow("Foundation Payment", members.find(x=>String(x.id)===String(memberId))?.name || "Member", paid, 0, pending);
-  document.getElementById("fpPaid").value="";
-  document.getElementById("fpPending").value="";
-  document.getElementById("fpNotes").value="";
-  await reloadAll(); toast("Saved");
-}
-
-async function addSurety(){
-  const borrowerId=document.getElementById("sBorrowerMember").value;
-  const amt=Number(document.getElementById("sAmountBorrowed").value||0);
-  const collateral=document.getElementById("sCollateral").value.trim();
-  if(!borrowerId) return toast("Select borrower");
-  if(!amt||amt<=0) return toast("Enter amount");
-
-  const r = await sb.from("sureties").insert([{
-    borrower_member_id: Number(borrowerId),
-    amount_borrowed: amt,
-    collateral: collateral || null,
-    date_borrowed: new Date().toISOString()
-  }]);
-
-  if(r.error) return toast(r.error.message);
-
-  await addHistoryRow("Surety", members.find(x=>String(x.id)===String(borrowerId))?.name || "Borrower", amt, 0, 0);
-  document.getElementById("sAmountBorrowed").value="";
-  document.getElementById("sCollateral").value="";
-  await reloadAll(); toast("Saved");
-}
+});
 
 /* ===========================
    INIT
 =========================== */
 (async function init(){
-  document.getElementById("rotStart").textContent = "2026-01-03";
-
   const ok = await enforceAdminGate();
   if(ok){
-    setActiveTab("dashboard");
+    setTab("dash");
     await reloadAll();
-  } else {
-    setActiveTab("dashboard");
+  }else{
+    setTab("dash");
   }
 })();
 </script>
-
 </body>
 </html>
