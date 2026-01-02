@@ -24,89 +24,6 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ---------------------------
-# SESSION RESTORE (keeps login after refresh)
-# ---------------------------
-if "access_token" in st.session_state and "refresh_token" in st.session_state:
-    try:
-        supabase.auth.set_session(
-            st.session_state["access_token"],
-            st.session_state["refresh_token"]
-        )
-    except Exception:
-        # wipe if invalid
-        for k in ["logged_in", "email", "access_token", "refresh_token"]:
-            st.session_state.pop(k, None)
-
-def get_current_user():
-    try:
-        resp = supabase.auth.get_user()
-        return getattr(resp, "user", None)
-    except Exception:
-        return None
-
-user = get_current_user()
-st.session_state["logged_in"] = user is not None
-if user:
-    st.session_state["email"] = user.email
-
-# ---------------------------
-# AUTH UI (SIGN UP + LOGIN)
-# ---------------------------
-if not st.session_state.get("logged_in"):
-    st.subheader("🔐 Authentication")
-
-    tab_login, tab_signup = st.tabs(["Login", "Sign Up"])
-
-    with tab_login:
-        email = st.text_input("Email", key="login_email")
-        password = st.text_input("Password", type="password", key="login_password")
-
-        if st.button("Login"):
-            try:
-                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                st.session_state["access_token"] = res.session.access_token
-                st.session_state["refresh_token"] = res.session.refresh_token
-                st.session_state["logged_in"] = True
-                st.session_state["email"] = email
-                st.success("✅ Login successful. Reloading...")
-                st.rerun()
-            except Exception as e:
-                st.error("❌ Login failed. Check email/password.")
-                st.caption(str(e))
-
-    with tab_signup:
-        new_email = st.text_input("New Email", key="signup_email")
-        new_password = st.text_input("New Password", type="password", key="signup_password")
-
-        if st.button("Create Account"):
-            try:
-                supabase.auth.sign_up({"email": new_email, "password": new_password})
-                st.success("✅ Account created! Now go to Login tab and sign in.")
-            except Exception as e:
-                st.error("❌ Sign up failed.")
-                st.caption(str(e))
-
-    st.stop()
-
-# ---------------------------
-# LOGOUT BAR
-# ---------------------------
-col1, col2 = st.columns([3, 1])
-with col1:
-    st.success(f"✅ Logged in as: {st.session_state.get('email', 'User')}")
-with col2:
-    if st.button("Logout"):
-        try:
-            supabase.auth.sign_out()
-        except Exception:
-            pass
-        for k in ["logged_in", "email", "access_token", "refresh_token"]:
-            st.session_state.pop(k, None)
-        st.rerun()
-
-st.divider()
-
-# ---------------------------
 # DASHBOARD LOADERS
 # ---------------------------
 def load_table(table_name: str) -> pd.DataFrame:
@@ -115,7 +32,7 @@ def load_table(table_name: str) -> pd.DataFrame:
         return pd.DataFrame(res.data or [])
     except Exception as e:
         st.error(f"❌ Could not load table '{table_name}'.")
-        st.caption("Most common cause: RLS blocks SELECT for authenticated users.")
+        st.caption("Most common cause: RLS blocks SELECT for anon users.")
         st.caption(str(e))
         return pd.DataFrame()
 
