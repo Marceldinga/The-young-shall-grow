@@ -950,6 +950,7 @@ async function autoConvertPendingToLoans(){
     return false;
   }
 }
+
 /* ADD MEMBER (FIX Math.max bug) ✅ */
 async function addMember(){
   const name = document.getElementById("mName").value.trim();
@@ -969,32 +970,86 @@ async function addMember(){
   toast("Member added");
 }
 
-/* CONTRIBUTION (use RPC) ✅ with fallback */
+/* CONTRIBUTION (RPC + VERIFIED SYNC) ✅ */
 async function addContribution(){
-  const memberId = document.getElementById("cMember").value;
+  const memberIdStr = document.getElementById("cMember").value;
+  const memberId = Number(memberIdStr);
   const amt = Number(document.getElementById("cAmount").value || 0);
-  if(!memberId) return toast("Select member");
+  if(!memberIdStr) return toast("Select member");
   if(!amt || amt <= 0) return toast("Enter amount");
   if(amt % 500 !== 0) return toast("Must be multiple of 500");
 
-  // Try RPC first
+  // Always read the member fresh (prevents stale UI state from blocking updates)
+  const beforeRes = await sb
+    .from("members")
+    .select("id,name,contributed")
+    .eq("id", memberId)
+    .maybeSingle();
+
+  if(beforeRes.error) return toast(beforeRes.error.message);
+  if(!beforeRes.data) return toast("Member not found");
+
+  const memberName = beforeRes.data.name || "";
+  const before = Number(beforeRes.data.contributed || 0);
+
+  // Try RPC first (if you created it in Supabase)
   const r = await sb.rpc("add_contribution", {
-    p_member_id: Number(memberId),
+    p_member_id: memberId,
     p_amount: amt
   });
 
   if (r.error) {
-    // fallback to direct update (won't break your app if RPC isn't created)
-    appendErr("add_contribution RPC failed (fallback used): " + r.error.message);
+    // Do NOT stop the flow; we will still sync the members table below
+    appendErr("add_contribution RPC failed (sync used): " + r.error.message);
+  }
 
-    const m = members.find(x => String(x.id) === String(memberId));
-    if(!m) return toast("Member not found");
-    const newTotal = (Number(m.contributed)||0) + amt;
+  // Verify the members table actually changed; if not, apply a safe update
+  const afterRes = await sb
+    .from("members")
+    .select("contributed")
+    .eq("id", memberId)
+    .maybeSingle();
 
-    const u = await sb.from("members").update({ contributed: newTotal }).eq("id", memberId);
-    if (u.error) return toast(u.error.message);
+  if(afterRes.error) return toast(afterRes.error.message);
 
-    await addHistoryRow("Contribution", m.name, amt, 0, newTotal);
+  const after = Number(afterRes.data?.contributed || 0);
+
+  // If nothing changed (common when RPC is missing or incomplete), do a safe increment
+  if(after === before){
+    const newTotal = before + amt;
+
+    // Optimistic concurrency: only update if contributed is still "before"
+    let u = await sb
+      .from("members")
+      .update({ contributed: newTotal })
+      .eq("id", memberId)
+      .eq("contributed", before);
+
+    if(u.error){
+      // Retry once with a fresh read (prevents overwriting concurrent updates)
+      const curRes = await sb
+        .from("members")
+        .select("contributed")
+        .eq("id", memberId)
+        .maybeSingle();
+
+      if(curRes.error) return toast(curRes.error.message);
+
+      const cur = Number(curRes.data?.contributed || 0);
+      const desired = cur + amt;
+
+      u = await sb
+        .from("members")
+        .update({ contributed: desired })
+        .eq("id", memberId)
+        .eq("contributed", cur);
+
+      if(u.error) return toast(u.error.message);
+
+      await addHistoryRow("Contribution", memberName, amt, 0, desired);
+    } else {
+      await addHistoryRow("Contribution", memberName, amt, 0, newTotal);
+    }
   }
 
   document.getElementById("cAmount").value = "";
@@ -1002,11 +1057,23 @@ async function addContribution(){
   toast("Saved");
 }
 
-/* PAYOUT (use RPC) ✅ with fallback */
+/* PAYOUT (RPC + POT SYNC FIX) ✅ */
 async function runPayout(){
   // Try RPC
   const r = await sb.rpc("run_payout");
   if (!r.error && r.data) {
+
+    // IMPORTANT FIX:
+    // Some RPC implementations pay out but DO NOT reset members.contributed,
+    // so the Njangi Pot stays the same. This sync makes sure the pot updates.
+    const chk = await sb.from("members").select("id").gt("contributed", 0).limit(1);
+    if(chk.error){
+      appendErr("payout sync check: " + chk.error.message);
+    } else if ((chk.data || []).length){
+      const reset = await sb.from("members").update({ contributed: 0 }).gt("contributed", 0);
+      if(reset.error) appendErr("payout sync reset: " + reset.error.message);
+    }
+
     await reloadAll();
     toast(`Paid ${money(r.data.payout_amount)} to ${r.data.receiver_name}`);
     return;
@@ -1033,7 +1100,8 @@ async function runPayout(){
   let up = await sb.from("members").update({ payout_total:(Number(receiver.payout_total)||0)+pot, last_payout_at:new Date().toISOString() }).eq("id",receiver.id);
   if(up.error) return toast(up.error.message);
 
-  let reset = await sb.from("members").update({contributed:0});
+  // IMPORTANT FIX: include a WHERE filter so PostgREST/RLS setups that require filters can still update
+  let reset = await sb.from("members").update({ contributed: 0 }).gt("contributed", 0);
   if(reset.error) return toast(reset.error.message);
 
   const newIdx=(idx+1)%members.length;
