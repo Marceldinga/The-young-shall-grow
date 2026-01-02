@@ -211,7 +211,6 @@
       <button id="navDash" class="active" onclick="show('dash','Dashboard')">Dashboard</button>
       <button id="navMembers" onclick="show('members','Members')">Members</button>
       <button id="navContrib" onclick="show('contrib','Contributions')">Contributions</button>
-      <button id="navFoundation" onclick="show('foundation','Foundation')">Foundation</button>
       <button id="navLoans" onclick="show('loans','Loans')">Loans</button>
       <button id="navFines" onclick="show('fines','Fines')">Fines</button>
       <button id="navPayouts" onclick="show('payouts','Payouts')">Payouts</button>
@@ -242,7 +241,7 @@
     <section id="dash" class="section active">
       <div class="grid4">
         <div class="card kpi"><div class="label">Njangi Pot</div><div class="val" id="kPot">$0</div><div class="sub">Sum of contributions</div></div>
-        <div class="card kpi"><div class="label">Foundation</div><div class="val" id="kFoundation">$0</div><div class="sub">Available for loans</div></div>
+        <div class="card kpi"><div class="label">Foundation Payments</div><div class="val" id="kFoundation">$0</div><div class="sub">Available for loans</div></div>
         <div class="card kpi"><div class="label">Outstanding Loans</div><div class="val" id="kLoans">$0</div><div class="sub">Total due</div></div>
         <div class="card kpi"><div class="label">Members</div><div class="val" id="kMembers">0</div><div class="sub">Rotation list</div></div>
       </div>
@@ -253,7 +252,7 @@
           <canvas id="histChart" height="140"></canvas>
         </div>
         <div class="card">
-          <div class="row"><div style="font-weight:900;">Pie: Pot vs Foundation vs Loans</div><span class="pill">Now</span></div>
+          <div class="row"><div style="font-weight:900;">Pie: Pot vs Foundation Payments vs Loans</div><span class="pill">Now</span></div>
           <canvas id="pieChart" height="140"></canvas>
         </div>
       </div>
@@ -302,27 +301,6 @@
           <label>Member</label><select id="cSetMember"></select>
           <label>Set to amount</label><input id="cSetAmount" type="number" placeholder="e.g. 2000" />
           <button class="btn" style="width:100%;margin-top:12px" onclick="setContribution()">Set Contribution</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="foundation" class="section">
-      <div class="grid2">
-        <div class="card">
-          <div style="font-weight:900;">Foundation Balance</div>
-          <label>Add to Foundation</label><input id="fAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addToFoundation()">Add</button>
-          <hr style="border:0;border-top:1px solid rgba(255,255,255,.08);margin:14px 0;">
-          <label>Set Foundation Total</label><input id="fSetAmount" type="number" placeholder="e.g. 5000" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="setFoundation()">Set Foundation</button>
-        </div>
-
-        <div class="card">
-          <div style="font-weight:900;">Member Foundation Contribution</div>
-          <label>Member</label><select id="mfMember"></select>
-          <label>Amount</label><input id="mfAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addMemberFoundation()">Add Member Foundation</button>
-          <div class="sub" style="margin-top:12px">This increases member foundation and foundation balance.</div>
         </div>
       </div>
     </section>
@@ -621,7 +599,7 @@ async function signOut(){
 }
 
 /* ===========================
-   LOAD (FIX app_state single() crash)  ✅ (your requested part)
+   LOAD (FIX app_state single() crash)
 =========================== */
 async function reloadAll(){
   sideErr("");
@@ -839,7 +817,7 @@ function renderCharts(){
   if(pieChart) pieChart.destroy();
   pieChart = new Chart(pctx,{
     type:"pie",
-    data:{ labels:["Pot","Foundation","Loans Due"], datasets:[{ data:[pot, foundation, loans] }] },
+    data:{ labels:["Pot","Foundation Payments","Loans Due"], datasets:[{ data:[pot, foundation, loans] }] },
     options:{
       responsive:true,
       plugins:{ legend:{ position:"bottom", labels:{ color:"rgba(234,240,255,.75)" } } }
@@ -854,20 +832,48 @@ async function addHistoryRow(type, member, amount, interestPercent=0, totalDue=n
   await sb.from("history").insert([{ type, member, amount, interest_percent:interestPercent, total_due:totalDue }]);
 }
 
+async function insertContributionRow(memberId, memberName, amount){
+  // Tries to write a contribution transaction into Supabase.
+  // Supports both "contributions" and "contribution" table names, and tolerates missing optional columns.
+  const rowFull = { member_id: Number(memberId), member_name: memberName || null, amount: Number(amount) };
+  const rowLite = { member_id: Number(memberId), amount: Number(amount) };
+
+  // 1) contributions (full)
+  let res = await sb.from("contributions").insert([rowFull]);
+  if(!res.error) return true;
+
+  // 2) contributions (lite: no member_name)
+  if((res.error.message || "").toLowerCase().includes("member_name")){
+    res = await sb.from("contributions").insert([rowLite]);
+    if(!res.error) return true;
+  }
+
+  // 3) contribution (full)
+  if((res.error.message || "").toLowerCase().includes("could not find") || (res.error.message || "").toLowerCase().includes("relation") ){
+    let res2 = await sb.from("contribution").insert([rowFull]);
+    if(!res2.error) return true;
+
+    // 4) contribution (lite)
+    if((res2.error.message || "").toLowerCase().includes("member_name")){
+      res2 = await sb.from("contribution").insert([rowLite]);
+      if(!res2.error) return true;
+    }
+
+    appendErr("contribution table insert failed: " + res2.error.message);
+    return false;
+  }
+
+  appendErr("contributions table insert failed: " + res.error.message);
+  return false;
+}
 
 /* ===========================
    AUTO: Convert amount_pending -> loans after 15 days
-   - Reads latest sessions.start_date
-   - For each foundation_payments row with amount_pending > 0:
-       * insert into loans (member_id, principal)
-       * update members.loan_due (+principal) so UI KPIs still work
-       * update foundation_payments.amount_pending -> 0 and status -> 'loaned' (best-effort)
 =========================== */
 async function autoConvertPendingToLoans(){
   try{
     if(!latestSession || !latestSession.start_date) return false;
 
-    // sessions.start_date assumed to be a DATE (YYYY-MM-DD) or timestamp; take date part
     const sd = String(latestSession.start_date).slice(0,10);
     const start = fromIso(sd);
     const threshold = new Date(start.getTime() + (15 * 24 * 60 * 60 * 1000));
@@ -875,7 +881,6 @@ async function autoConvertPendingToLoans(){
     const today = fromIso(isoDate(new Date()));
     if(today < threshold) return false;
 
-    // Pull pending amounts
     const pend = await sb
       .from("foundation_payments")
       .select("id, member_id, amount_pending, status, notes")
@@ -895,14 +900,12 @@ async function autoConvertPendingToLoans(){
       const principal = Number(r.amount_pending || 0);
       const memberId = Number(r.member_id);
 
-      // 1) insert into loans table (minimum required fields)
       const ins = await sb.from("loans").insert([{ member_id: memberId, principal }]);
       if(ins.error){
         appendErr("auto-loan loans insert: " + ins.error.message);
-        continue; // don't convert this row if loan insert failed
+        continue;
       }
 
-      // 2) update members.loan_due so existing dashboard stays intact
       const mem = members.find(x => String(x.id) === String(memberId));
       if(mem){
         const newDue = (Number(mem.loan_due) || 0) + principal;
@@ -910,7 +913,6 @@ async function autoConvertPendingToLoans(){
         if(mu.error) appendErr("auto-loan members update: " + mu.error.message);
       }
 
-      // 3) mark foundation_payment row as converted (best-effort; works even if status enum differs)
       const stamp = `Converted to loan on ${new Date().toISOString()} (session start: ${sd})`;
       const newNotes = (r.notes ? (r.notes + " | ") : "") + stamp;
 
@@ -921,14 +923,12 @@ async function autoConvertPendingToLoans(){
       }).eq("id", r.id);
 
       if(fu.error){
-        // fallback #1: no status update
         fu = await sb.from("foundation_payments").update({
           amount_pending: 0,
           notes: newNotes
         }).eq("id", r.id);
 
         if(fu.error){
-          // fallback #2: only clear pending
           fu = await sb.from("foundation_payments").update({
             amount_pending: 0
           }).eq("id", r.id);
@@ -937,7 +937,6 @@ async function autoConvertPendingToLoans(){
         }
       }
 
-      // 4) log history (optional)
       const name = mem ? mem.name : `member_id=${memberId}`;
       await addHistoryRow("Auto Loan (Pending)", name, principal, 0, null);
 
@@ -951,7 +950,7 @@ async function autoConvertPendingToLoans(){
   }
 }
 
-/* ADD MEMBER (FIX Math.max bug) ✅ */
+/* ADD MEMBER */
 async function addMember(){
   const name = document.getElementById("mName").value.trim();
   const phone = document.getElementById("mPhone").value.trim();
@@ -970,7 +969,7 @@ async function addMember(){
   toast("Member added");
 }
 
-/* CONTRIBUTION (RPC + VERIFIED SYNC) ✅ */
+/* CONTRIBUTION (RPC + VERIFIED SYNC) */
 async function addContribution(){
   const memberIdStr = document.getElementById("cMember").value;
   const memberId = Number(memberIdStr);
@@ -979,7 +978,6 @@ async function addContribution(){
   if(!amt || amt <= 0) return toast("Enter amount");
   if(amt % 500 !== 0) return toast("Must be multiple of 500");
 
-  // Always read the member fresh (prevents stale UI state from blocking updates)
   const beforeRes = await sb
     .from("members")
     .select("id,name,contributed")
@@ -992,18 +990,15 @@ async function addContribution(){
   const memberName = beforeRes.data.name || "";
   const before = Number(beforeRes.data.contributed || 0);
 
-  // Try RPC first (if you created it in Supabase)
   const r = await sb.rpc("add_contribution", {
     p_member_id: memberId,
     p_amount: amt
   });
 
   if (r.error) {
-    // Do NOT stop the flow; we will still sync the members table below
     appendErr("add_contribution RPC failed (sync used): " + r.error.message);
   }
 
-  // Verify the members table actually changed; if not, apply a safe update
   const afterRes = await sb
     .from("members")
     .select("contributed")
@@ -1014,11 +1009,9 @@ async function addContribution(){
 
   const after = Number(afterRes.data?.contributed || 0);
 
-  // If nothing changed (common when RPC is missing or incomplete), do a safe increment
   if(after === before){
     const newTotal = before + amt;
 
-    // Optimistic concurrency: only update if contributed is still "before"
     let u = await sb
       .from("members")
       .update({ contributed: newTotal })
@@ -1026,7 +1019,6 @@ async function addContribution(){
       .eq("contributed", before);
 
     if(u.error){
-      // Retry once with a fresh read (prevents overwriting concurrent updates)
       const curRes = await sb
         .from("members")
         .select("contributed")
@@ -1052,20 +1044,18 @@ async function addContribution(){
     }
   }
 
+  // ✅ Ensure the Supabase contribution(s) table records each contribution
+  await insertContributionRow(memberId, memberName, amt);
+
   document.getElementById("cAmount").value = "";
   await reloadAll();
   toast("Saved");
 }
 
-/* PAYOUT (RPC + POT SYNC FIX) ✅ */
+/* PAYOUT (RPC + POT SYNC FIX) */
 async function runPayout(){
-  // Try RPC
   const r = await sb.rpc("run_payout");
   if (!r.error && r.data) {
-
-    // IMPORTANT FIX:
-    // Some RPC implementations pay out but DO NOT reset members.contributed,
-    // so the Njangi Pot stays the same. This sync makes sure the pot updates.
     const chk = await sb.from("members").select("id").gt("contributed", 0).limit(1);
     if(chk.error){
       appendErr("payout sync check: " + chk.error.message);
@@ -1079,7 +1069,6 @@ async function runPayout(){
     return;
   }
 
-  // Fallback to local payout logic
   if (r.error) appendErr("run_payout RPC failed (fallback used): " + r.error.message);
 
   if(!members.length) return toast("No members");
@@ -1100,7 +1089,6 @@ async function runPayout(){
   let up = await sb.from("members").update({ payout_total:(Number(receiver.payout_total)||0)+pot, last_payout_at:new Date().toISOString() }).eq("id",receiver.id);
   if(up.error) return toast(up.error.message);
 
-  // IMPORTANT FIX: include a WHERE filter so PostgREST/RLS setups that require filters can still update
   let reset = await sb.from("members").update({ contributed: 0 }).gt("contributed", 0);
   if(reset.error) return toast(reset.error.message);
 
@@ -1128,56 +1116,14 @@ async function setContribution(){
   await reloadAll(); toast("Updated");
 }
 
-async function addToFoundation(){
-  const amt=Number(document.getElementById("fAmount").value||0);
-  if(!amt||amt<=0) return toast("Enter amount");
-  const newFound=(Number(appState.foundation)||0)+amt;
-  const r=await sb.from("app_state").update({foundation:newFound,updated_at:new Date().toISOString()}).eq("id",1);
-  if(r.error) return toast(r.error.message);
-  await addHistoryRow("Foundation Add","Admin",amt,0,newFound);
-  document.getElementById("fAmount").value="";
-  await reloadAll(); toast("Saved");
-}
-
-async function setFoundation(){
-  const amt=Number(document.getElementById("fSetAmount").value||0);
-  if(amt<0) return toast("Invalid amount");
-  const r=await sb.from("app_state").update({foundation:amt,updated_at:new Date().toISOString()}).eq("id",1);
-  if(r.error) return toast(r.error.message);
-  await addHistoryRow("Foundation Set","Admin",amt,0,amt);
-  document.getElementById("fSetAmount").value="";
-  await reloadAll(); toast("Updated");
-}
-
-async function addMemberFoundation(){
-  const memberId=document.getElementById("mfMember").value;
-  const amt=Number(document.getElementById("mfAmount").value||0);
-  if(!memberId) return toast("Select member");
-  if(!amt||amt<=0) return toast("Enter amount");
-
-  const m=members.find(x=>String(x.id)===String(memberId));
-  const newMemberFound=(Number(m.foundation_contrib)||0)+amt;
-
-  let r=await sb.from("members").update({foundation_contrib:newMemberFound}).eq("id",memberId);
-  if(r.error) return toast(r.error.message);
-
-  const newFound=(Number(appState.foundation)||0)+amt;
-  r=await sb.from("app_state").update({foundation:newFound,updated_at:new Date().toISOString()}).eq("id",1);
-  if(r.error) return toast(r.error.message);
-
-  await addHistoryRow("Member Foundation",m.name,amt,0,newMemberFound);
-  document.getElementById("mfAmount").value="";
-  await reloadAll(); toast("Saved");
-}
-
 async function issueLoan(){
   const memberId=document.getElementById("lMember").value;
   const amt=Number(document.getElementById("lAmount").value||0);
   if(!memberId) return toast("Select member");
   if(!amt||amt<=0) return toast("Enter loan amount");
   const m=members.find(x=>String(x.id)===String(memberId));
-  const foundation=Number(appState.foundation||0);
-  if(amt>foundation) return toast("Loan exceeds foundation");
+  const foundation=Number(foundationPaidTotal||0);
+  if(amt>foundation) return toast("Loan exceeds foundation payments");
 
   const minReq=0.70*amt;
   const memberFound=Number(m.foundation_contrib||0);
@@ -1189,8 +1135,25 @@ async function issueLoan(){
   let r=await sb.from("members").update({loan_due:(Number(m.loan_due)||0)+totalDue}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
+  // ✅ Foundation balance is tracked via foundation_payments (amount_paid). Record the loan principal leaving the foundation.
+  let fp = await sb.from("foundation_payments").insert([{
+    member_id: Number(memberId),
+    amount_paid: -amt,
+    amount_pending: 0,
+    status: "paid",
+    notes: `Loan issued (principal) ${new Date().toISOString()}`
+  }]);
+  if(fp.error){
+    // fallback if status/notes columns or values differ
+    fp = await sb.from("foundation_payments").insert([{
+      member_id: Number(memberId),
+      amount_paid: -amt,
+      amount_pending: 0
+    }]);
+    if(fp.error) return toast(fp.error.message);
+  }
+
   r=await sb.from("app_state").update({
-    foundation: foundation-amt,
     total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
     updated_at:new Date().toISOString()
   }).eq("id",1);
@@ -1217,8 +1180,24 @@ async function repayLoan(){
   let r=await sb.from("members").update({loan_due:newDue}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
+  // ✅ Foundation balance is tracked via foundation_payments (amount_paid). Record repayment back into the foundation.
+  let fp = await sb.from("foundation_payments").insert([{
+    member_id: Number(memberId),
+    amount_paid: pay,
+    amount_pending: 0,
+    status: "paid",
+    notes: `Loan repayment ${new Date().toISOString()}`
+  }]);
+  if(fp.error){
+    fp = await sb.from("foundation_payments").insert([{
+      member_id: Number(memberId),
+      amount_paid: pay,
+      amount_pending: 0
+    }]);
+    if(fp.error) return toast(fp.error.message);
+  }
+
   r=await sb.from("app_state").update({
-    foundation:(Number(appState.foundation)||0)+pay,
     updated_at:new Date().toISOString()
   }).eq("id",1);
   if(r.error) return toast(r.error.message);
