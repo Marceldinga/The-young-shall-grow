@@ -35,6 +35,7 @@
         linear-gradient(180deg, #050814 0%, #050814 40%, #040612 100%);
       min-height:100vh;
     }
+
     .wrap{max-width:1200px; margin:0 auto; padding:22px;}
     .top{
       display:flex; gap:14px; align-items:center; justify-content:space-between;
@@ -50,6 +51,7 @@
     }
     .brand h1{font-size:20px; margin:0; letter-spacing:.2px;}
     .brand .sub{color:var(--muted); font-size:13px; margin-top:2px;}
+
     .pill{
       display:inline-flex; gap:8px; align-items:center;
       border:1px solid var(--border); padding:8px 10px; border-radius:999px;
@@ -64,7 +66,9 @@
     .dot{width:10px;height:10px;border-radius:50%; background:var(--accent2); box-shadow:0 0 0 3px rgba(27,214,167,.12);}
 
     .grid{display:grid; grid-template-columns: 320px 1fr; gap:18px; margin-top:18px;}
-    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
 
     .card{
       border:1px solid var(--border);
@@ -76,7 +80,6 @@
     .card .hd h2{margin:0; font-size:18px;}
     .card .hd .sub{color:var(--muted); margin-top:6px; font-size:13px;}
     .card .bd{padding:14px 16px 16px 16px;}
-
     .kpiRow{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;}
     @media (max-width: 980px){ .kpiRow{grid-template-columns:1fr} }
     .kpi{
@@ -212,13 +215,13 @@
       <div class="card">
         <div class="hd">
           <h2>Setup checklist</h2>
-          <div class="sub">If pot doesn’t clear or history doesn’t insert, it’s usually RLS policy.</div>
+          <div class="sub">If login works locally but fails on your domain, these are the common causes.</div>
         </div>
         <div class="bd">
           <ol style="margin:0; padding-left:18px; color:var(--muted); line-height:1.6">
             <li>Supabase URL + anon key are correct in this HTML.</li>
             <li>Supabase Auth → URL Configuration includes your site domain in Redirect URLs.</li>
-            <li>RLS policies allow admins to read/write <span class="mono">members</span>, <span class="mono">app_state</span>, <span class="mono">payouts</span>, <span class="mono">history</span>.</li>
+            <li>RLS policies allow admins to read/write <span class="mono">members</span>, <span class="mono">app_state</span>, <span class="mono">payouts</span>.</li>
             <li><span class="mono">profiles</span> table exists and your user has <span class="mono">role='admin'</span>.</li>
           </ol>
         </div>
@@ -284,8 +287,7 @@
                   <button class="btnGhost" id="btnResetStart">Reset start to 2026-01-03</button>
                 </div>
                 <div class="hint">
-                  Run Payout will: insert into <span class="mono">payouts</span> (with <span class="mono">member_id</span>),
-                  insert into <span class="mono">history</span>, reset all member contributions to 0, and advance next payout by 14 days.
+                  Run Payout will: insert into <span class="mono">payouts</span> (with <span class="mono">member_id</span>), add pot to beneficiary payout_total, reset all contributed to 0, then advance next payout by 14 days.
                 </div>
               </div>
             </div>
@@ -396,9 +398,8 @@
 /* ===========================
    CONFIG — FILL THESE
 =========================== */
-
-const SUPABASE_URL = "https://ficlrtvrrzfiakmciwel.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpY2xydHZycnpmaWFrbWNpd2VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMjk0MDQsImV4cCI6MjA4MjcwNTQwNH0.xWuH_-amYd_24R8PURbZXMUDjz--Q9R_RASOdGzsZJI";
+const SUPABASE_URL = "YOUR_SUPABASE_URL";      // e.g. https://xxxx.supabase.co
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
 /* Rotation rules */
 const DEFAULT_ROTATION_START_ISO = "2026-01-03"; // first beneficiary date
@@ -408,7 +409,7 @@ const BIWEEKLY_DAYS = 14;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ===========================
-   HELPERS
+   SMALL HELPERS
 =========================== */
 const $ = (id)=>document.getElementById(id);
 function toast(msg){
@@ -428,7 +429,7 @@ function money(n){
   const x = Number(n||0);
   return x.toLocaleString("en-US", { style:"currency", currency:"USD" });
 }
-function parseISODateUTC(iso){
+function parseISODateUTC(iso){ // YYYY-MM-DD -> Date at UTC midnight
   if(!iso) return null;
   const [y,m,d] = String(iso).slice(0,10).split("-").map(Number);
   if(!y||!m||!d) return null;
@@ -448,14 +449,6 @@ function addDaysUTC(date, days){
   return d;
 }
 function nowIso(){ return new Date().toISOString(); }
-function escapeHtml(s){
-  return String(s)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
 
 /* ===========================
    STATE
@@ -488,6 +481,7 @@ async function enforceAdminGate(){
     return false;
   }
 
+  // Check admin via RPC is_admin()
   const r = await sb.rpc("is_admin");
   if(r.error){
     setErr("authErr", "is_admin RPC error: " + r.error.message);
@@ -513,7 +507,7 @@ async function enforceAdminGate(){
 }
 
 /* ===========================
-   LOADERS
+   LOADERS + RENDER
 =========================== */
 async function loadMembers(){
   const r = await sb.from("members")
@@ -535,6 +529,7 @@ async function loadAppState(){
   if(r.error) throw new Error("app_state: " + r.error.message);
   appState = r.data || null;
 
+  // If missing, try to create (requires admin RLS policy)
   if(!appState){
     const ins = await sb.from("app_state").insert([{
       id: 1,
@@ -549,7 +544,7 @@ async function loadAppState(){
     appState = r2.data;
   }
 
-  // If NO payouts yet, force first beneficiary date to start date
+  // Normalize start behavior: if NO payouts yet, first beneficiary date must be start date.
   const startIso = String(appState.rotation_start_date || DEFAULT_ROTATION_START_ISO).slice(0,10);
   if((payouts||[]).length === 0){
     if(String(appState.next_payout_date||"").slice(0,10) !== startIso || Number(appState.next_payout_index||0) !== 0){
@@ -566,12 +561,10 @@ async function loadAppState(){
   }
 }
 
-/* ===========================
-   COMPUTE + RENDER
-=========================== */
 function computePot(){
   return (members||[]).reduce((s,m)=>s+(Number(m.contributed)||0),0);
 }
+
 function computeNext(){
   const startIso = String(appState?.rotation_start_date || DEFAULT_ROTATION_START_ISO).slice(0,10);
   const start = parseISODateUTC(startIso) || parseISODateUTC(DEFAULT_ROTATION_START_ISO);
@@ -580,25 +573,40 @@ function computeNext(){
   const who = (members||[]).length ? members[idx % members.length] : null;
   return { startIso, start, idx, nextDate, who };
 }
+
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
 function renderAll(){
   const pot = computePot();
   const { startIso, nextDate, idx, who } = computeNext();
 
+  // KPIs
   $("kPot").textContent = money(pot);
-  $("kPotHint").textContent = members.length ? `${members.length} members • pot clears after payout` : "Add members first";
+  $("kPotHint").textContent = members.length ? `${members.length} members • contributions reset after payout` : "Add members first";
   $("kStart").textContent = startIso ? fmtDateUTC(parseISODateUTC(startIso)) : "—";
   $("kNextDate").textContent = fmtDateUTC(nextDate);
   $("kNextWho").textContent = who ? `${who.name} • position ${idx+1}/${members.length}` : "—";
 
+  // Payouts tab header KPIs
   $("pNextWho").textContent = who ? who.name : "—";
   $("pNextMeta").textContent = who ? `Position ${idx+1}/${members.length}` : "—";
   $("pNextDate").textContent = fmtDateUTC(nextDate);
   $("pStart").textContent = startIso ? fmtDateUTC(parseISODateUTC(startIso)) : "—";
   $("pPot").textContent = money(pot);
 
+  // Members select
   $("mPick").innerHTML = members.map(m=>`<option value="${m.id}">${escapeHtml(m.name||"")}</option>`).join("");
 
-  $("membersBody").innerHTML = members.map(m=>{
+  // Members table
+  const mb = $("membersBody");
+  mb.innerHTML = members.map(m=>{
     const last = m.last_payout_at ? new Date(m.last_payout_at).toLocaleString() : "—";
     return `<tr>
       <td class="mono">${escapeHtml(m.id)}</td>
@@ -609,7 +617,9 @@ function renderAll(){
     </tr>`;
   }).join("");
 
-  $("payoutBody").innerHTML = payouts.map(p=>{
+  // Payouts table
+  const pb = $("payoutBody");
+  pb.innerHTML = payouts.map(p=>{
     const created = p.created_at ? new Date(p.created_at).toLocaleString() : "—";
     const pdate = p.payout_date ? fmtDateUTC(parseISODateUTC(String(p.payout_date).slice(0,10))) : "—";
     const name = p.member_name || p.name || "—";
@@ -624,12 +634,13 @@ function renderAll(){
     </tr>`;
   }).join("");
 }
+
 async function reloadAll(){
   setErr("sideErr","");
   try{
     await loadMembers();
     await loadPayouts();
-    await loadAppState();
+    await loadAppState();  // uses payouts for normalization
     renderAll();
   }catch(e){
     setErr("sideErr", e?.message || String(e));
@@ -637,77 +648,14 @@ async function reloadAll(){
 }
 
 /* ===========================
-   HISTORY INSERT (with fallbacks)
-=========================== */
-async function insertHistorySafe(entry){
-  // Try rich insert first
-  let r = await sb.from("history").insert([entry]);
-  if(!r.error) return;
-
-  const msg = String(r.error?.message || "");
-  if(msg.toLowerCase().includes("relation") && msg.toLowerCase().includes("does not exist")){
-    throw new Error("history table does not exist. Create public.history or remove history logging.");
-  }
-
-  // Fallback 1: common minimal columns
-  const e1 = {
-    created_at: entry.created_at || nowIso(),
-    action: entry.action || "payout",
-    amount: entry.amount ?? entry.pot_before ?? 0,
-    member_id: entry.member_id,
-    member_name: entry.member_name,
-    note: entry.note || entry.details || "Payout executed"
-  };
-  r = await sb.from("history").insert([e1]);
-  if(!r.error) return;
-
-  // Fallback 2: ultra-minimal
-  const e2 = {
-    created_at: entry.created_at || nowIso(),
-    note: entry.note || "Payout executed"
-  };
-  r = await sb.from("history").insert([e2]);
-  if(!r.error) return;
-
-  throw new Error("history insert failed: " + (r.error?.message || "unknown error"));
-}
-
-/* ===========================
-   RESET CONTRIBUTIONS (robust)
-   (updates each member with .eq, so it works for bigint or uuid IDs)
-=========================== */
-async function resetAllContributionsRobust(){
-  const failures = [];
-  for(const m of members){
-    const u = await sb.from("members").update({ contributed: 0 }).eq("id", m.id);
-    if(u.error) failures.push(`${m.name || m.id}: ${u.error.message}`);
-  }
-  if(failures.length){
-    throw new Error(
-      "Could not reset contributions to 0 (RLS policy likely blocking UPDATE on members).\n" +
-      failures.join("\n")
-    );
-  }
-}
-
-/* ===========================
-   PAYOUT — UPDATED
-   ✅ inserts payouts
-   ✅ inserts history
-   ✅ resets contributions to 0 (so pot becomes 0)
-   ✅ advances app_state (WHERE included)
+   PAYOUT — FIXED (NO UPDATE WITHOUT WHERE)
 =========================== */
 async function runPayout(){
   setErr("sideErr","");
   try{
-    // Always reload members first so pot is fresh
-    await loadMembers();
-    const pot = computePot();
     if(!members.length) return toast("Add members first.");
+    const pot = computePot();
     if(!pot || pot <= 0) return toast("Pot is 0. Add contributions first.");
-
-    // Ensure appState is loaded
-    if(!appState) await loadAppState();
 
     const { startIso, start, idx, who } = computeNext();
     if(!who) return toast("No beneficiary found.");
@@ -716,7 +664,7 @@ async function runPayout(){
     const payoutDateIso = isoDateUTC(payoutDate);
     const createdAt = nowIso();
 
-    // 1) Insert payout row (with safe fallbacks)
+    // 1) Insert payout row with member_id (fallback if schema is missing columns)
     let ins = await sb.from("payouts").insert([{
       member_id: who.id,
       member_name: who.name,
@@ -725,50 +673,33 @@ async function runPayout(){
       created_at: createdAt
     }]);
 
-    if(ins.error && String(ins.error.message||"").toLowerCase().includes("does not exist")){
-      // fallback: try common alt column names
+    if(ins.error && ins.error.message && ins.error.message.toLowerCase().includes("does not exist")){
+      // fallback: try with only safe columns
       ins = await sb.from("payouts").insert([{
-        member_id: who.id,
         member_name: who.name,
-        payout_amount: pot,
+        amount: pot,
         created_at: createdAt
       }]);
     }
     if(ins.error) throw new Error("payouts insert: " + ins.error.message);
 
-    // 2) Insert history (pot_before -> pot_after 0)
-    await insertHistorySafe({
-      created_at: createdAt,
-      action: "payout",
-      member_id: who.id,
-      member_name: who.name,
-      payout_date: payoutDateIso,
-      amount: pot,
-      pot_before: pot,
-      pot_after: 0,
-      details: `Payout of ${pot} to ${who.name} (member_id=${who.id})`
-    });
-
-    // 3) Update beneficiary totals (WHERE included)
+    // 2) Update beneficiary totals (must include WHERE)
     const oldTotal = Number(who.payout_total||0);
     const upBen = await sb.from("members").update({
       payout_total: oldTotal + pot,
       last_payout_at: createdAt
     }).eq("id", who.id);
 
-    // If payout_total column doesn't exist, don't fail entire payout
+    // If payout_total column doesn't exist, don't fail the whole payout
     if(upBen.error && !String(upBen.error.message||"").toLowerCase().includes("does not exist")){
       throw new Error("beneficiary update: " + upBen.error.message);
     }
 
-    // 4) Reset contributions to 0 (this is what makes Njangi Pot become 0)
-    await resetAllContributionsRobust();
+    // 3) Reset contributions for ALL members (Supabase requires WHERE)
+    const reset = await sb.from("members").update({ contributed: 0 }).gt("id", 0);
+    if(reset.error) throw new Error("reset contributions: " + reset.error.message);
 
-    // Immediately reflect pot=0 in UI memory (then reload from DB)
-    members = members.map(m => ({ ...m, contributed: 0 }));
-    renderAll();
-
-    // 5) Advance next index/date (WHERE included)
+    // 4) Advance next index/date (must include WHERE)
     const nextIdx = (idx + 1) % members.length;
     const nextDate = addDaysUTC(start, BIWEEKLY_DAYS * nextIdx);
     const nextDateIso = isoDateUTC(nextDate);
@@ -782,20 +713,8 @@ async function runPayout(){
 
     if(upState.error) throw new Error("app_state update: " + upState.error.message);
 
-    toast(`Paid ${money(pot)} to ${who.name} • pot cleared to $0`);
+    toast(`Paid ${money(pot)} to ${who.name}`);
     await reloadAll();
-
-    // Sanity check: if pot still not 0 after reload, it means UPDATE was blocked or pot is computed from another table
-    const potAfter = computePot();
-    if(potAfter !== 0){
-      setErr("sideErr",
-        "Payout completed, but pot is still not 0 after reload.\n" +
-        "This usually means:\n" +
-        "1) RLS policy blocked resetting members.contributed, or\n" +
-        "2) Your pot is not computed from members.contributed in your real schema.\n\n" +
-        "Current pot after reload: " + potAfter
-      );
-    }
   }catch(e){
     setErr("sideErr", e?.message || String(e));
   }
@@ -826,8 +745,6 @@ async function addContribution(){
     if(!id) return toast("Pick a member");
     if(!amt || amt<=0) return toast("Enter an amount > 0");
 
-    // Reload members so we have latest contributed
-    await loadMembers();
     const m = members.find(x=>String(x.id)===String(id));
     if(!m) return toast("Member not found");
 
@@ -845,7 +762,7 @@ async function addContribution(){
 }
 
 /* ===========================
-   RESET START
+   RESET START (UI button)
 =========================== */
 async function resetStart(){
   setErr("sideErr","");
@@ -930,8 +847,12 @@ $("btnMagic").addEventListener("click", async ()=>{
 =========================== */
 (async function init(){
   const ok = await enforceAdminGate();
-  setTab("dash");
-  if(ok) await reloadAll();
+  if(ok){
+    setTab("dash");
+    await reloadAll();
+  }else{
+    setTab("dash");
+  }
 })();
 </script>
 </body>
