@@ -963,11 +963,13 @@ async function repayLoan(){
 
   // ✅ repayment insert now ALWAYS has valid member_id (NOT NULL)
   r = await sb.from("repayments").insert([{
-    member_id: Number(memberIdNum),
-    member_name: m.name,
-    amount_paid: pay,
-    notes: "Loan repayment"
-  }]);
+  member_id: Number(memberIdNum),
+  member_name: m.name,
+  amount: pay,        // ✅ REQUIRED (FIX)
+  amount_paid: pay,   // kept as-is
+  notes: "Loan repayment"
+}]);
+
   if(r.error) return toast("repayments insert: " + r.error.message);
 
   // update active loan row
