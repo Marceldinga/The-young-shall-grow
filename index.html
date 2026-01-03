@@ -210,7 +210,6 @@
       <button id="navFines" onclick="show('fines','Fines')">Fines</button>
       <button id="navPayouts" onclick="show('payouts','Payouts')">Payouts</button>
       <button id="navHistory" onclick="show('history','History')">History</button>
-
       <button id="navFPayments" onclick="show('foundation_payments','Foundation Payments')">Foundation Payments</button>
 
       <button class="btn ghost" style="margin-top:6px" onclick="reloadAll()">Refresh</button>
@@ -280,6 +279,7 @@
       </div>
     </section>
 
+    <!-- ✅ CONTRIBUTIONS (ONLY ONE PANEL) -->
     <section id="contrib" class="section">
       <div class="grid2">
         <div class="card">
@@ -290,25 +290,21 @@
           <div class="sub" style="margin-top:12px">Rule: Contributions must be multiples of <b>500</b>.</div>
         </div>
         <div class="card">
-          <div style="font-weight:900;">Set Contribution Total</div>
-          <label>Member</label><select id="cSetMember"></select>
-          <label>Set to amount</label><input id="cSetAmount" type="number" placeholder="e.g. 2000" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="setContribution()">Set Contribution</button>
+          <div style="font-weight:900;">Contributions Info</div>
+          <div class="sub" style="margin-top:6px">This page only records contributions.</div>
         </div>
       </div>
     </section>
 
-    <!-- ✅ LOANS (ONLY BORROWING CONTROL HERE) -->
+    <!-- LOANS -->
     <section id="loans" class="section">
       <div class="grid2">
-
         <div class="card">
           <div style="font-weight:900;">Issue Loan (5%) — Saved into Loans + Deducts Foundation Pot</div>
 
           <label>Surety (select member)</label><select id="lSuretyMember"></select>
           <label>Borrower (select member)</label><select id="lMember"></select>
           <label>Loan amount</label><input id="lAmount" type="number" placeholder="e.g. 1000" />
-
           <button class="btn" style="width:100%;margin-top:12px" onclick="issueLoan()">Issue Loan</button>
 
           <div class="sub" style="margin-top:12px">
@@ -337,7 +333,6 @@
             <tbody id="loanBody"></tbody>
           </table>
         </div>
-
       </div>
     </section>
 
@@ -389,7 +384,7 @@
       </div>
     </section>
 
-    <!-- FOUNDATION PAYMENTS -->
+    <!-- FOUNDATION PAYMENTS (ONLY FOUNDATION RELATED) -->
     <section id="foundation_payments" class="section">
       <div class="grid2">
         <div class="card">
@@ -417,7 +412,6 @@
         </div>
       </div>
     </section>
-
   </main>
 </div>
 
@@ -428,14 +422,13 @@
    SUPABASE CONFIG
 =========================== */
 const SUPABASE_URL = "https://ficlrtvrrzfiakmciwel.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpY2xydHZycnpmaWFrbWNpd2VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMjk0MDQsImV4cCI6MjA4MjcwNTQwNH0.xWuH_-amYd_24R8PURbZXMUDjz--Q9R_RASOdGzsZJI";
+const SUPABASE_ANON_KEY = "YOUR_ANON_KEY_HERE";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ===========================
    CONSTANTS
 =========================== */
 const ROTATION_START = new Date("2026-01-03T00:00:00");
-const BIWEEK_MS = 14 * 24 * 60 * 60 * 1000;
 const INTEREST_RATE = 0.05;
 const SURETY_PENDING_MAX_DAYS = 15;
 
@@ -450,7 +443,6 @@ let fines = [];
 let foundationPayments = [];
 let loans = [];
 let latestSession = null;
-let foundationPaidTotal = 0;
 let contribTotalsByMember = {};
 
 /* ===========================
@@ -496,17 +488,11 @@ function show(sectionId, title){
   };
   document.getElementById(map[sectionId])?.classList.add("active");
 }
-
-/* show JS runtime errors */
 window.addEventListener("error", (e) => appendErr("JS error: " + (e?.message || "unknown")));
 window.addEventListener("unhandledrejection", (e) => appendErr("Promise error: " + (e?.reason?.message || String(e?.reason || "unknown"))));
 
 /* ===========================
-   ✅ FIX ONLY: SEASON-BASED 15-DAYS + QUALIFIED SURETY
-   - 15 days counted from app_state.rotation_start_date (season start)
-   - applies to borrower and surety
-   - surety must be qualified to borrow AND not surety for another active loan
-   - surety dropdown hides unqualified sureties
+   SEASON-BASED 15-DAYS + QUALIFIED SURETY
 =========================== */
 function getSeasonStartDate(){
   const s = (appState && appState.rotation_start_date) ? String(appState.rotation_start_date) : null;
@@ -528,8 +514,7 @@ function memberHasPendingFoundation(memberId){
     .filter(r => {
       const st = String(r.status || "").toLowerCase();
       return st === "pending" || st === "partial";
-    })
-    .sort((a,b) => new Date(b.date_paid || 0) - new Date(a.date_paid || 0));
+    });
   return rows.length > 0;
 }
 function isAlreadySuretyOnActiveLoan(memberId){
@@ -541,12 +526,10 @@ function isAlreadySuretyOnActiveLoan(memberId){
 function qualifiedToBorrow(memberObj, loanAmt){
   if(!memberObj) return { ok:false, reason:"Member not found" };
 
-  // (A) 15-days rule from SEASON start date
   if(seasonIsBeyond15Days() && memberHasPendingFoundation(memberObj.id)){
     return { ok:false, reason:`Not qualified: pending foundation after ${SURETY_PENDING_MAX_DAYS} days from season start` };
   }
 
-  // (B) benefits rule (same as your original borrower rule, but applied consistently)
   const amt = Number(loanAmt || 0);
   if(amt > 0 && memberObj.has_benefits){
     const minReq = 0.70 * amt;
@@ -565,11 +548,9 @@ function qualifiedSurety(memberObj, borrowerId, loanAmt){
   if(String(memberObj.id) === String(borrowerId)){
     return { ok:false, reason:"Surety cannot be borrower" };
   }
-
   if(isAlreadySuretyOnActiveLoan(memberObj.id)){
     return { ok:false, reason:"Not qualified: already surety for another active loan" };
   }
-
   return { ok:true, reason:"Surety qualified" };
 }
 function refreshSuretyDropdown(){
@@ -581,16 +562,8 @@ function refreshSuretyDropdown(){
   const borrowerId = borrowerSel.value || "";
   const amt = Number(amtInput.value || 0);
 
-  // If amt is not entered yet, we still filter by:
-  // - season 15-days rule (if beyond 15 days)
-  // - "already surety" rule
-  // - cannot be borrower
   const options = (members || [])
-    .filter(m => {
-      const res = qualifiedSurety(m, borrowerId, amt);
-      // if amt is 0, benefits rule won't block (because amt>0 required)
-      return res.ok;
-    })
+    .filter(m => qualifiedSurety(m, borrowerId, amt).ok)
     .map(m => `<option value="${m.id}">${m.name}</option>`)
     .join("");
 
@@ -652,7 +625,6 @@ async function signIn(){
   sideErr("");
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
-
   if (!email || !password) return toast("Enter email and password");
 
   const { error } = await sb.auth.signInWithPassword({ email, password });
@@ -664,7 +636,6 @@ async function signIn(){
   await reloadAll();
   toast("Welcome");
 }
-
 async function signOut(){
   await sb.auth.signOut();
   document.getElementById("app").style.display = "none";
@@ -677,11 +648,10 @@ async function signOut(){
 async function reloadAll(){
   sideErr("");
 
+  // app_state
   let a = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
-
   if (a.error) {
     appendErr("app_state: " + a.error.message);
-    appState = { foundation:0, total_interest_generated:0, next_payout_index:0, next_payout_date:"2026-01-03", rotation_start_date:"2026-01-03" };
   } else if (!a.data) {
     const seed = {
       id: 1,
@@ -692,14 +662,9 @@ async function reloadAll(){
       total_interest_generated: 0,
       updated_at: new Date().toISOString()
     };
-
     const ins = await sb.from("app_state").insert([seed]).select().single();
-    if (ins.error) {
-      appendErr("app_state init: " + ins.error.message);
-      appState = { foundation:0, total_interest_generated:0, next_payout_index:0, next_payout_date:"2026-01-03", rotation_start_date:"2026-01-03" };
-    } else {
-      appState = ins.data;
-    }
+    if (ins.error) appendErr("app_state init: " + ins.error.message);
+    else appState = ins.data;
   } else {
     appState = a.data;
   }
@@ -708,12 +673,7 @@ async function reloadAll(){
   if (m.error) appendErr("members: " + m.error.message);
   members = m.data || [];
 
-  const c = await sb
-    .from("contributions")
-    .select("member_id, amount")
-    .eq("kind", "contribution")
-    .limit(5000);
-
+  const c = await sb.from("contributions").select("member_id, amount").eq("kind", "contribution").limit(5000);
   if (c.error) appendErr("contributions: " + c.error.message);
 
   const totals = {};
@@ -739,7 +699,6 @@ async function reloadAll(){
   const fp = await sb.from("foundation_payments").select("*").order("date_paid", { ascending: false }).limit(300);
   if (fp.error) appendErr("foundation_payments: " + fp.error.message);
   foundationPayments = fp.data || [];
-  foundationPaidTotal = (foundationPayments || []).reduce((s, r) => s + (Number(r.amount_paid) || 0), 0);
 
   const l = await sb.from("loans").select("*").order("created_at", { ascending: false }).limit(300);
   if (l.error) appendErr("loans: " + l.error.message);
@@ -750,7 +709,7 @@ async function reloadAll(){
   latestSession = sess.data || null;
 
   renderAll();
-  refreshSuretyDropdown(); // ✅ keep dropdown correct after reload
+  refreshSuretyDropdown();
 }
 
 /* ===========================
@@ -761,7 +720,7 @@ function renderAll(){
   const outstanding = members.reduce((s,x)=>s+(Number(x.loan_due)||0),0);
 
   document.getElementById("kPot").textContent = money(pot);
-  document.getElementById("kFoundation").textContent = money(foundationPaidTotal||0);
+  document.getElementById("kFoundation").textContent = money(appState.foundation || 0);
   document.getElementById("kLoans").textContent = money(outstanding);
   document.getElementById("kMembers").textContent = String(members.length);
   document.getElementById("kInterestMini").textContent = money(appState.total_interest_generated||0);
@@ -790,11 +749,10 @@ function renderAll(){
     `).join("");
 
   const opts = members.map(x=>`<option value="${x.id}">${x.name}</option>`).join("");
-  ["cMember","cSetMember","fineMember","fpMember","lMember","rMember"].forEach(id=>{
+  ["cMember","fineMember","fpMember","lMember","rMember"].forEach(id=>{
     const el=document.getElementById(id); if(el) el.innerHTML=opts;
   });
 
-  // lSuretyMember is filled by refreshSuretyDropdown() to hide unqualified sureties
   const recent = history.slice(0,15);
   document.getElementById("recentBody").innerHTML = recent.map(x=>{
     const t=x.created_at?new Date(x.created_at).toLocaleString():"";
@@ -900,35 +858,8 @@ async function addContribution(){
   toast("Saved");
 }
 
-async function setContribution(){
-  const memberIdStr = document.getElementById("cSetMember").value;
-  const memberId = Number(memberIdStr);
-  const amt = Number(document.getElementById("cSetAmount").value || 0);
-
-  if(!memberIdStr) return toast("Select member");
-  if(amt < 0) return toast("Invalid amount");
-
-  const m = members.find(x => String(x.id) === String(memberIdStr));
-  if(!m) return toast("Member not found");
-
-  const current = Number(contribTotalsByMember[String(memberId)] || 0);
-  const diff = amt - current;
-
-  if(diff !== 0){
-    const row = { member_id: memberId, amount: diff, kind: "contribution" };
-    if(latestSession?.id) row.session_id = latestSession.id;
-
-    const ins = await sb.from("contributions").insert([row]);
-    if(ins.error) return toast(ins.error.message);
-  }
-
-  await addHistoryRow("Set Contribution", m.name, amt, 0, amt);
-  document.getElementById("cSetAmount").value="";
-  await reloadAll(); toast("Updated");
-}
-
 /* ===========================
-   LOANS (ALL BORROWING HERE)
+   LOANS
 =========================== */
 async function issueLoan(){
   const suretyMemberId = document.getElementById("lSuretyMember").value;
@@ -945,39 +876,25 @@ async function issueLoan(){
   const suretyName = surety ? surety.name : "Unknown";
   const borrowerName = borrower ? borrower.name : "Unknown";
 
-  // ✅ Borrower must be qualified (season 15-days + benefits rule)
   const bq = qualifiedToBorrow(borrower, amt);
   if(!bq.ok) return toast("Borrower: " + bq.reason);
 
-  // ✅ Surety must be qualified to borrow AND not already surety
   const sq = qualifiedSurety(surety, memberId, amt);
   if(!sq.ok) return toast("Surety: " + sq.reason);
 
-  // foundation available
-  const foundation = Number(foundationPaidTotal||0);
-  if(amt>foundation) return toast("Loan exceeds foundation");
-
+  const foundation = Number(appState.foundation || 0);
   const interest = Math.round(amt*INTEREST_RATE);
   const totalDue = amt + interest;
 
-  // A) update member loan_due
-  let r = await sb
-    .from("members")
+  if(totalDue > foundation) return toast("Loan exceeds foundation");
+
+  // member loan_due
+  let r = await sb.from("members")
     .update({loan_due:(Number(borrower.loan_due)||0)+totalDue})
     .eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
-  // B) deduct from foundation pot (principal + interest)
-  r = await sb.from("foundation_payments").insert([{
-    member_id: Number(memberId),
-    amount_paid: -(totalDue),
-    amount_pending: 0,
-    status: "loan_out",
-    notes: `Loan issued: principal ${amt}, interest ${interest} (5%). Deducted principal + interest from foundation pot. Surety=${suretyName}.`
-  }]);
-  if(r.error) return toast(r.error.message);
-
-  // C) insert loan record into loans table
+  // loans insert (borrowing record)
   r = await sb.from("loans").insert([{
     borrower_member_id: Number(memberId),
     borrower_name: borrowerName,
@@ -990,18 +907,19 @@ async function issueLoan(){
   }]);
   if(r.error) return toast("loans insert: " + r.error.message);
 
-  // D) update total interest generated
+  // app_state: deduct foundation + add interest generated
   r = await sb.from("app_state").update({
+    foundation: foundation - totalDue,
     total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
     updated_at:new Date().toISOString()
   }).eq("id",1);
-  if(r.error) return toast(r.error.message);
+  if(r.error) return toast("app_state update: " + r.error.message);
 
   await addHistoryRow("Loan", borrowerName, amt, 5, totalDue);
 
   document.getElementById("lAmount").value="";
   await reloadAll();
-  toast("Loan issued (saved in loans)");
+  toast("Loan issued");
 }
 
 async function repayLoan(){
@@ -1017,9 +935,11 @@ async function repayLoan(){
   const pay=Math.min(amt,due);
   const newDue=due-pay;
 
+  // members update
   let r=await sb.from("members").update({loan_due:newDue}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
+  // repayments insert
   r = await sb.from("repayments").insert([{
     borrower_member_id: Number(memberId),
     borrower_name: m.name,
@@ -1028,29 +948,34 @@ async function repayLoan(){
   }]);
   if(r.error) return toast("repayments insert: " + r.error.message);
 
-  r = await sb.from("foundation_payments").insert([{
-    member_id: Number(memberId),
-    amount_paid: pay,
-    amount_pending: 0,
-    status: "repayment",
-    notes: `Loan repayment received: ${pay}`
-  }]);
-  if(r.error) return toast(r.error.message);
+  // update latest active loan row’s balance (optional but keeps loans accurate)
+  const active = await sb.from("loans")
+    .select("id,total_due")
+    .eq("borrower_member_id", Number(memberId))
+    .eq("status","active")
+    .order("created_at", { ascending:false })
+    .limit(1)
+    .maybeSingle();
 
-  if(newDue <= 0){
-    const active = await sb.from("loans")
-      .select("id")
-      .eq("borrower_member_id", Number(memberId))
-      .eq("status", "active")
-      .order("created_at", { ascending:false })
-      .limit(1)
-      .maybeSingle();
-
-    if(active?.data?.id){
-      const up = await sb.from("loans").update({ status:"cleared", updated_at:new Date().toISOString() }).eq("id", active.data.id);
-      if(up.error) appendErr("loan clear update: " + up.error.message);
-    }
+  if(active?.data?.id){
+    const oldDue = Number(active.data.total_due || 0);
+    const newLoanDue = Math.max(0, oldDue - pay);
+    const newStatus = (newLoanDue <= 0) ? "cleared" : "active";
+    const up = await sb.from("loans").update({
+      total_due: newLoanDue,
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    }).eq("id", active.data.id);
+    if(up.error) appendErr("loan update: " + up.error.message);
   }
+
+  // app_state: add back to foundation
+  const foundation = Number(appState.foundation || 0);
+  r = await sb.from("app_state").update({
+    foundation: foundation + pay,
+    updated_at:new Date().toISOString()
+  }).eq("id",1);
+  if(r.error) return toast("app_state update: " + r.error.message);
 
   await addHistoryRow("Repayment",m.name,pay,0,newDue);
   document.getElementById("rAmount").value="";
@@ -1081,6 +1006,7 @@ async function markFinePaid(fineId){
   await reloadAll(); toast("Marked paid");
 }
 
+/* FOUNDATION PAYMENTS: insert row + update app_state.foundation */
 async function addFoundationPayment(){
   const memberId = document.getElementById("fpMember").value;
   const paid = Number(document.getElementById("fpPaid").value || 0);
@@ -1091,6 +1017,7 @@ async function addFoundationPayment(){
   if(!memberId) return toast("Select member");
   if(paid < 0 || pending < 0) return toast("Amounts must be >= 0");
 
+  // insert into foundation_payments ONLY foundation-related
   const r = await sb.from("foundation_payments").insert([{
     member_id: Number(memberId),
     amount_paid: paid,
@@ -1098,8 +1025,15 @@ async function addFoundationPayment(){
     status,
     notes
   }]);
-
   if(r.error) return toast(r.error.message);
+
+  // update foundation pot
+  const newFoundation = Number(appState.foundation || 0) + paid;
+  const up = await sb.from("app_state").update({
+    foundation: newFoundation,
+    updated_at: new Date().toISOString()
+  }).eq("id", 1);
+  if(up.error) return toast("app_state update: " + up.error.message);
 
   document.getElementById("fpPaid").value = "";
   document.getElementById("fpPending").value = "";
@@ -1108,14 +1042,13 @@ async function addFoundationPayment(){
   toast("Saved");
 }
 
-/* PAYOUT logic kept as-is */
+/* PAYOUT logic unchanged */
 async function clearPotContributions(){
   const up = await sb.from("contributions").update({ kind: "paid" }).eq("kind", "contribution");
   if(!up.error) return true;
   appendErr("contributions clear failed: " + up.error.message);
   return false;
 }
-
 async function runPayout(){
   const r = await sb.rpc("run_payout");
   if (!r.error && r.data) {
@@ -1128,22 +1061,18 @@ async function runPayout(){
   toast("Payout failed (see sidebar)");
 }
 
-/* ===========================
-   INIT
-=========================== */
+/* INIT */
 (async function init(){
   document.getElementById("app").style.display="none";
   document.getElementById("locked").style.display="flex";
   const ok = await enforceAdminGate();
   if(ok) await reloadAll();
 
-  // ✅ auto-filter sureties as user changes borrower / amount
   const borrowerSel = document.getElementById("lMember");
   const amtInput = document.getElementById("lAmount");
   if(borrowerSel) borrowerSel.addEventListener("change", refreshSuretyDropdown);
   if(amtInput) amtInput.addEventListener("input", refreshSuretyDropdown);
 })();
 </script>
-
 </body>
 </html>
