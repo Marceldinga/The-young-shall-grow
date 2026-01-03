@@ -923,19 +923,29 @@ async function issueLoan(){
 }
 
 async function repayLoan(){
-  const memberId = document.getElementById("rMember").value;
+  const memberIdRaw = document.getElementById("rMember").value;
   const amt = Number(document.getElementById("rAmount").value || 0);
 
-  if(!memberId) return toast("Select borrower");
+  if(!memberIdRaw) return toast("Select borrower");
   if(!amt || amt <= 0) return toast("Enter amount");
 
-  const m = members.find(x => String(x.id) === String(memberId));
+  // ✅ FIX ONLY: guarantee a valid numeric member_id (avoid NaN -> null)
+  let memberIdNum = parseInt(memberIdRaw, 10);
+  if(!Number.isFinite(memberIdNum)){
+    const sel = document.getElementById("rMember");
+    const selectedName = sel?.options?.[sel.selectedIndex]?.text || "";
+    const found = members.find(x => String(x.name||"") === String(selectedName));
+    if(found) memberIdNum = Number(found.id);
+  }
+  if(!Number.isFinite(memberIdNum)) return toast("Invalid borrower id");
+
+  const m = members.find(x => Number(x.id) === Number(memberIdNum));
   if(!m) return toast("Member not found");
 
   // Get latest ACTIVE loan due from loans table
   const active = await sb.from("loans")
     .select("id,total_due")
-    .eq("borrower_member_id", Number(memberId))
+    .eq("borrower_member_id", Number(memberIdNum))
     .eq("status","active")
     .order("created_at", { ascending:false })
     .limit(1)
@@ -948,12 +958,12 @@ async function repayLoan(){
   const newDue = due - pay;
 
   // members update
-  let r = await sb.from("members").update({loan_due:newDue}).eq("id",memberId);
+  let r = await sb.from("members").update({loan_due:newDue}).eq("id",memberIdNum);
   if(r.error) return toast(r.error.message);
 
-  // ✅ FIX HERE: repayments table requires member_id (NOT NULL)
+  // ✅ repayment insert now ALWAYS has valid member_id (NOT NULL)
   r = await sb.from("repayments").insert([{
-    member_id: Number(memberId),
+    member_id: Number(memberIdNum),
     member_name: m.name,
     amount_paid: pay,
     notes: "Loan repayment"
@@ -973,7 +983,7 @@ async function repayLoan(){
   const foundation = Number(appState.foundation || 0);
   r = await sb.from("app_state").update({
     foundation: foundation + pay,
-    updated_at:new Date().toISOString()
+    updated_at: new Date().toISOString()
   }).eq("id",1);
   if(r.error) return toast("app_state update: " + r.error.message);
 
