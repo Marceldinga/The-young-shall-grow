@@ -211,7 +211,6 @@
       <button id="navDash" class="active" onclick="show('dash','Dashboard')">Dashboard</button>
       <button id="navMembers" onclick="show('members','Members')">Members</button>
       <button id="navContrib" onclick="show('contrib','Contributions')">Contributions</button>
-      <button id="navFoundation" onclick="show('foundation','Foundation')">Foundation</button>
       <button id="navLoans" onclick="show('loans','Loans')">Loans</button>
       <button id="navFines" onclick="show('fines','Fines')">Fines</button>
       <button id="navPayouts" onclick="show('payouts','Payouts')">Payouts</button>
@@ -302,27 +301,6 @@
           <label>Member</label><select id="cSetMember"></select>
           <label>Set to amount</label><input id="cSetAmount" type="number" placeholder="e.g. 2000" />
           <button class="btn" style="width:100%;margin-top:12px" onclick="setContribution()">Set Contribution</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="foundation" class="section">
-      <div class="grid2">
-        <div class="card">
-          <div style="font-weight:900;">Foundation Balance</div>
-          <label>Add to Foundation</label><input id="fAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addToFoundation()">Add</button>
-          <hr style="border:0;border-top:1px solid rgba(255,255,255,.08);margin:14px 0;">
-          <label>Set Foundation Total</label><input id="fSetAmount" type="number" placeholder="e.g. 5000" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="setFoundation()">Set Foundation</button>
-        </div>
-
-        <div class="card">
-          <div style="font-weight:900;">Member Foundation Contribution</div>
-          <label>Member</label><select id="mfMember"></select>
-          <label>Amount</label><input id="mfAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addMemberFoundation()">Add Member Foundation</button>
-          <div class="sub" style="margin-top:12px">This increases member foundation and foundation balance.</div>
         </div>
       </div>
     </section>
@@ -430,7 +408,7 @@
       <div class="grid2">
         <div class="card">
           <div style="font-weight:900;">Add Surety Record</div>
-          <label>Surety Name</label><input id="sSuretyName" placeholder="Surety full name" />
+          <label>Surety (select member)</label><select id="sSuretyMember"></select>
           <label>Borrower (select member)</label><select id="sBorrowerMember"></select>
           <label>Amount Borrowed</label><input id="sAmountBorrowed" type="number" placeholder="e.g. 1000" />
           <label>Surety Sign (text)</label><input id="sSuretySign" placeholder="Surety signature text" />
@@ -486,7 +464,6 @@ let payouts = [];
 let fines = [];
 let foundationPayments = [];
 let sureties = [];
-let loans = [];
 let latestSession = null;
 let foundationPaidTotal = 0;
 let contribTotalsByMember = {};
@@ -532,7 +509,6 @@ function show(sectionId, title){
     dash:"navDash",
     members:"navMembers",
     contrib:"navContrib",
-    foundation:"navFoundation",
     loans:"navLoans",
     fines:"navFines",
     payouts:"navPayouts",
@@ -622,12 +598,11 @@ async function signOut(){
 }
 
 /* ===========================
-   LOAD
+   LOAD (FIX app_state single() crash)
 =========================== */
 async function reloadAll(){
   sideErr("");
 
-  // keep app_state for rotation + total_interest_generated (no foundation usage)
   let a = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
 
   if (a.error) {
@@ -659,7 +634,6 @@ async function reloadAll(){
   if (m.error) appendErr("members: " + m.error.message);
   members = m.data || [];
 
-  // Contributions (Njangi Pot) comes from contributions table
   const c = await sb
     .from("contributions")
     .select("member_id, amount")
@@ -674,8 +648,6 @@ async function reloadAll(){
     totals[mid] = (totals[mid] || 0) + (Number(r.amount) || 0);
   });
   contribTotalsByMember = totals;
-
-  // attach computed "contributed" so UI stays unchanged
   members = (members || []).map(mem => ({ ...mem, contributed: totals[String(mem.id)] || 0 }));
 
   const h = await sb.from("history").select("*").order("created_at", { ascending: false }).limit(500);
@@ -690,29 +662,27 @@ async function reloadAll(){
   if (f.error) appendErr("fines: " + f.error.message);
   fines = f.data || [];
 
-  // Foundation Payments table
   const fp = await sb.from("foundation_payments").select("*").order("date_paid", { ascending: false }).limit(300);
   if (fp.error) appendErr("foundation_payments: " + fp.error.message);
   foundationPayments = fp.data || [];
-
-  // ✅ Foundation KPI (and loan-available fund) is ONLY from foundation_payments.amount_paid
-  // Includes:
-  //  - positive payments
-  //  - negative deductions when issuing loans (PRINCIPAL ONLY)
-  //  - positive repayments when recording repayments
   foundationPaidTotal = (foundationPayments || []).reduce((s, r) => s + (Number(r.amount_paid) || 0), 0);
 
   const s = await sb.from("sureties").select("*").order("date_borrowed", { ascending: false }).limit(300);
   if (s.error) appendErr("sureties: " + s.error.message);
   sureties = s.data || [];
 
+  // Monthly compounding interest (5%) on unpaid dues
+  const interestChanged = await applyMonthlyCompoundingInterest();
+  if (interestChanged && !reloadAll._interestRetry) {
+    reloadAll._interestRetry = true;
+    await reloadAll();
+    reloadAll._interestRetry = false;
+    return;
+  }
+
   const sess = await sb.from("sessions").select("*").order("start_date", { ascending: false }).limit(1).maybeSingle();
   if (sess.error) appendErr("sessions: " + sess.error.message);
   latestSession = sess.data || null;
-
-  const ln = await sb.from("loans").select("*").order("created_at", { ascending: false }).limit(500);
-  if (ln.error) appendErr("loans: " + ln.error.message);
-  loans = ln.data || [];
 
   const changed = await autoConvertPendingToLoans();
   if (changed && !reloadAll._autoRetry) {
@@ -766,7 +736,7 @@ function renderAll(){
     `).join("");
 
   const opts = members.map(x=>`<option value="${x.id}">${x.name}</option>`).join("");
-  ["cMember","cSetMember","mfMember","lMember","rMember","fineMember","fpMember","sBorrowerMember"].forEach(id=>{
+  ["cMember","cSetMember","mfMember","lMember","rMember","fineMember","fpMember","sBorrowerMember","sSuretyMember"].forEach(id=>{
     const el=document.getElementById(id); if(el) el.innerHTML=opts;
   });
 
@@ -925,7 +895,8 @@ async function clearPotContributions(){
 }
 
 /* ===========================
-   AUTO: Convert amount_pending -> loans after 15 days
+   AUTO: Convert amount_pending -> loan_due after 15 days + 5% interest
+   Uses sureties table (not loans)
 =========================== */
 async function autoConvertPendingToLoans(){
   try{
@@ -957,18 +928,40 @@ async function autoConvertPendingToLoans(){
       const principal = Number(r.amount_pending || 0);
       const memberId = Number(r.member_id);
 
-      const ins = await sb.from("loans").insert([{ member_id: memberId, principal }]);
-      if(ins.error){
-        appendErr("auto-loan loans insert: " + ins.error.message);
-        continue;
-      }
-
       const mem = members.find(x => String(x.id) === String(memberId));
-      if(mem){
-        const newDue = (Number(mem.loan_due) || 0) + principal;
-        const mu = await sb.from("members").update({ loan_due: newDue }).eq("id", memberId);
-        if(mu.error) appendErr("auto-loan members update: " + mu.error.message);
-      }
+      const memberName = mem ? mem.name : `member_id=${memberId}`;
+
+      const interest = Math.round(principal * INTEREST_RATE);
+      const totalDue = principal + interest;
+
+      const currentDue = Number(mem?.loan_due || 0);
+      const mu = await sb.from("members").update({ loan_due: currentDue + totalDue }).eq("id", memberId);
+      if(mu.error) { appendErr("auto-loan members update: " + mu.error.message); continue; }
+
+      const fd = await sb.from("foundation_payments").insert([{
+        member_id: memberId,
+        amount_paid: -totalDue,
+        amount_pending: 0,
+        status: "loan_out",
+        notes: `Auto-converted pending to loan after 15 days (session start ${sd}). Principal ${principal}, interest ${interest} (5%). Deducted from foundation pot.`
+      }]);
+      if(fd.error) appendErr("auto-loan foundation deduction insert: " + fd.error.message);
+
+      const sr = await sb.from("sureties").insert([{
+        surety_name: "Auto (Pending)",
+        borrower_member_id: memberId,
+        borrower_name: memberName,
+        amount_borrowed: principal,
+        status: "active",
+        notes: `Auto loan created from foundation_payments.pending on ${new Date().toISOString()}`
+      }]);
+      if(sr.error) appendErr("auto-loan sureties insert: " + sr.error.message);
+
+      const au = await sb.from("app_state").update({
+        total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
+        updated_at: new Date().toISOString()
+      }).eq("id",1);
+      if(au.error) appendErr("auto-loan app_state interest update: " + au.error.message);
 
       const stamp = `Converted to loan on ${new Date().toISOString()} (session start: ${sd})`;
       const newNotes = (r.notes ? (r.notes + " | ") : "") + stamp;
@@ -980,22 +973,14 @@ async function autoConvertPendingToLoans(){
       }).eq("id", r.id);
 
       if(fu.error){
-        fu = await sb.from("foundation_payments").update({
-          amount_pending: 0,
-          notes: newNotes
-        }).eq("id", r.id);
-
+        fu = await sb.from("foundation_payments").update({ amount_pending: 0, notes: newNotes }).eq("id", r.id);
         if(fu.error){
-          fu = await sb.from("foundation_payments").update({
-            amount_pending: 0
-          }).eq("id", r.id);
-
+          fu = await sb.from("foundation_payments").update({ amount_pending: 0 }).eq("id", r.id);
           if(fu.error) appendErr("auto-loan foundation_payments update: " + fu.error.message);
         }
       }
 
-      const name = mem ? mem.name : `member_id=${memberId}`;
-      await addHistoryRow("Auto Loan (Pending)", name, principal, 0, null);
+      await addHistoryRow("Auto Loan (Pending)", memberName, principal, 5, currentDue + totalDue);
 
       changed = true;
     }
@@ -1132,82 +1117,96 @@ async function setContribution(){
   await reloadAll(); toast("Updated");
 }
 
-/* FOUNDATION (kept as your current code) */
-async function addToFoundation(){
-  const amt=Number(document.getElementById("fAmount").value||0);
-  if(!amt||amt<=0) return toast("Enter amount");
+/* ===========================
+   MONTHLY COMPOUNDING INTEREST (5%)
+=========================== */
+async function applyMonthlyCompoundingInterest(){
+  try{
+    const DAY_MS = 24*60*60*1000;
+    const MONTH_MS = 30*DAY_MS;
+    const today = fromIso(isoDate(new Date()));
 
-  const r = await sb.from("foundation_payments").insert([{
-    member_id: null,
-    amount_paid: amt,
-    amount_pending: 0,
-    status: "paid",
-    notes: "Admin add to foundation"
-  }]);
+    const lastInterestByMember = {};
+    for(const h of (history || [])){
+      if(h.type === "Monthly Interest" && h.member){
+        const t = h.created_at ? new Date(h.created_at) : null;
+        if(!t) continue;
+        const key = String(h.member);
+        if(!lastInterestByMember[key] || t > lastInterestByMember[key]) lastInterestByMember[key] = t;
+      }
+    }
 
-  if(r.error) return toast(r.error.message);
+    let anyChanged = false;
 
-  await addHistoryRow("Foundation Add","Admin",amt,0, (Number(foundationPaidTotal)||0) + amt);
-  document.getElementById("fAmount").value="";
-  await reloadAll(); toast("Saved");
-}
+    for(const m of (members || [])){
+      const due = Number(m.loan_due || 0);
+      if(due <= 0) continue;
 
-async function setFoundation(){
-  const target=Number(document.getElementById("fSetAmount").value||0);
-  if(target<0) return toast("Invalid amount");
+      let startDate = null;
 
-  const current = Number(foundationPaidTotal || 0);
-  const diff = target - current;
+      const borrowerSureties = (sureties || [])
+        .filter(s => String(s.borrower_member_id) === String(m.id) && (s.status || "").toLowerCase() === "active" && s.date_borrowed)
+        .sort((a,b)=> new Date(b.date_borrowed) - new Date(a.date_borrowed));
 
-  if(diff !== 0){
-    const r = await sb.from("foundation_payments").insert([{
-      member_id: null,
-      amount_paid: diff,
-      amount_pending: 0,
-      status: "paid",
-      notes: "Admin set foundation total"
-    }]);
-    if(r.error) return toast(r.error.message);
+      if(borrowerSureties.length){
+        startDate = new Date(borrowerSureties[0].date_borrowed);
+      } else {
+        const loanHist = (history || [])
+          .filter(h => (h.type === "Loan" || h.type === "Auto Loan (Pending)") && String(h.member) === String(m.name) && h.created_at)
+          .sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
+        if(loanHist.length){
+          startDate = new Date(loanHist[0].created_at);
+        }
+      }
+
+      if(!startDate) continue;
+
+      const lastApplied = lastInterestByMember[String(m.name)] || startDate;
+
+      const lastAppliedDay = fromIso(isoDate(new Date(lastApplied)));
+      const elapsed = today.getTime() - lastAppliedDay.getTime();
+      const monthsPassed = Math.floor(elapsed / MONTH_MS);
+
+      if(monthsPassed <= 0) continue;
+
+      let newDue = Number(m.loan_due || 0);
+      let totalInterestAdded = 0;
+
+      const loops = Math.min(monthsPassed, 120);
+      for(let i=0;i<loops;i++){
+        const interest = Math.round(newDue * INTEREST_RATE);
+        newDue = newDue + interest;
+        totalInterestAdded += interest;
+
+        await addHistoryRow("Monthly Interest", m.name, interest, 5, newDue);
+      }
+
+      const mu = await sb.from("members").update({ loan_due: newDue }).eq("id", m.id);
+      if(mu.error){
+        appendErr("monthly interest members update: " + mu.error.message);
+        continue;
+      }
+
+      if(totalInterestAdded > 0){
+        const au = await sb.from("app_state").update({
+          total_interest_generated: (Number(appState.total_interest_generated)||0) + totalInterestAdded,
+          updated_at: new Date().toISOString()
+        }).eq("id", 1);
+        if(au.error) appendErr("monthly interest app_state update: " + au.error.message);
+      }
+
+      anyChanged = true;
+    }
+
+    return anyChanged;
+  } catch(e){
+    appendErr("monthly interest error: " + (e?.message || String(e)));
+    return false;
   }
-
-  await addHistoryRow("Foundation Set","Admin",target,0,target);
-  document.getElementById("fSetAmount").value="";
-  await reloadAll(); toast("Updated");
-}
-
-async function addMemberFoundation(){
-  const memberId=document.getElementById("mfMember").value;
-  const amt=Number(document.getElementById("mfAmount").value||0);
-  if(!memberId) return toast("Select member");
-  if(!amt||amt<=0) return toast("Enter amount");
-
-  const m=members.find(x=>String(x.id)===String(memberId));
-  const newMemberFound=(Number(m.foundation_contrib)||0)+amt;
-
-  let r=await sb.from("members").update({foundation_contrib:newMemberFound}).eq("id",memberId);
-  if(r.error) return toast(r.error.message);
-
-  r = await sb.from("foundation_payments").insert([{
-    member_id: Number(memberId),
-    amount_paid: amt,
-    amount_pending: 0,
-    status: "paid",
-    notes: "Member foundation contribution"
-  }]);
-  if(r.error) return toast(r.error.message);
-
-  await addHistoryRow("Member Foundation",m.name,amt,0,newMemberFound);
-  document.getElementById("mfAmount").value="";
-  await reloadAll(); toast("Saved");
 }
 
 /* ===========================
-   ✅ LOANS: UPDATED PER YOUR REQUEST
-   - Available foundation is ONLY from foundation_payments (foundationPaidTotal)
-   - When issuing a loan, DEDUCT ONLY the amount borrowed (principal)
-   - Interest is tracked in:
-       * members.loan_due (principal + interest)
-       * app_state.total_interest_generated (+interest)
+   LOANS (FOUNDATION PAYMENTS POT)
 =========================== */
 async function issueLoan(){
   const memberId=document.getElementById("lMember").value;
@@ -1217,11 +1216,8 @@ async function issueLoan(){
 
   const m=members.find(x=>String(x.id)===String(memberId));
 
-  // ✅ foundation available ONLY from foundation_payments
-  const foundation = Number(foundationPaidTotal || 0);
-
-  // ✅ check against principal ONLY
-  if(amt > foundation) return toast("Loan exceeds foundation");
+  const foundation=Number(foundationPaidTotal||0);
+  if(amt>foundation) return toast("Loan exceeds foundation");
 
   const minReq=0.70*amt;
   const memberFound=Number(m.foundation_contrib||0);
@@ -1230,33 +1226,30 @@ async function issueLoan(){
   const interest=Math.round(amt*INTEREST_RATE);
   const totalDue=amt+interest;
 
-  // 1) member loan_due increases by principal + interest (same as before)
   let r=await sb.from("members").update({loan_due:(Number(m.loan_due)||0)+totalDue}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
-  // 2) ✅ deduct ONLY principal from foundation pot using foundation_payments
   r = await sb.from("foundation_payments").insert([{
     member_id: Number(memberId),
-    amount_paid: -amt,          // ✅ ONLY borrowed amount (NO interest deducted)
+    amount_paid: -totalDue,
     amount_pending: 0,
-    status: "paid",
-    notes: `Loan issued: -${amt} principal (interest ${interest} tracked separately)`
+    status: "loan_out",
+    notes: `Loan issued: principal ${amt}, interest ${interest} (5%). Deducted from foundation pot.`
   }]);
   if(r.error) return toast(r.error.message);
 
-  // 3) keep interest counter in app_state (existing KPI)
-  r=await sb.from("app_state").update({
+  r = await sb.from("app_state").update({
     total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
     updated_at:new Date().toISOString()
   }).eq("id",1);
   if(r.error) return toast(r.error.message);
 
   await addHistoryRow("Loan",m.name,amt,5,totalDue);
+
   document.getElementById("lAmount").value="";
   await reloadAll(); toast("Loan issued");
 }
 
-/* REPAYMENT (kept as your current code) */
 async function repayLoan(){
   const memberId=document.getElementById("rMember").value;
   const amt=Number(document.getElementById("rAmount").value||0);
@@ -1277,8 +1270,8 @@ async function repayLoan(){
     member_id: Number(memberId),
     amount_paid: pay,
     amount_pending: 0,
-    status: "paid",
-    notes: "Loan repayment"
+    status: "repayment",
+    notes: `Loan repayment received: ${pay}`
   }]);
   if(r.error) return toast(r.error.message);
 
@@ -1287,7 +1280,7 @@ async function repayLoan(){
   await reloadAll(); toast("Repayment saved");
 }
 
-/* fines + other functions unchanged... */
+/* FINES */
 async function addFine(){
   const memberId=document.getElementById("fineMember").value;
   const amt=Number(document.getElementById("fineAmount").value||0);
@@ -1311,6 +1304,7 @@ async function markFinePaid(fineId){
   await reloadAll(); toast("Marked paid");
 }
 
+/* FOUNDATION PAYMENTS insert */
 async function addFoundationPayment(){
   const memberId = document.getElementById("fpMember").value;
   const paid = Number(document.getElementById("fpPaid").value || 0);
@@ -1338,8 +1332,9 @@ async function addFoundationPayment(){
   toast("Saved");
 }
 
+/* SURETIES insert (surety must be a member) */
 async function addSurety(){
-  const suretyName = document.getElementById("sSuretyName").value.trim();
+  const suretyMemberId = document.getElementById("sSuretyMember").value;
   const borrowerMemberId = document.getElementById("sBorrowerMember").value;
   const amountBorrowed = Number(document.getElementById("sAmountBorrowed").value || 0);
   const suretySign = document.getElementById("sSuretySign").value.trim();
@@ -1347,11 +1342,13 @@ async function addSurety(){
   const status = document.getElementById("sStatus").value;
   const notes = document.getElementById("sNotes").value.trim();
 
-  if(!suretyName) return toast("Enter surety name");
+  if(!suretyMemberId) return toast("Select surety member");
   if(!borrowerMemberId) return toast("Select borrower");
   if(!amountBorrowed || amountBorrowed <= 0) return toast("Enter amount borrowed");
 
+  const surety = members.find(m => String(m.id) === String(suretyMemberId));
   const borrower = members.find(m => String(m.id) === String(borrowerMemberId));
+  const suretyName = surety ? surety.name : "Unknown";
   const borrowerName = borrower ? borrower.name : "Unknown";
 
   const r = await sb.from("sureties").insert([{
@@ -1367,7 +1364,6 @@ async function addSurety(){
 
   if(r.error) return toast(r.error.message);
 
-  document.getElementById("sSuretyName").value = "";
   document.getElementById("sAmountBorrowed").value = "";
   document.getElementById("sSuretySign").value = "";
   document.getElementById("sBorrowerSign").value = "";
