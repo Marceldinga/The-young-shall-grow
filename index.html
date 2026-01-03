@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -922,21 +923,34 @@ async function issueLoan(){
   toast("Loan issued");
 }
 
+/* ✅ ONLY FIX APPLIED: repayLoan() now checks ACTIVE LOAN due from loans table */
 async function repayLoan(){
-  const memberId=document.getElementById("rMember").value;
-  const amt=Number(document.getElementById("rAmount").value||0);
+  const memberId = document.getElementById("rMember").value;
+  const amt = Number(document.getElementById("rAmount").value || 0);
+
   if(!memberId) return toast("Select borrower");
-  if(!amt||amt<=0) return toast("Enter amount");
+  if(!amt || amt <= 0) return toast("Enter amount");
 
-  const m=members.find(x=>String(x.id)===String(memberId));
-  const due=Number(m.loan_due||0);
-  if(due<=0) return toast("No loan due");
+  const m = members.find(x => String(x.id) === String(memberId));
+  if(!m) return toast("Member not found");
 
-  const pay=Math.min(amt,due);
-  const newDue=due-pay;
+  // 🔥 FIX: get loan due from the latest ACTIVE loan record
+  const active = await sb.from("loans")
+    .select("id,total_due")
+    .eq("borrower_member_id", Number(memberId))
+    .eq("status","active")
+    .order("created_at", { ascending:false })
+    .limit(1)
+    .maybeSingle();
+
+  const due = Number(active?.data?.total_due || 0);
+  if(due <= 0) return toast("No loan due");
+
+  const pay = Math.min(amt, due);
+  const newDue = due - pay;
 
   // members update
-  let r=await sb.from("members").update({loan_due:newDue}).eq("id",memberId);
+  let r = await sb.from("members").update({loan_due:newDue}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
   // repayments insert
@@ -948,26 +962,14 @@ async function repayLoan(){
   }]);
   if(r.error) return toast("repayments insert: " + r.error.message);
 
-  // update latest active loan row’s balance (optional but keeps loans accurate)
-  const active = await sb.from("loans")
-    .select("id,total_due")
-    .eq("borrower_member_id", Number(memberId))
-    .eq("status","active")
-    .order("created_at", { ascending:false })
-    .limit(1)
-    .maybeSingle();
-
-  if(active?.data?.id){
-    const oldDue = Number(active.data.total_due || 0);
-    const newLoanDue = Math.max(0, oldDue - pay);
-    const newStatus = (newLoanDue <= 0) ? "cleared" : "active";
-    const up = await sb.from("loans").update({
-      total_due: newLoanDue,
-      status: newStatus,
-      updated_at: new Date().toISOString()
-    }).eq("id", active.data.id);
-    if(up.error) appendErr("loan update: " + up.error.message);
-  }
+  // update active loan row
+  const newStatus = (newDue <= 0) ? "cleared" : "active";
+  const up = await sb.from("loans").update({
+    total_due: newDue,
+    status: newStatus,
+    updated_at: new Date().toISOString()
+  }).eq("id", active.data.id);
+  if(up.error) appendErr("loan update: " + up.error.message);
 
   // app_state: add back to foundation
   const foundation = Number(appState.foundation || 0);
@@ -977,8 +979,8 @@ async function repayLoan(){
   }).eq("id",1);
   if(r.error) return toast("app_state update: " + r.error.message);
 
-  await addHistoryRow("Repayment",m.name,pay,0,newDue);
-  document.getElementById("rAmount").value="";
+  await addHistoryRow("Repayment", m.name, pay, 0, newDue);
+  document.getElementById("rAmount").value = "";
   await reloadAll();
   toast("Repayment saved");
 }
