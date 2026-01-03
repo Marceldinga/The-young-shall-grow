@@ -445,6 +445,13 @@ let loans = [];
 let latestSession = null;
 let contribTotalsByMember = {};
 
+/* ✅ role state (admin/member) */
+let currentUserRole = "member";
+
+/* ✅ charts state */
+let _histChart = null;
+let _pieChart = null;
+
 /* ===========================
    HELPERS
 =========================== */
@@ -490,6 +497,62 @@ function show(sectionId, title){
 }
 window.addEventListener("error", (e) => appendErr("JS error: " + (e?.message || "unknown")));
 window.addEventListener("unhandledrejection", (e) => appendErr("Promise error: " + (e?.reason?.message || String(e?.reason || "unknown"))));
+
+/* ===========================
+   ✅ MEMBER READ-ONLY GATE (UI only)
+=========================== */
+function setDisabled(el, disabled){
+  if(!el) return;
+  el.disabled = !!disabled;
+  el.style.opacity = disabled ? "0.55" : "";
+  el.style.pointerEvents = disabled ? "none" : "";
+  el.style.filter = disabled ? "grayscale(40%)" : "";
+}
+function applyRoleUI(){
+  const isAdmin = (currentUserRole === "admin");
+
+  // hide interest for non-admin
+  const kInterestMini = document.getElementById("kInterestMini");
+  if(kInterestMini){
+    const pill = kInterestMini.closest(".pill");
+    if(pill) pill.style.display = isAdmin ? "inline-block" : "none";
+  }
+
+  // lock all write forms for non-admin
+  const writeRoots = [
+    document.querySelector("#members .card"),               // add member card
+    document.querySelector("#contrib .card"),               // add contribution card
+    document.querySelector("#loans .card"),                 // issue/repay loan card
+    document.querySelector("#fines .card"),                 // add fine card
+    document.querySelector("#foundation_payments .card"),   // add foundation payment card
+  ];
+
+  // specifically disable first card in those sections (the form card)
+  writeRoots.forEach(root=>{
+    if(!root) return;
+    // only first "card" is the form card in each section
+  });
+
+  // Disable inputs/buttons in each "form card" (first card in each section)
+  const formCards = [
+    document.querySelector("#members .grid2 .card:nth-child(1)"),
+    document.querySelector("#contrib .grid2 .card:nth-child(1)"),
+    document.querySelector("#loans .grid2 .card:nth-child(1)"),
+    document.querySelector("#fines .grid2 .card:nth-child(1)"),
+    document.querySelector("#foundation_payments .grid2 .card:nth-child(1)"),
+  ];
+  formCards.forEach(card=>{
+    if(!card) return;
+    card.querySelectorAll("input,select,textarea,button").forEach(el=>setDisabled(el, !isAdmin));
+  });
+
+  // disable payout buttons for non-admin
+  document.querySelectorAll('button[onclick="runPayout()"]').forEach(b=>setDisabled(b, !isAdmin));
+
+  // role pill
+  const roleEl = document.getElementById("role");
+  if(roleEl) roleEl.textContent = currentUserRole;
+}
 
 /* ===========================
    SEASON-BASED 15-DAYS + QUALIFIED SURETY
@@ -571,7 +634,7 @@ function refreshSuretyDropdown(){
 }
 
 /* ===========================
-   AUTH / ADMIN GATE
+   AUTH / ROLE GATE (admin or member)
 =========================== */
 async function enforceAdminGate(){
   const { data } = await sb.auth.getUser();
@@ -598,26 +661,23 @@ async function enforceAdminGate(){
   }
 
   if(!profile){
-    sideErr("profiles: no row for this user (create a profiles row + role='admin').");
+    sideErr("profiles: no row for this user (create a profiles row + role='admin' or role='member').");
     await sb.auth.signOut();
     document.getElementById("app").style.display = "none";
     document.getElementById("locked").style.display = "flex";
     return false;
   }
 
-  if(profile.role !== "admin"){
-    sideErr("Access denied: role is not admin.");
-    await sb.auth.signOut();
-    document.getElementById("app").style.display = "none";
-    document.getElementById("locked").style.display = "flex";
-    return false;
-  }
+  // ✅ allow both admin and member
+  const role = String(profile.role || "").toLowerCase();
+  currentUserRole = (role === "admin") ? "admin" : "member";
 
   document.getElementById("locked").style.display = "none";
   document.getElementById("app").style.display = "flex";
-  document.getElementById("who").textContent = user.email || "admin";
-  document.getElementById("role").textContent = "admin";
+  document.getElementById("who").textContent = user.email || "user";
   document.getElementById("today").textContent = new Date().toLocaleDateString();
+
+  applyRoleUI();
   return true;
 }
 
@@ -631,7 +691,7 @@ async function signIn(){
   if (error) return toast(error.message);
 
   const ok = await enforceAdminGate();
-  if (!ok) return toast("Access denied: admin only");
+  if (!ok) return toast("Login failed");
 
   await reloadAll();
   toast("Welcome");
@@ -710,6 +770,56 @@ async function reloadAll(){
 
   renderAll();
   refreshSuretyDropdown();
+  applyRoleUI(); // keep UI locked for members after render
+}
+
+/* ===========================
+   ✅ CHART RENDER (FIX: charts existed but were never drawn)
+=========================== */
+function renderCharts(pot, foundation, outstanding){
+  // histogram: top 10 contributions
+  const top = (members || [])
+    .map(m => ({ name: m.name || String(m.id), val: Number(m.contributed || 0) }))
+    .sort((a,b)=>b.val-a.val)
+    .slice(0,10);
+
+  const hctx = document.getElementById("histChart")?.getContext("2d");
+  if(hctx){
+    if(_histChart) _histChart.destroy();
+    _histChart = new Chart(hctx, {
+      type: "bar",
+      data: {
+        labels: top.map(x=>x.name),
+        datasets: [{ label: "Contributions", data: top.map(x=>x.val) }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: "rgba(234,240,255,.75)" }, grid: { color: "rgba(255,255,255,.06)" } },
+          y: { ticks: { color: "rgba(234,240,255,.75)" }, grid: { color: "rgba(255,255,255,.06)" } }
+        }
+      }
+    });
+  }
+
+  const pctx = document.getElementById("pieChart")?.getContext("2d");
+  if(pctx){
+    if(_pieChart) _pieChart.destroy();
+    _pieChart = new Chart(pctx, {
+      type: "pie",
+      data: {
+        labels: ["Pot", "Foundation", "Loans"],
+        datasets: [{ data: [Number(pot||0), Number(foundation||0), Number(outstanding||0)] }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: "rgba(234,240,255,.85)" } } }
+      }
+    });
+  }
 }
 
 /* ===========================
@@ -723,7 +833,13 @@ function renderAll(){
   document.getElementById("kFoundation").textContent = money(appState.foundation || 0);
   document.getElementById("kLoans").textContent = money(outstanding);
   document.getElementById("kMembers").textContent = String(members.length);
-  document.getElementById("kInterestMini").textContent = money(appState.total_interest_generated||0);
+
+  // ✅ non-admin cannot see interest generated
+  if(currentUserRole === "admin"){
+    document.getElementById("kInterestMini").textContent = money(appState.total_interest_generated||0);
+  } else {
+    document.getElementById("kInterestMini").textContent = "—";
+  }
 
   const idx = Number(appState.next_payout_index||0);
   const nextDate = appState.next_payout_date ? fromIso(appState.next_payout_date) : ROTATION_START;
@@ -768,9 +884,11 @@ function renderAll(){
     <tr><td>${x.payout_date||""}</td><td>${x.member_name||""}</td><td>${money(x.payout_amount||0)}</td></tr>
   `).join("");
 
+  // ✅ members cannot mark fines paid (admin only)
   document.getElementById("fineBody").innerHTML = fines.map(x=>{
     const t=x.created_at?new Date(x.created_at).toLocaleString():"";
-    const action = (x.status||"unpaid")==="unpaid"
+    const canAct = (currentUserRole === "admin") && ((x.status||"unpaid")==="unpaid");
+    const action = canAct
       ? `<button class="btn ghost" onclick="markFinePaid(${x.id})">Mark Paid</button>`
       : "-";
     return `<tr><td>${t}</td><td>${x.member_name||""}</td><td>${money(x.amount||0)}</td><td>${x.reason||"-"}</td><td>${x.status||"unpaid"}</td><td>${action}</td></tr>`;
@@ -802,6 +920,9 @@ function renderAll(){
       <td>${r.status||""}</td>
     </tr>`;
   }).join("");
+
+  // ✅ FIX: actually draw charts now
+  renderCharts(pot, Number(appState.foundation||0), outstanding);
 }
 
 /* ===========================
@@ -963,13 +1084,12 @@ async function repayLoan(){
 
   // ✅ repayment insert now ALWAYS has valid member_id (NOT NULL)
   r = await sb.from("repayments").insert([{
-  member_id: Number(memberIdNum),
-  member_name: m.name,
-  amount: pay,        // ✅ REQUIRED (FIX)
-  amount_paid: pay,   // kept as-is
-  notes: "Loan repayment"
-}]);
-
+    member_id: Number(memberIdNum),
+    member_name: m.name,
+    amount: pay,        // ✅ REQUIRED (FIX)
+    amount_paid: pay,   // kept as-is
+    notes: "Loan repayment"
+  }]);
   if(r.error) return toast("repayments insert: " + r.error.message);
 
   // update active loan row
