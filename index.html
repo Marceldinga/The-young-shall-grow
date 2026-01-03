@@ -922,7 +922,6 @@ async function issueLoan(){
   toast("Loan issued");
 }
 
-/* ✅ ONLY FIX APPLIED: repayLoan() now checks ACTIVE LOAN due from loans table */
 async function repayLoan(){
   const memberId = document.getElementById("rMember").value;
   const amt = Number(document.getElementById("rAmount").value || 0);
@@ -933,7 +932,7 @@ async function repayLoan(){
   const m = members.find(x => String(x.id) === String(memberId));
   if(!m) return toast("Member not found");
 
-  // 🔥 FIX: get loan due from the latest ACTIVE loan record
+  // Get latest ACTIVE loan due from loans table
   const active = await sb.from("loans")
     .select("id,total_due")
     .eq("borrower_member_id", Number(memberId))
@@ -952,10 +951,10 @@ async function repayLoan(){
   let r = await sb.from("members").update({loan_due:newDue}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
-  // repayments insert
+  // ✅ FIX HERE: repayments table requires member_id (NOT NULL)
   r = await sb.from("repayments").insert([{
-    borrower_member_id: Number(memberId),
-    borrower_name: m.name,
+    member_id: Number(memberId),
+    member_name: m.name,
     amount_paid: pay,
     notes: "Loan repayment"
   }]);
@@ -978,8 +977,8 @@ async function repayLoan(){
   }).eq("id",1);
   if(r.error) return toast("app_state update: " + r.error.message);
 
-  await addHistoryRow("Repayment", m.name, pay, 0, newDue);
-  document.getElementById("rAmount").value = "";
+  await addHistoryRow("Repayment",m.name,pay,0,newDue);
+  document.getElementById("rAmount").value="";
   await reloadAll();
   toast("Repayment saved");
 }
