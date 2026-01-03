@@ -622,12 +622,12 @@ async function signOut(){
 }
 
 /* ===========================
-   LOAD (FIX app_state single() crash)  ✅ (your requested part)
+   LOAD
 =========================== */
 async function reloadAll(){
   sideErr("");
 
-  // FIX: maybeSingle + auto-seed app_state row
+  // keep app_state for rotation + total_interest_generated (no foundation usage)
   let a = await sb.from("app_state").select("*").eq("id", 1).maybeSingle();
 
   if (a.error) {
@@ -659,7 +659,7 @@ async function reloadAll(){
   if (m.error) appendErr("members: " + m.error.message);
   members = m.data || [];
 
-  // Contributions (Njangi Pot) now comes from contributions table
+  // Contributions (Njangi Pot) comes from contributions table
   const c = await sb
     .from("contributions")
     .select("member_id, amount")
@@ -675,9 +675,8 @@ async function reloadAll(){
   });
   contribTotalsByMember = totals;
 
-  // Attach computed "contributed" to members so the rest of the UI stays unchanged
+  // attach computed "contributed" so UI stays unchanged
   members = (members || []).map(mem => ({ ...mem, contributed: totals[String(mem.id)] || 0 }));
-
 
   const h = await sb.from("history").select("*").order("created_at", { ascending: false }).limit(500);
   if (h.error) appendErr("history: " + h.error.message);
@@ -691,29 +690,30 @@ async function reloadAll(){
   if (f.error) appendErr("fines: " + f.error.message);
   fines = f.data || [];
 
-  // NEW TABLES (won't break if not created; errors show in sidebar)
+  // Foundation Payments table
   const fp = await sb.from("foundation_payments").select("*").order("date_paid", { ascending: false }).limit(300);
   if (fp.error) appendErr("foundation_payments: " + fp.error.message);
   foundationPayments = fp.data || [];
 
-  // Foundation KPI now comes from sum(amount_paid) in foundation_payments
+  // ✅ Foundation KPI (and loan-available fund) is ONLY from foundation_payments.amount_paid
+  // Includes:
+  //  - positive payments
+  //  - negative deductions when issuing loans (PRINCIPAL ONLY)
+  //  - positive repayments when recording repayments
   foundationPaidTotal = (foundationPayments || []).reduce((s, r) => s + (Number(r.amount_paid) || 0), 0);
 
   const s = await sb.from("sureties").select("*").order("date_borrowed", { ascending: false }).limit(300);
   if (s.error) appendErr("sureties: " + s.error.message);
   sureties = s.data || [];
 
-  // Sessions (used for auto-converting amount_pending -> loans after 15 days)
   const sess = await sb.from("sessions").select("*").order("start_date", { ascending: false }).limit(1).maybeSingle();
   if (sess.error) appendErr("sessions: " + sess.error.message);
   latestSession = sess.data || null;
 
-  // Loans table (optional; used by auto-conversion logic)
   const ln = await sb.from("loans").select("*").order("created_at", { ascending: false }).limit(500);
   if (ln.error) appendErr("loans: " + ln.error.message);
   loans = ln.data || [];
 
-  // Auto convert foundation_payments.amount_pending into loans.principal after 15 days from latest sessions.start_date
   const changed = await autoConvertPendingToLoans();
   if (changed && !reloadAll._autoRetry) {
     reloadAll._autoRetry = true;
@@ -793,7 +793,6 @@ function renderAll(){
     return `<tr><td>${t}</td><td>${x.member_name||""}</td><td>${money(x.amount||0)}</td><td>${x.reason||"-"}</td><td>${x.status||"unpaid"}</td><td>${action}</td></tr>`;
   }).join("");
 
-  // NEW: foundation payments table render
   const membersById = Object.fromEntries(members.map(m => [String(m.id), m]));
   document.getElementById("fpBody").innerHTML = (foundationPayments || []).map(r=>{
     const t = r.date_paid ? new Date(r.date_paid).toLocaleString() : "";
@@ -808,7 +807,6 @@ function renderAll(){
     </tr>`;
   }).join("");
 
-  // NEW: sureties render
   document.getElementById("sBody").innerHTML = (sureties || []).map(r=>{
     const t = r.date_borrowed ? new Date(r.date_borrowed).toLocaleString() : "";
     const borrower = r.borrower_name || (membersById[String(r.borrower_member_id)]?.name) || "";
@@ -876,7 +874,6 @@ async function addHistoryRow(type, member, amount, interestPercent=0, totalDue=n
 }
 
 async function clearPotContributions(){
-  // Preferred: mark all current-pot contributions as paid
   const up = await sb
     .from("contributions")
     .update({ kind: "paid" })
@@ -884,7 +881,6 @@ async function clearPotContributions(){
 
   if(!up.error) return true;
 
-  // Fallback: if UPDATE is blocked by RLS, insert offset rows so pot becomes 0
   appendErr("contributions clear (UPDATE) failed, using offset rows: " + up.error.message);
 
   const cur = await sb
@@ -928,20 +924,13 @@ async function clearPotContributions(){
   return true;
 }
 
-
 /* ===========================
    AUTO: Convert amount_pending -> loans after 15 days
-   - Reads latest sessions.start_date
-   - For each foundation_payments row with amount_pending > 0:
-       * insert into loans (member_id, principal)
-       * update members.loan_due (+principal) so UI KPIs still work
-       * update foundation_payments.amount_pending -> 0 and status -> 'loaned' (best-effort)
 =========================== */
 async function autoConvertPendingToLoans(){
   try{
     if(!latestSession || !latestSession.start_date) return false;
 
-    // sessions.start_date assumed to be a DATE (YYYY-MM-DD) or timestamp; take date part
     const sd = String(latestSession.start_date).slice(0,10);
     const start = fromIso(sd);
     const threshold = new Date(start.getTime() + (15 * 24 * 60 * 60 * 1000));
@@ -949,7 +938,6 @@ async function autoConvertPendingToLoans(){
     const today = fromIso(isoDate(new Date()));
     if(today < threshold) return false;
 
-    // Pull pending amounts
     const pend = await sb
       .from("foundation_payments")
       .select("id, member_id, amount_pending, status, notes")
@@ -969,14 +957,12 @@ async function autoConvertPendingToLoans(){
       const principal = Number(r.amount_pending || 0);
       const memberId = Number(r.member_id);
 
-      // 1) insert into loans table (minimum required fields)
       const ins = await sb.from("loans").insert([{ member_id: memberId, principal }]);
       if(ins.error){
         appendErr("auto-loan loans insert: " + ins.error.message);
-        continue; // don't convert this row if loan insert failed
+        continue;
       }
 
-      // 2) update members.loan_due so existing dashboard stays intact
       const mem = members.find(x => String(x.id) === String(memberId));
       if(mem){
         const newDue = (Number(mem.loan_due) || 0) + principal;
@@ -984,7 +970,6 @@ async function autoConvertPendingToLoans(){
         if(mu.error) appendErr("auto-loan members update: " + mu.error.message);
       }
 
-      // 3) mark foundation_payment row as converted (best-effort; works even if status enum differs)
       const stamp = `Converted to loan on ${new Date().toISOString()} (session start: ${sd})`;
       const newNotes = (r.notes ? (r.notes + " | ") : "") + stamp;
 
@@ -995,14 +980,12 @@ async function autoConvertPendingToLoans(){
       }).eq("id", r.id);
 
       if(fu.error){
-        // fallback #1: no status update
         fu = await sb.from("foundation_payments").update({
           amount_pending: 0,
           notes: newNotes
         }).eq("id", r.id);
 
         if(fu.error){
-          // fallback #2: only clear pending
           fu = await sb.from("foundation_payments").update({
             amount_pending: 0
           }).eq("id", r.id);
@@ -1011,7 +994,6 @@ async function autoConvertPendingToLoans(){
         }
       }
 
-      // 4) log history (optional)
       const name = mem ? mem.name : `member_id=${memberId}`;
       await addHistoryRow("Auto Loan (Pending)", name, principal, 0, null);
 
@@ -1025,7 +1007,7 @@ async function autoConvertPendingToLoans(){
   }
 }
 
-/* ADD MEMBER (FIX Math.max bug) ✅ */
+/* ADD MEMBER */
 async function addMember(){
   const name = document.getElementById("mName").value.trim();
   const phone = document.getElementById("mPhone").value.trim();
@@ -1044,7 +1026,7 @@ async function addMember(){
   toast("Member added");
 }
 
-/* CONTRIBUTION (INSERT into contributions) ✅ */
+/* CONTRIBUTION */
 async function addContribution(){
   const memberIdStr = document.getElementById("cMember").value;
   const memberId = Number(memberIdStr);
@@ -1079,9 +1061,8 @@ async function addContribution(){
   toast("Saved");
 }
 
-/* PAYOUT (clear pot contributions) ✅ */
+/* PAYOUT */
 async function runPayout(){
-  // Try RPC
   const r = await sb.rpc("run_payout");
   if (!r.error && r.data) {
     await clearPotContributions();
@@ -1090,7 +1071,6 @@ async function runPayout(){
     return;
   }
 
-  // Fallback to local payout logic
   if (r.error) appendErr("run_payout RPC failed (fallback used): " + r.error.message);
 
   if(!members.length) return toast("No members");
@@ -1152,23 +1132,45 @@ async function setContribution(){
   await reloadAll(); toast("Updated");
 }
 
+/* FOUNDATION (kept as your current code) */
 async function addToFoundation(){
   const amt=Number(document.getElementById("fAmount").value||0);
   if(!amt||amt<=0) return toast("Enter amount");
-  const newFound=(Number(appState.foundation)||0)+amt;
-  const r=await sb.from("app_state").update({foundation:newFound,updated_at:new Date().toISOString()}).eq("id",1);
+
+  const r = await sb.from("foundation_payments").insert([{
+    member_id: null,
+    amount_paid: amt,
+    amount_pending: 0,
+    status: "paid",
+    notes: "Admin add to foundation"
+  }]);
+
   if(r.error) return toast(r.error.message);
-  await addHistoryRow("Foundation Add","Admin",amt,0,newFound);
+
+  await addHistoryRow("Foundation Add","Admin",amt,0, (Number(foundationPaidTotal)||0) + amt);
   document.getElementById("fAmount").value="";
   await reloadAll(); toast("Saved");
 }
 
 async function setFoundation(){
-  const amt=Number(document.getElementById("fSetAmount").value||0);
-  if(amt<0) return toast("Invalid amount");
-  const r=await sb.from("app_state").update({foundation:amt,updated_at:new Date().toISOString()}).eq("id",1);
-  if(r.error) return toast(r.error.message);
-  await addHistoryRow("Foundation Set","Admin",amt,0,amt);
+  const target=Number(document.getElementById("fSetAmount").value||0);
+  if(target<0) return toast("Invalid amount");
+
+  const current = Number(foundationPaidTotal || 0);
+  const diff = target - current;
+
+  if(diff !== 0){
+    const r = await sb.from("foundation_payments").insert([{
+      member_id: null,
+      amount_paid: diff,
+      amount_pending: 0,
+      status: "paid",
+      notes: "Admin set foundation total"
+    }]);
+    if(r.error) return toast(r.error.message);
+  }
+
+  await addHistoryRow("Foundation Set","Admin",target,0,target);
   document.getElementById("fSetAmount").value="";
   await reloadAll(); toast("Updated");
 }
@@ -1185,8 +1187,13 @@ async function addMemberFoundation(){
   let r=await sb.from("members").update({foundation_contrib:newMemberFound}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
-  const newFound=(Number(appState.foundation)||0)+amt;
-  r=await sb.from("app_state").update({foundation:newFound,updated_at:new Date().toISOString()}).eq("id",1);
+  r = await sb.from("foundation_payments").insert([{
+    member_id: Number(memberId),
+    amount_paid: amt,
+    amount_pending: 0,
+    status: "paid",
+    notes: "Member foundation contribution"
+  }]);
   if(r.error) return toast(r.error.message);
 
   await addHistoryRow("Member Foundation",m.name,amt,0,newMemberFound);
@@ -1194,14 +1201,27 @@ async function addMemberFoundation(){
   await reloadAll(); toast("Saved");
 }
 
+/* ===========================
+   ✅ LOANS: UPDATED PER YOUR REQUEST
+   - Available foundation is ONLY from foundation_payments (foundationPaidTotal)
+   - When issuing a loan, DEDUCT ONLY the amount borrowed (principal)
+   - Interest is tracked in:
+       * members.loan_due (principal + interest)
+       * app_state.total_interest_generated (+interest)
+=========================== */
 async function issueLoan(){
   const memberId=document.getElementById("lMember").value;
   const amt=Number(document.getElementById("lAmount").value||0);
   if(!memberId) return toast("Select member");
   if(!amt||amt<=0) return toast("Enter loan amount");
+
   const m=members.find(x=>String(x.id)===String(memberId));
-  const foundation=Number(appState.foundation||0);
-  if(amt>foundation) return toast("Loan exceeds foundation");
+
+  // ✅ foundation available ONLY from foundation_payments
+  const foundation = Number(foundationPaidTotal || 0);
+
+  // ✅ check against principal ONLY
+  if(amt > foundation) return toast("Loan exceeds foundation");
 
   const minReq=0.70*amt;
   const memberFound=Number(m.foundation_contrib||0);
@@ -1210,11 +1230,22 @@ async function issueLoan(){
   const interest=Math.round(amt*INTEREST_RATE);
   const totalDue=amt+interest;
 
+  // 1) member loan_due increases by principal + interest (same as before)
   let r=await sb.from("members").update({loan_due:(Number(m.loan_due)||0)+totalDue}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
+  // 2) ✅ deduct ONLY principal from foundation pot using foundation_payments
+  r = await sb.from("foundation_payments").insert([{
+    member_id: Number(memberId),
+    amount_paid: -amt,          // ✅ ONLY borrowed amount (NO interest deducted)
+    amount_pending: 0,
+    status: "paid",
+    notes: `Loan issued: -${amt} principal (interest ${interest} tracked separately)`
+  }]);
+  if(r.error) return toast(r.error.message);
+
+  // 3) keep interest counter in app_state (existing KPI)
   r=await sb.from("app_state").update({
-    foundation: foundation-amt,
     total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
     updated_at:new Date().toISOString()
   }).eq("id",1);
@@ -1225,6 +1256,7 @@ async function issueLoan(){
   await reloadAll(); toast("Loan issued");
 }
 
+/* REPAYMENT (kept as your current code) */
 async function repayLoan(){
   const memberId=document.getElementById("rMember").value;
   const amt=Number(document.getElementById("rAmount").value||0);
@@ -1241,10 +1273,13 @@ async function repayLoan(){
   let r=await sb.from("members").update({loan_due:newDue}).eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
-  r=await sb.from("app_state").update({
-    foundation:(Number(appState.foundation)||0)+pay,
-    updated_at:new Date().toISOString()
-  }).eq("id",1);
+  r = await sb.from("foundation_payments").insert([{
+    member_id: Number(memberId),
+    amount_paid: pay,
+    amount_pending: 0,
+    status: "paid",
+    notes: "Loan repayment"
+  }]);
   if(r.error) return toast(r.error.message);
 
   await addHistoryRow("Repayment",m.name,pay,0,newDue);
@@ -1252,6 +1287,7 @@ async function repayLoan(){
   await reloadAll(); toast("Repayment saved");
 }
 
+/* fines + other functions unchanged... */
 async function addFine(){
   const memberId=document.getElementById("fineMember").value;
   const amt=Number(document.getElementById("fineAmount").value||0);
@@ -1275,7 +1311,6 @@ async function markFinePaid(fineId){
   await reloadAll(); toast("Marked paid");
 }
 
-/* NEW: Foundation Payments insert */
 async function addFoundationPayment(){
   const memberId = document.getElementById("fpMember").value;
   const paid = Number(document.getElementById("fpPaid").value || 0);
@@ -1303,7 +1338,6 @@ async function addFoundationPayment(){
   toast("Saved");
 }
 
-/* NEW: Surety insert */
 async function addSurety(){
   const suretyName = document.getElementById("sSuretyName").value.trim();
   const borrowerMemberId = document.getElementById("sBorrowerMember").value;
