@@ -896,7 +896,7 @@ async function clearPotContributions(){
 
 /* ===========================
    AUTO: Convert amount_pending -> loan_due after 15 days + 5% interest
-   Uses sureties table (not loans)
+   IMPORTANT: DOES NOT TOUCH SURETIES (shortie unchanged)
 =========================== */
 async function autoConvertPendingToLoans(){
   try{
@@ -947,16 +947,6 @@ async function autoConvertPendingToLoans(){
       }]);
       if(fd.error) appendErr("auto-loan foundation deduction insert: " + fd.error.message);
 
-      const sr = await sb.from("sureties").insert([{
-        surety_name: "Auto (Pending)",
-        borrower_member_id: memberId,
-        borrower_name: memberName,
-        amount_borrowed: principal,
-        status: "active",
-        notes: `Auto loan created from foundation_payments.pending on ${new Date().toISOString()}`
-      }]);
-      if(sr.error) appendErr("auto-loan sureties insert: " + sr.error.message);
-
       const au = await sb.from("app_state").update({
         total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
         updated_at: new Date().toISOString()
@@ -990,131 +980,6 @@ async function autoConvertPendingToLoans(){
     appendErr("auto-loan error: " + (e?.message || String(e)));
     return false;
   }
-}
-
-/* ADD MEMBER */
-async function addMember(){
-  const name = document.getElementById("mName").value.trim();
-  const phone = document.getElementById("mPhone").value.trim();
-  const hasBenefits = document.getElementById("mBenefits").value === "true";
-  if(!name) return toast("Enter member name");
-
-  const pos = members.length ? (Math.max(...members.map(x => Number(x.position || 0))) + 1) : 1;
-
-  const r = await sb.from("members").insert([{ name, phone, has_benefits: hasBenefits, position: pos }]);
-  if (r.error) return toast(r.error.message);
-
-  await addHistoryRow("Member Added", name, 0, 0, null);
-  document.getElementById("mName").value = "";
-  document.getElementById("mPhone").value = "";
-  await reloadAll();
-  toast("Member added");
-}
-
-/* CONTRIBUTION */
-async function addContribution(){
-  const memberIdStr = document.getElementById("cMember").value;
-  const memberId = Number(memberIdStr);
-  const amt = Number(document.getElementById("cAmount").value || 0);
-
-  if(!memberIdStr) return toast("Select member");
-  if(!amt || amt <= 0) return toast("Enter amount");
-  if(amt % 500 !== 0) return toast("Must be multiple of 500");
-
-  const m = members.find(x => String(x.id) === String(memberIdStr));
-  let memberName = m?.name || "";
-
-  if(!memberName){
-    const mr = await sb.from("members").select("name").eq("id", memberId).maybeSingle();
-    if(mr.error) appendErr("members (name): " + mr.error.message);
-    memberName = mr.data?.name || "";
-  }
-
-  const row = { member_id: memberId, amount: amt, kind: "contribution" };
-  if(latestSession?.id) row.session_id = latestSession.id;
-
-  const ins = await sb.from("contributions").insert([row]);
-  if (ins.error) return toast(ins.error.message);
-
-  const prev = Number(contribTotalsByMember[String(memberId)] || 0);
-  const newTotal = prev + amt;
-
-  await addHistoryRow("Contribution", memberName || ("member_id=" + memberId), amt, 0, newTotal);
-
-  document.getElementById("cAmount").value = "";
-  await reloadAll();
-  toast("Saved");
-}
-
-/* PAYOUT */
-async function runPayout(){
-  const r = await sb.rpc("run_payout");
-  if (!r.error && r.data) {
-    await clearPotContributions();
-    await reloadAll();
-    toast(`Paid ${money(r.data.payout_amount)} to ${r.data.receiver_name}`);
-    return;
-  }
-
-  if (r.error) appendErr("run_payout RPC failed (fallback used): " + r.error.message);
-
-  if(!members.length) return toast("No members");
-  const pot = members.reduce((s,x)=>s+(Number(x.contributed)||0),0);
-  if(pot<=0) return toast("Pot is 0");
-
-  const idx = Number(appState.next_payout_index||0) % members.length;
-  const nextDate = appState.next_payout_date ? fromIso(appState.next_payout_date) : ROTATION_START;
-
-  const today = fromIso(isoDate(new Date()));
-  if(today < nextDate) return toast("Next payout: " + nextDate.toLocaleDateString());
-
-  const receiver = members[idx];
-
-  let ins = await sb.from("payouts").insert([{ member_id:receiver.id, member_name:receiver.name, payout_amount:pot, payout_date:isoDate(today) }]);
-  if(ins.error) return toast(ins.error.message);
-
-  let up = await sb.from("members").update({ payout_total:(Number(receiver.payout_total)||0)+pot, last_payout_at:new Date().toISOString() }).eq("id",receiver.id);
-  if(up.error) return toast(up.error.message);
-
-  const cleared = await clearPotContributions();
-  if(!cleared) return toast("Could not clear pot contributions (see sidebar errors)");
-
-  const newIdx=(idx+1)%members.length;
-  const newNextDate=new Date(nextDate.getTime()+BIWEEK_MS);
-
-  let st = await sb.from("app_state").update({ next_payout_index:newIdx, next_payout_date:isoDate(newNextDate), updated_at:new Date().toISOString() }).eq("id",1);
-  if(st.error) return toast(st.error.message);
-
-  await addHistoryRow("Payout",receiver.name,pot,0,null);
-  await reloadAll();
-  toast(`Paid ${money(pot)} to ${receiver.name}`);
-}
-
-async function setContribution(){
-  const memberIdStr = document.getElementById("cSetMember").value;
-  const memberId = Number(memberIdStr);
-  const amt = Number(document.getElementById("cSetAmount").value || 0);
-
-  if(!memberIdStr) return toast("Select member");
-  if(amt < 0) return toast("Invalid amount");
-
-  const m = members.find(x => String(x.id) === String(memberIdStr));
-  if(!m) return toast("Member not found");
-
-  const current = Number(contribTotalsByMember[String(memberId)] || 0);
-  const diff = amt - current;
-
-  if(diff !== 0){
-    const row = { member_id: memberId, amount: diff, kind: "contribution" };
-    if(latestSession?.id) row.session_id = latestSession.id;
-
-    const ins = await sb.from("contributions").insert([row]);
-    if(ins.error) return toast(ins.error.message);
-  }
-
-  await addHistoryRow("Set Contribution", m.name, amt, 0, amt);
-  document.getElementById("cSetAmount").value="";
-  await reloadAll(); toast("Updated");
 }
 
 /* ===========================
