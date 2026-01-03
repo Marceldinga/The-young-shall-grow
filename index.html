@@ -173,9 +173,6 @@
       .grid2{grid-template-columns:1fr}
       .sidebar{width:100%;max-width:360px}
     }
-
-    /* ✅ chart visibility fix */
-    #histChart,#pieChart{width:100% !important;height:260px !important;display:block;}
   </style>
 </head>
 
@@ -185,7 +182,7 @@
 <div id="locked">
   <div class="lockBox">
     <div class="lockGrid">
-      <input id="email" placeholder="Email" autocomplete="username" />
+      <input id="email" placeholder="Admin email" autocomplete="username" />
       <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
       <button class="btn" onclick="signIn()">Sign in</button>
     </div>
@@ -222,7 +219,7 @@
       <div class="sub"><b>Rotation</b></div>
       <div style="margin-top:8px;font-weight:900;font-size:18px" id="nextName">—</div>
       <div class="sub" id="nextInfo">—</div>
-      <button class="btn" id="btnRunPayoutSide" style="width:100%;margin-top:10px" onclick="runPayout()">Run Payout</button>
+      <button class="btn" style="width:100%;margin-top:10px" onclick="runPayout()">Run Payout</button>
       <div class="sub" style="margin-top:10px;color:#fbbf24">Start: <b>Jan 3, 2026</b> • Every 14 days</div>
     </div>
   </aside>
@@ -230,7 +227,7 @@
   <main class="main">
     <div class="topbar">
       <div class="title" id="pageTitle">Dashboard</div>
-      <span class="pill" id="interestPill">Total Interest: <b id="kInterestMini">$0</b></span>
+      <span class="pill">Total Interest: <b id="kInterestMini">$0</b></span>
     </div>
 
     <section id="dash" class="section active">
@@ -244,11 +241,11 @@
       <div class="grid2" style="margin-top:12px;">
         <div class="card">
           <div class="row"><div style="font-weight:900;">Histogram: Contributions (Top 10)</div><span class="pill">Now</span></div>
-          <canvas id="histChart"></canvas>
+          <canvas id="histChart" height="140"></canvas>
         </div>
         <div class="card">
           <div class="row"><div style="font-weight:900;">Pie: Pot vs Foundation vs Loans</div><span class="pill">Now</span></div>
-          <canvas id="pieChart"></canvas>
+          <canvas id="pieChart" height="140"></canvas>
         </div>
       </div>
 
@@ -263,7 +260,7 @@
 
     <section id="members" class="section">
       <div class="grid2">
-        <div class="card" id="cardAddMember">
+        <div class="card">
           <div style="font-weight:900;">Add Member</div>
           <label>Name</label><input id="mName" placeholder="e.g. John Doe" />
           <label>Phone (optional)</label><input id="mPhone" placeholder="e.g. 301-000-0000" />
@@ -282,9 +279,10 @@
       </div>
     </section>
 
+    <!-- ✅ CONTRIBUTIONS (ONLY ONE PANEL) -->
     <section id="contrib" class="section">
       <div class="grid2">
-        <div class="card" id="cardAddContrib">
+        <div class="card">
           <div style="font-weight:900;">Add Contribution</div>
           <label>Member</label><select id="cMember"></select>
           <label>Amount (multiple of 500)</label><input id="cAmount" type="number" placeholder="e.g. 500" />
@@ -298,9 +296,10 @@
       </div>
     </section>
 
+    <!-- LOANS -->
     <section id="loans" class="section">
       <div class="grid2">
-        <div class="card" id="cardLoansForm">
+        <div class="card">
           <div style="font-weight:900;">Issue Loan (5%) — Saved into Loans + Deducts Foundation Pot</div>
 
           <label>Surety (select member)</label><select id="lSuretyMember"></select>
@@ -339,7 +338,7 @@
 
     <section id="fines" class="section">
       <div class="grid2">
-        <div class="card" id="cardFineForm">
+        <div class="card">
           <div style="font-weight:900;">Add Fine</div>
           <label>Member</label><select id="fineMember"></select>
           <label>Fine amount</label><input id="fineAmount" type="number" placeholder="e.g. 500" />
@@ -362,7 +361,7 @@
         <div class="card">
           <div style="font-weight:900;">Run Payout</div>
           <div class="sub" style="margin-top:6px;">Start: Jan 3, 2026 • Every 14 days</div>
-          <button class="btn" id="btnRunPayoutMain" style="width:100%;margin-top:12px" onclick="runPayout()">Run Now</button>
+          <button class="btn" style="width:100%;margin-top:12px" onclick="runPayout()">Run Now</button>
         </div>
 
         <div class="card">
@@ -385,9 +384,10 @@
       </div>
     </section>
 
+    <!-- FOUNDATION PAYMENTS (ONLY FOUNDATION RELATED) -->
     <section id="foundation_payments" class="section">
       <div class="grid2">
-        <div class="card" id="cardFpForm">
+        <div class="card">
           <div style="font-weight:900;">Add Foundation Payment</div>
           <label>Member</label><select id="fpMember"></select>
           <label>Amount Paid</label><input id="fpPaid" type="number" placeholder="e.g. 500" />
@@ -445,11 +445,6 @@ let loans = [];
 let latestSession = null;
 let contribTotalsByMember = {};
 
-/* ✅ role + charts */
-let currentUserRole = "member";
-let _histChart = null;
-let _pieChart = null;
-
 /* ===========================
    HELPERS
 =========================== */
@@ -475,35 +470,6 @@ function appendErr(msg){
   el.style.display = "block";
   el.textContent = next;
 }
-
-function setDisabled(el, disabled){
-  if(!el) return;
-  el.disabled = !!disabled;
-  el.style.opacity = disabled ? "0.55" : "";
-  el.style.pointerEvents = disabled ? "none" : "";
-}
-
-function applyRoleUI(){
-  const isAdmin = (String(currentUserRole).toLowerCase() === "admin");
-
-  document.getElementById("role").textContent = isAdmin ? "admin" : "member";
-
-  // Hide total interest for members
-  const pill = document.getElementById("interestPill");
-  if(pill) pill.style.display = isAdmin ? "inline-block" : "none";
-
-  // Disable write forms for members
-  ["cardAddMember","cardAddContrib","cardLoansForm","cardFineForm","cardFpForm"].forEach(id=>{
-    const card = document.getElementById(id);
-    if(!card) return;
-    card.querySelectorAll("input,select,textarea,button").forEach(el => setDisabled(el, !isAdmin));
-  });
-
-  // Disable payout buttons for members
-  setDisabled(document.getElementById("btnRunPayoutSide"), !isAdmin);
-  setDisabled(document.getElementById("btnRunPayoutMain"), !isAdmin);
-}
-
 function show(sectionId, title){
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
   document.getElementById(sectionId).classList.add("active");
@@ -521,62 +487,9 @@ function show(sectionId, title){
     foundation_payments:"navFPayments",
   };
   document.getElementById(map[sectionId])?.classList.add("active");
-
-  // ✅ ensure charts redraw when returning to dashboard
-  if(sectionId === "dash"){
-    setTimeout(() => { try{ _histChart?.resize(); _pieChart?.resize(); }catch(e){} }, 60);
-  }
 }
 window.addEventListener("error", (e) => appendErr("JS error: " + (e?.message || "unknown")));
 window.addEventListener("unhandledrejection", (e) => appendErr("Promise error: " + (e?.reason?.message || String(e?.reason || "unknown"))));
-
-/* ===========================
-   ✅ CHARTS FIX (charts existed but had no render code)
-=========================== */
-function renderCharts(pot, foundation, loansTotal){
-  // Histogram: top 10 contributors
-  const top = (members || [])
-    .map(m => ({ name: m.name || String(m.id), val: Number(m.contributed || 0) }))
-    .sort((a,b)=>b.val-a.val)
-    .slice(0,10);
-
-  const hctx = document.getElementById("histChart")?.getContext("2d");
-  if(hctx){
-    if(_histChart) _histChart.destroy();
-    _histChart = new Chart(hctx, {
-      type: "bar",
-      data: {
-        labels: top.map(x=>x.name),
-        datasets: [{ label: "Contributions", data: top.map(x=>x.val) }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        plugins: { legend: { display:false } }
-      }
-    });
-  }
-
-  const pctx = document.getElementById("pieChart")?.getContext("2d");
-  if(pctx){
-    const a = Number(pot||0), b = Number(foundation||0), c = Number(loansTotal||0);
-    const sum = a+b+c;
-    const pieData = (sum<=0) ? [1,1,1] : [a,b,c];
-
-    if(_pieChart) _pieChart.destroy();
-    _pieChart = new Chart(pctx, {
-      type: "pie",
-      data: { labels:["Pot","Foundation","Loans"], datasets:[{ data: pieData }] },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        plugins: { title: { display: (sum<=0), text:"No data yet (all totals are 0)" } }
-      }
-    });
-  }
-}
 
 /* ===========================
    SEASON-BASED 15-DAYS + QUALIFIED SURETY
@@ -658,7 +571,7 @@ function refreshSuretyDropdown(){
 }
 
 /* ===========================
-   AUTH / ROLE GATE (✅ members can login; only admins can write + see interest)
+   AUTH / ADMIN GATE
 =========================== */
 async function enforceAdminGate(){
   const { data } = await sb.auth.getUser();
@@ -685,22 +598,26 @@ async function enforceAdminGate(){
   }
 
   if(!profile){
-    sideErr("profiles: no row for this user (create a profiles row + role='admin' or role='member').");
+    sideErr("profiles: no row for this user (create a profiles row + role='admin').");
     await sb.auth.signOut();
     document.getElementById("app").style.display = "none";
     document.getElementById("locked").style.display = "flex";
     return false;
   }
 
-  currentUserRole = String(profile.role || "member").toLowerCase();
-  if(currentUserRole !== "admin") currentUserRole = "member";
+  if(profile.role !== "admin"){
+    sideErr("Access denied: role is not admin.");
+    await sb.auth.signOut();
+    document.getElementById("app").style.display = "none";
+    document.getElementById("locked").style.display = "flex";
+    return false;
+  }
 
   document.getElementById("locked").style.display = "none";
   document.getElementById("app").style.display = "flex";
-  document.getElementById("who").textContent = user.email || "user";
+  document.getElementById("who").textContent = user.email || "admin";
+  document.getElementById("role").textContent = "admin";
   document.getElementById("today").textContent = new Date().toLocaleDateString();
-
-  applyRoleUI();
   return true;
 }
 
@@ -714,7 +631,7 @@ async function signIn(){
   if (error) return toast(error.message);
 
   const ok = await enforceAdminGate();
-  if (!ok) return toast("Login failed");
+  if (!ok) return toast("Access denied: admin only");
 
   await reloadAll();
   toast("Welcome");
@@ -793,7 +710,6 @@ async function reloadAll(){
 
   renderAll();
   refreshSuretyDropdown();
-  applyRoleUI();
 }
 
 /* ===========================
@@ -807,8 +723,6 @@ function renderAll(){
   document.getElementById("kFoundation").textContent = money(appState.foundation || 0);
   document.getElementById("kLoans").textContent = money(outstanding);
   document.getElementById("kMembers").textContent = String(members.length);
-
-  // only admins see pill; value can still compute
   document.getElementById("kInterestMini").textContent = money(appState.total_interest_generated||0);
 
   const idx = Number(appState.next_payout_index||0);
@@ -888,13 +802,10 @@ function renderAll(){
       <td>${r.status||""}</td>
     </tr>`;
   }).join("");
-
-  // ✅ charts render here
-  renderCharts(pot, Number(appState.foundation||0), outstanding);
 }
 
 /* ===========================
-   WRITES (UNCHANGED)
+   WRITES
 =========================== */
 async function addHistoryRow(type, member, amount, interestPercent=0, totalDue=null){
   const r = await sb.from("history").insert([{ type, member, amount, interest_percent:interestPercent, total_due:totalDue }]);
@@ -947,15 +858,220 @@ async function addContribution(){
   toast("Saved");
 }
 
-/* LOANS / REPAY / FINES / FOUNDATION PAYMENTS / PAYOUT
-   (kept as you had them)
-*/
-async function issueLoan(){ /* your existing issueLoan body stays here in your file */ }
-async function repayLoan(){ /* your existing repayLoan body stays here in your file */ }
-async function addFine(){ /* your existing addFine body stays here in your file */ }
-async function markFinePaid(){ /* your existing markFinePaid body stays here in your file */ }
-async function addFoundationPayment(){ /* your existing addFoundationPayment body stays here in your file */ }
-async function runPayout(){ /* your existing runPayout body stays here in your file */ }
+/* ===========================
+   LOANS
+=========================== */
+async function issueLoan(){
+  const suretyMemberId = document.getElementById("lSuretyMember").value;
+  const memberId = document.getElementById("lMember").value;
+  const amt = Number(document.getElementById("lAmount").value||0);
+
+  if(!suretyMemberId) return toast("Select surety member");
+  if(!memberId) return toast("Select borrower");
+  if(String(suretyMemberId) === String(memberId)) return toast("Surety cannot be the borrower");
+  if(!amt||amt<=0) return toast("Enter loan amount");
+
+  const borrower = members.find(x=>String(x.id)===String(memberId));
+  const surety = members.find(x=>String(x.id)===String(suretyMemberId));
+  const suretyName = surety ? surety.name : "Unknown";
+  const borrowerName = borrower ? borrower.name : "Unknown";
+
+  const bq = qualifiedToBorrow(borrower, amt);
+  if(!bq.ok) return toast("Borrower: " + bq.reason);
+
+  const sq = qualifiedSurety(surety, memberId, amt);
+  if(!sq.ok) return toast("Surety: " + sq.reason);
+
+  const foundation = Number(appState.foundation || 0);
+  const interest = Math.round(amt*INTEREST_RATE);
+  const totalDue = amt + interest;
+
+  if(totalDue > foundation) return toast("Loan exceeds foundation");
+
+  // member loan_due
+  let r = await sb.from("members")
+    .update({loan_due:(Number(borrower.loan_due)||0)+totalDue})
+    .eq("id",memberId);
+  if(r.error) return toast(r.error.message);
+
+  // loans insert (borrowing record)
+  r = await sb.from("loans").insert([{
+    borrower_member_id: Number(memberId),
+    borrower_name: borrowerName,
+    surety_member_id: Number(suretyMemberId),
+    surety_name: suretyName,
+    principal: amt,
+    interest: interest,
+    total_due: totalDue,
+    status: "active"
+  }]);
+  if(r.error) return toast("loans insert: " + r.error.message);
+
+  // app_state: deduct ONLY the principal, interest is accounting-only
+  r = await sb.from("app_state").update({
+    foundation: foundation - amt, // only principal deducted
+    total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
+    updated_at:new Date().toISOString()
+  }).eq("id",1);
+  if(r.error) return toast("app_state update: " + r.error.message);
+
+  await addHistoryRow("Loan", borrowerName, amt, 5, totalDue);
+
+  document.getElementById("lAmount").value="";
+  await reloadAll();
+  toast("Loan issued");
+}
+
+async function repayLoan(){
+  const memberIdRaw = document.getElementById("rMember").value;
+  const amt = Number(document.getElementById("rAmount").value || 0);
+
+  if(!memberIdRaw) return toast("Select borrower");
+  if(!amt || amt <= 0) return toast("Enter amount");
+
+  // ✅ FIX ONLY: guarantee a valid numeric member_id (avoid NaN -> null)
+  let memberIdNum = parseInt(memberIdRaw, 10);
+  if(!Number.isFinite(memberIdNum)){
+    const sel = document.getElementById("rMember");
+    const selectedName = sel?.options?.[sel.selectedIndex]?.text || "";
+    const found = members.find(x => String(x.name||"") === String(selectedName));
+    if(found) memberIdNum = Number(found.id);
+  }
+  if(!Number.isFinite(memberIdNum)) return toast("Invalid borrower id");
+
+  const m = members.find(x => Number(x.id) === Number(memberIdNum));
+  if(!m) return toast("Member not found");
+
+  // Get latest ACTIVE loan due from loans table
+  const active = await sb.from("loans")
+    .select("id,total_due")
+    .eq("borrower_member_id", Number(memberIdNum))
+    .eq("status","active")
+    .order("created_at", { ascending:false })
+    .limit(1)
+    .maybeSingle();
+
+  const due = Number(active?.data?.total_due || 0);
+  if(due <= 0) return toast("No loan due");
+
+  const pay = Math.min(amt, due);
+  const newDue = due - pay;
+
+  // members update
+  let r = await sb.from("members").update({loan_due:newDue}).eq("id",memberIdNum);
+  if(r.error) return toast(r.error.message);
+
+  // ✅ repayment insert now ALWAYS has valid member_id (NOT NULL)
+  r = await sb.from("repayments").insert([{
+  member_id: Number(memberIdNum),
+  member_name: m.name,
+  amount: pay,        // ✅ REQUIRED (FIX)
+  amount_paid: pay,   // kept as-is
+  notes: "Loan repayment"
+}]);
+
+  if(r.error) return toast("repayments insert: " + r.error.message);
+
+  // update active loan row
+  const newStatus = (newDue <= 0) ? "cleared" : "active";
+  const up = await sb.from("loans").update({
+    total_due: newDue,
+    status: newStatus,
+    updated_at: new Date().toISOString()
+  }).eq("id", active.data.id);
+  if(up.error) appendErr("loan update: " + up.error.message);
+
+  // app_state: add back to foundation
+  const foundation = Number(appState.foundation || 0);
+  r = await sb.from("app_state").update({
+    foundation: foundation + pay,
+    updated_at: new Date().toISOString()
+  }).eq("id",1);
+  if(r.error) return toast("app_state update: " + r.error.message);
+
+  await addHistoryRow("Repayment",m.name,pay,0,newDue);
+  document.getElementById("rAmount").value="";
+  await reloadAll();
+  toast("Repayment saved");
+}
+
+async function addFine(){
+  const memberId=document.getElementById("fineMember").value;
+  const amt=Number(document.getElementById("fineAmount").value||0);
+  const reason=document.getElementById("fineReason").value.trim();
+  if(!memberId) return toast("Select member");
+  if(!amt||amt<=0) return toast("Enter fine amount");
+
+  const m=members.find(x=>String(x.id)===String(memberId));
+  const r=await sb.from("fines").insert([{ member_id:m.id, member_name:m.name, amount:amt, reason, status:"unpaid" }]);
+  if(r.error) return toast(r.error.message);
+
+  await addHistoryRow("Fine",m.name,amt,0,null);
+  document.getElementById("fineAmount").value="";
+  document.getElementById("fineReason").value="";
+  await reloadAll(); toast("Fine saved");
+}
+
+async function markFinePaid(fineId){
+  const r=await sb.from("fines").update({status:"paid",paid_at:new Date().toISOString()}).eq("id",fineId);
+  if(r.error) return toast(r.error.message);
+  await reloadAll(); toast("Marked paid");
+}
+
+/* FOUNDATION PAYMENTS: insert row + update app_state.foundation */
+async function addFoundationPayment(){
+  const memberId = document.getElementById("fpMember").value;
+  const paid = Number(document.getElementById("fpPaid").value || 0);
+  const pending = Number(document.getElementById("fpPending").value || 0);
+  const status = document.getElementById("fpStatus").value;
+  const notes = document.getElementById("fpNotes").value.trim();
+
+  if(!memberId) return toast("Select member");
+  if(paid < 0 || pending < 0) return toast("Amounts must be >= 0");
+
+  // insert into foundation_payments ONLY foundation-related
+  const r = await sb.from("foundation_payments").insert([{
+    member_id: Number(memberId),
+    amount_paid: paid,
+    amount_pending: pending,
+    status,
+    notes
+  }]);
+  if(r.error) return toast(r.error.message);
+
+  // update foundation pot
+  const newFoundation = Number(appState.foundation || 0) + paid;
+  const up = await sb.from("app_state").update({
+    foundation: newFoundation,
+    updated_at: new Date().toISOString()
+  }).eq("id", 1);
+  if(up.error) return toast("app_state update: " + up.error.message);
+
+  document.getElementById("fpPaid").value = "";
+  document.getElementById("fpPending").value = "";
+  document.getElementById("fpNotes").value = "";
+  await reloadAll();
+  toast("Saved");
+}
+
+/* PAYOUT logic unchanged */
+async function clearPotContributions(){
+  const up = await sb.from("contributions").update({ kind: "paid" }).eq("kind", "contribution");
+  if(!up.error) return true;
+  appendErr("contributions clear failed: " + up.error.message);
+  return false;
+}
+async function runPayout(){
+  const r = await sb.rpc("run_payout");
+  if (!r.error && r.data) {
+    await clearPotContributions();
+    await reloadAll();
+    toast(`Paid ${money(r.data.payout_amount)} to ${r.data.receiver_name}`);
+    return;
+  }
+  if (r.error) appendErr("run_payout RPC failed: " + r.error.message);
+  toast("Payout failed (see sidebar)");
+}
 
 /* INIT */
 (async function init(){
