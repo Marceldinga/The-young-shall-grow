@@ -76,6 +76,7 @@
     .btn:hover{filter:brightness(1.08)}
     .btn:active{transform: translateY(1px)}
     .btn.ghost{background:rgba(255,255,255,.03);box-shadow:none;}
+    .btn[disabled]{opacity:.45;cursor:not-allowed;filter:none}
 
     .wrap{display:flex;min-height:100vh}
     .sidebar{
@@ -182,9 +183,10 @@
 <div id="locked">
   <div class="lockBox">
     <div class="lockGrid">
-      <input id="email" placeholder="Admin email" autocomplete="username" />
+      <input id="email" placeholder="Email" autocomplete="username" />
       <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
       <button class="btn" onclick="signIn()">Sign in</button>
+      <div class="sub">Members can log in to view. Only admins can add/update data.</div>
     </div>
   </div>
 </div>
@@ -219,7 +221,7 @@
       <div class="sub"><b>Rotation</b></div>
       <div style="margin-top:8px;font-weight:900;font-size:18px" id="nextName">—</div>
       <div class="sub" id="nextInfo">—</div>
-      <button class="btn" style="width:100%;margin-top:10px" onclick="runPayout()">Run Payout</button>
+      <button id="btnRunPayoutSide" class="btn" style="width:100%;margin-top:10px" onclick="runPayout()">Run Payout</button>
       <div class="sub" style="margin-top:10px;color:#fbbf24">Start: <b>Jan 3, 2026</b> • Every 14 days</div>
     </div>
   </aside>
@@ -227,7 +229,7 @@
   <main class="main">
     <div class="topbar">
       <div class="title" id="pageTitle">Dashboard</div>
-      <span class="pill">Total Interest: <b id="kInterestMini">$0</b></span>
+      <span id="interestPill" class="pill">Total Interest: <b id="kInterestMini">$0</b></span>
     </div>
 
     <section id="dash" class="section active">
@@ -266,7 +268,8 @@
           <label>Phone (optional)</label><input id="mPhone" placeholder="e.g. 301-000-0000" />
           <label>Has benefits?</label>
           <select id="mBenefits"><option value="false">No</option><option value="true">Yes</option></select>
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addMember()">Add Member</button>
+          <button id="btnAddMember" class="btn" style="width:100%;margin-top:12px" onclick="addMember()">Add Member</button>
+          <div class="sub" style="margin-top:10px">Admins only can add members.</div>
         </div>
 
         <div class="card">
@@ -286,8 +289,9 @@
           <div style="font-weight:900;">Add Contribution</div>
           <label>Member</label><select id="cMember"></select>
           <label>Amount (multiple of 500)</label><input id="cAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addContribution()">Save Contribution</button>
+          <button id="btnSaveContribution" class="btn" style="width:100%;margin-top:12px" onclick="addContribution()">Save Contribution</button>
           <div class="sub" style="margin-top:12px">Rule: Contributions must be multiples of <b>500</b>.</div>
+          <div class="sub" style="margin-top:6px">Admins only can save contributions.</div>
         </div>
         <div class="card">
           <div style="font-weight:900;">Contributions Info</div>
@@ -305,7 +309,7 @@
           <label>Surety (select member)</label><select id="lSuretyMember"></select>
           <label>Borrower (select member)</label><select id="lMember"></select>
           <label>Loan amount</label><input id="lAmount" type="number" placeholder="e.g. 1000" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="issueLoan()">Issue Loan</button>
+          <button id="btnIssueLoan" class="btn" style="width:100%;margin-top:12px" onclick="issueLoan()">Issue Loan</button>
 
           <div class="sub" style="margin-top:12px">
             Rules:
@@ -319,7 +323,9 @@
           <div style="font-weight:900;">Record Repayment</div>
           <label>Borrower (select member)</label><select id="rMember"></select>
           <label>Repayment amount</label><input id="rAmount" type="number" placeholder="e.g. 500" />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="repayLoan()">Save Repayment</button>
+          <button id="btnSaveRepayment" class="btn" style="width:100%;margin-top:12px" onclick="repayLoan()">Save Repayment</button>
+
+          <div class="sub" style="margin-top:10px">Admins only can issue/record loans and repayments.</div>
         </div>
 
         <div class="card">
@@ -343,7 +349,8 @@
           <label>Member</label><select id="fineMember"></select>
           <label>Fine amount</label><input id="fineAmount" type="number" placeholder="e.g. 500" />
           <label>Reason</label><input id="fineReason" placeholder="Late payment..." />
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addFine()">Save Fine</button>
+          <button id="btnSaveFine" class="btn" style="width:100%;margin-top:12px" onclick="addFine()">Save Fine</button>
+          <div class="sub" style="margin-top:10px">Admins only can add/mark fines.</div>
         </div>
 
         <div class="card">
@@ -361,7 +368,8 @@
         <div class="card">
           <div style="font-weight:900;">Run Payout</div>
           <div class="sub" style="margin-top:6px;">Start: Jan 3, 2026 • Every 14 days</div>
-          <button class="btn" style="width:100%;margin-top:12px" onclick="runPayout()">Run Now</button>
+          <button id="btnRunPayoutMain" class="btn" style="width:100%;margin-top:12px" onclick="runPayout()">Run Now</button>
+          <div class="sub" style="margin-top:10px">Admins only can run payouts.</div>
         </div>
 
         <div class="card">
@@ -399,8 +407,8 @@
             <option value="paid">paid</option>
           </select>
           <label>Notes (optional)</label><textarea id="fpNotes" placeholder="Notes..."></textarea>
-          <button class="btn" style="width:100%;margin-top:12px" onclick="addFoundationPayment()">Save</button>
-          <div class="sub" style="margin-top:10px">DatePaid is auto (now()).</div>
+          <button id="btnSaveFP" class="btn" style="width:100%;margin-top:12px" onclick="addFoundationPayment()">Save</button>
+          <div class="sub" style="margin-top:10px">DatePaid is auto (now()). • Admins only can save.</div>
         </div>
 
         <div class="card">
@@ -444,6 +452,13 @@ let foundationPayments = [];
 let loans = [];
 let latestSession = null;
 let contribTotalsByMember = {};
+
+let currentRole = "member";
+let isAdmin = false;
+
+// charts
+let histChartInstance = null;
+let pieChartInstance = null;
 
 /* ===========================
    HELPERS
@@ -490,6 +505,44 @@ function show(sectionId, title){
 }
 window.addEventListener("error", (e) => appendErr("JS error: " + (e?.message || "unknown")));
 window.addEventListener("unhandledrejection", (e) => appendErr("Promise error: " + (e?.reason?.message || String(e?.reason || "unknown"))));
+
+function applyRoleUI(){
+  isAdmin = (String(currentRole).toLowerCase() === "admin");
+
+  // Hide total interest for members
+  const interestPill = document.getElementById("interestPill");
+  if(interestPill) interestPill.style.display = isAdmin ? "inline-block" : "none";
+
+  // Disable all write buttons for members
+  const ids = [
+    "btnAddMember",
+    "btnSaveContribution",
+    "btnIssueLoan",
+    "btnSaveRepayment",
+    "btnSaveFine",
+    "btnSaveFP",
+    "btnRunPayoutSide",
+    "btnRunPayoutMain"
+  ];
+  ids.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.disabled = !isAdmin;
+  });
+
+  // Also disable form inputs for members (so they can’t enter data)
+  const inputIds = [
+    "mName","mPhone","mBenefits",
+    "cMember","cAmount",
+    "lSuretyMember","lMember","lAmount",
+    "rMember","rAmount",
+    "fineMember","fineAmount","fineReason",
+    "fpMember","fpPaid","fpPending","fpStatus","fpNotes"
+  ];
+  inputIds.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.disabled = !isAdmin;
+  });
+}
 
 /* ===========================
    SEASON-BASED 15-DAYS + QUALIFIED SURETY
@@ -571,9 +624,9 @@ function refreshSuretyDropdown(){
 }
 
 /* ===========================
-   AUTH / ADMIN GATE
+   AUTH (MEMBER OR ADMIN) + ROLE UI
 =========================== */
-async function enforceAdminGate(){
+async function enforceRoleGate(){
   const { data } = await sb.auth.getUser();
   const user = data?.user;
 
@@ -598,26 +651,25 @@ async function enforceAdminGate(){
   }
 
   if(!profile){
-    sideErr("profiles: no row for this user (create a profiles row + role='admin').");
+    sideErr("profiles: no row for this user (create a profiles row + role='member' or role='admin').");
     await sb.auth.signOut();
     document.getElementById("app").style.display = "none";
     document.getElementById("locked").style.display = "flex";
     return false;
   }
 
-  if(profile.role !== "admin"){
-    sideErr("Access denied: role is not admin.");
-    await sb.auth.signOut();
-    document.getElementById("app").style.display = "none";
-    document.getElementById("locked").style.display = "flex";
-    return false;
+  currentRole = String(profile.role || "member").toLowerCase();
+  if(currentRole !== "admin" && currentRole !== "member"){
+    currentRole = "member";
   }
 
   document.getElementById("locked").style.display = "none";
   document.getElementById("app").style.display = "flex";
-  document.getElementById("who").textContent = user.email || "admin";
-  document.getElementById("role").textContent = "admin";
+  document.getElementById("who").textContent = user.email || "user";
+  document.getElementById("role").textContent = currentRole;
   document.getElementById("today").textContent = new Date().toLocaleDateString();
+
+  applyRoleUI();
   return true;
 }
 
@@ -630,8 +682,8 @@ async function signIn(){
   const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) return toast(error.message);
 
-  const ok = await enforceAdminGate();
-  if (!ok) return toast("Access denied: admin only");
+  const ok = await enforceRoleGate();
+  if (!ok) return toast("Login failed");
 
   await reloadAll();
   toast("Welcome");
@@ -710,6 +762,52 @@ async function reloadAll(){
 
   renderAll();
   refreshSuretyDropdown();
+  applyRoleUI();
+}
+
+/* ===========================
+   CHARTS (FIX: charts were present but never initialized)
+=========================== */
+function renderCharts(topMembers, topAmounts, pot, foundation, loansTotal){
+  // histogram
+  const histEl = document.getElementById("histChart");
+  if(histEl && window.Chart){
+    if(histChartInstance) histChartInstance.destroy();
+    histChartInstance = new Chart(histEl, {
+      type: "bar",
+      data: {
+        labels: topMembers,
+        datasets: [{ label: "Contributions", data: topAmounts }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { maxRotation: 0, autoSkip: true } },
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // pie
+  const pieEl = document.getElementById("pieChart");
+  if(pieEl && window.Chart){
+    if(pieChartInstance) pieChartInstance.destroy();
+    pieChartInstance = new Chart(pieEl, {
+      type: "pie",
+      data: {
+        labels: ["Pot", "Foundation", "Loans"],
+        datasets: [{ data: [pot, foundation, loansTotal] }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } }
+      }
+    });
+  }
 }
 
 /* ===========================
@@ -723,7 +821,10 @@ function renderAll(){
   document.getElementById("kFoundation").textContent = money(appState.foundation || 0);
   document.getElementById("kLoans").textContent = money(outstanding);
   document.getElementById("kMembers").textContent = String(members.length);
-  document.getElementById("kInterestMini").textContent = money(appState.total_interest_generated||0);
+
+  if(isAdmin){
+    document.getElementById("kInterestMini").textContent = money(appState.total_interest_generated||0);
+  }
 
   const idx = Number(appState.next_payout_index||0);
   const nextDate = appState.next_payout_date ? fromIso(appState.next_payout_date) : ROTATION_START;
@@ -770,7 +871,7 @@ function renderAll(){
 
   document.getElementById("fineBody").innerHTML = fines.map(x=>{
     const t=x.created_at?new Date(x.created_at).toLocaleString():"";
-    const action = (x.status||"unpaid")==="unpaid"
+    const action = (x.status||"unpaid")==="unpaid" && isAdmin
       ? `<button class="btn ghost" onclick="markFinePaid(${x.id})">Mark Paid</button>`
       : "-";
     return `<tr><td>${t}</td><td>${x.member_name||""}</td><td>${money(x.amount||0)}</td><td>${x.reason||"-"}</td><td>${x.status||"unpaid"}</td><td>${action}</td></tr>`;
@@ -802,10 +903,21 @@ function renderAll(){
       <td>${r.status||""}</td>
     </tr>`;
   }).join("");
+
+  // Build Top 10 contributions chart data
+  const sorted = (members || [])
+    .map(m => ({ name: m.name || "", amt: Number(m.contributed||0) }))
+    .sort((a,b)=>b.amt-a.amt)
+    .slice(0,10);
+
+  const topNames = sorted.map(x=>x.name);
+  const topAmts  = sorted.map(x=>x.amt);
+
+  renderCharts(topNames, topAmts, pot, Number(appState.foundation||0), outstanding);
 }
 
 /* ===========================
-   WRITES
+   WRITES (ADMIN ONLY)
 =========================== */
 async function addHistoryRow(type, member, amount, interestPercent=0, totalDue=null){
   const r = await sb.from("history").insert([{ type, member, amount, interest_percent:interestPercent, total_due:totalDue }]);
@@ -813,6 +925,7 @@ async function addHistoryRow(type, member, amount, interestPercent=0, totalDue=n
 }
 
 async function addMember(){
+  if(!isAdmin) return toast("Admins only");
   const name = document.getElementById("mName").value.trim();
   const phone = document.getElementById("mPhone").value.trim();
   const hasBenefits = document.getElementById("mBenefits").value === "true";
@@ -831,6 +944,7 @@ async function addMember(){
 }
 
 async function addContribution(){
+  if(!isAdmin) return toast("Admins only");
   const memberIdStr = document.getElementById("cMember").value;
   const memberId = Number(memberIdStr);
   const amt = Number(document.getElementById("cAmount").value || 0);
@@ -859,9 +973,10 @@ async function addContribution(){
 }
 
 /* ===========================
-   LOANS
+   LOANS (ADMIN ONLY)
 =========================== */
 async function issueLoan(){
+  if(!isAdmin) return toast("Admins only");
   const suretyMemberId = document.getElementById("lSuretyMember").value;
   const memberId = document.getElementById("lMember").value;
   const amt = Number(document.getElementById("lAmount").value||0);
@@ -909,7 +1024,7 @@ async function issueLoan(){
 
   // app_state: deduct ONLY the principal, interest is accounting-only
   r = await sb.from("app_state").update({
-    foundation: foundation - amt, // only principal deducted
+    foundation: foundation - amt,
     total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
     updated_at:new Date().toISOString()
   }).eq("id",1);
@@ -923,13 +1038,13 @@ async function issueLoan(){
 }
 
 async function repayLoan(){
+  if(!isAdmin) return toast("Admins only");
   const memberIdRaw = document.getElementById("rMember").value;
   const amt = Number(document.getElementById("rAmount").value || 0);
 
   if(!memberIdRaw) return toast("Select borrower");
   if(!amt || amt <= 0) return toast("Enter amount");
 
-  // ✅ FIX ONLY: guarantee a valid numeric member_id (avoid NaN -> null)
   let memberIdNum = parseInt(memberIdRaw, 10);
   if(!Number.isFinite(memberIdNum)){
     const sel = document.getElementById("rMember");
@@ -942,7 +1057,6 @@ async function repayLoan(){
   const m = members.find(x => Number(x.id) === Number(memberIdNum));
   if(!m) return toast("Member not found");
 
-  // Get latest ACTIVE loan due from loans table
   const active = await sb.from("loans")
     .select("id,total_due")
     .eq("borrower_member_id", Number(memberIdNum))
@@ -957,22 +1071,18 @@ async function repayLoan(){
   const pay = Math.min(amt, due);
   const newDue = due - pay;
 
-  // members update
   let r = await sb.from("members").update({loan_due:newDue}).eq("id",memberIdNum);
   if(r.error) return toast(r.error.message);
 
-  // ✅ repayment insert now ALWAYS has valid member_id (NOT NULL)
   r = await sb.from("repayments").insert([{
-  member_id: Number(memberIdNum),
-  member_name: m.name,
-  amount: pay,        // ✅ REQUIRED (FIX)
-  amount_paid: pay,   // kept as-is
-  notes: "Loan repayment"
-}]);
-
+    member_id: Number(memberIdNum),
+    member_name: m.name,
+    amount: pay,
+    amount_paid: pay,
+    notes: "Loan repayment"
+  }]);
   if(r.error) return toast("repayments insert: " + r.error.message);
 
-  // update active loan row
   const newStatus = (newDue <= 0) ? "cleared" : "active";
   const up = await sb.from("loans").update({
     total_due: newDue,
@@ -981,7 +1091,6 @@ async function repayLoan(){
   }).eq("id", active.data.id);
   if(up.error) appendErr("loan update: " + up.error.message);
 
-  // app_state: add back to foundation
   const foundation = Number(appState.foundation || 0);
   r = await sb.from("app_state").update({
     foundation: foundation + pay,
@@ -996,6 +1105,7 @@ async function repayLoan(){
 }
 
 async function addFine(){
+  if(!isAdmin) return toast("Admins only");
   const memberId=document.getElementById("fineMember").value;
   const amt=Number(document.getElementById("fineAmount").value||0);
   const reason=document.getElementById("fineReason").value.trim();
@@ -1013,13 +1123,15 @@ async function addFine(){
 }
 
 async function markFinePaid(fineId){
+  if(!isAdmin) return toast("Admins only");
   const r=await sb.from("fines").update({status:"paid",paid_at:new Date().toISOString()}).eq("id",fineId);
   if(r.error) return toast(r.error.message);
   await reloadAll(); toast("Marked paid");
 }
 
-/* FOUNDATION PAYMENTS: insert row + update app_state.foundation */
+/* FOUNDATION PAYMENTS: insert row + update app_state.foundation (ADMIN ONLY) */
 async function addFoundationPayment(){
+  if(!isAdmin) return toast("Admins only");
   const memberId = document.getElementById("fpMember").value;
   const paid = Number(document.getElementById("fpPaid").value || 0);
   const pending = Number(document.getElementById("fpPending").value || 0);
@@ -1029,7 +1141,6 @@ async function addFoundationPayment(){
   if(!memberId) return toast("Select member");
   if(paid < 0 || pending < 0) return toast("Amounts must be >= 0");
 
-  // insert into foundation_payments ONLY foundation-related
   const r = await sb.from("foundation_payments").insert([{
     member_id: Number(memberId),
     amount_paid: paid,
@@ -1039,7 +1150,6 @@ async function addFoundationPayment(){
   }]);
   if(r.error) return toast(r.error.message);
 
-  // update foundation pot
   const newFoundation = Number(appState.foundation || 0) + paid;
   const up = await sb.from("app_state").update({
     foundation: newFoundation,
@@ -1054,7 +1164,7 @@ async function addFoundationPayment(){
   toast("Saved");
 }
 
-/* PAYOUT logic unchanged */
+/* PAYOUT logic unchanged (ADMIN ONLY to execute) */
 async function clearPotContributions(){
   const up = await sb.from("contributions").update({ kind: "paid" }).eq("kind", "contribution");
   if(!up.error) return true;
@@ -1062,6 +1172,7 @@ async function clearPotContributions(){
   return false;
 }
 async function runPayout(){
+  if(!isAdmin) return toast("Admins only");
   const r = await sb.rpc("run_payout");
   if (!r.error && r.data) {
     await clearPotContributions();
@@ -1077,7 +1188,7 @@ async function runPayout(){
 (async function init(){
   document.getElementById("app").style.display="none";
   document.getElementById("locked").style.display="flex";
-  const ok = await enforceAdminGate();
+  const ok = await enforceRoleGate();
   if(ok) await reloadAll();
 
   const borrowerSel = document.getElementById("lMember");
