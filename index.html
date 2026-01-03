@@ -110,7 +110,6 @@
       backdrop-filter: blur(12px);
     }
     .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
-
     .pill{
       display:inline-block;
       padding:6px 10px;
@@ -167,6 +166,27 @@
       z-index:9999;
       max-width:min(520px,92vw);
       font-size:13px;
+    }
+
+    /* ✅ VISUALIZATION FIX: friendly overlay when chart has no data */
+    .chartWrap{position:relative;}
+    .noDataOverlay{
+      position:absolute; inset:0;
+      display:none;
+      align-items:center; justify-content:center;
+      text-align:center;
+      color:rgba(234,240,255,.75);
+      font-size:12px;
+      pointer-events:none;
+    }
+    .noDataOverlay b{color:rgba(234,240,255,.95)}
+    .noDataOverlay .box{
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.22);
+      backdrop-filter: blur(8px);
+      max-width:90%;
     }
 
     @media (max-width:1100px){
@@ -242,11 +262,21 @@
       <div class="grid2" style="margin-top:12px;">
         <div class="card">
           <div class="row"><div style="font-weight:900;">Histogram: Contributions (Top 10)</div><span class="pill">Now</span></div>
-          <canvas id="histChart" height="140"></canvas>
+          <div class="chartWrap" style="height:140px;">
+            <canvas id="histChart"></canvas>
+            <div id="histNoData" class="noDataOverlay">
+              <div class="box">No contribution data yet.<br><span class="sub">Add a contribution to see bars.</span></div>
+            </div>
+          </div>
         </div>
         <div class="card">
           <div class="row"><div style="font-weight:900;">Pie: Pot vs Foundation vs Loans</div><span class="pill">Now</span></div>
-          <canvas id="pieChart" height="140"></canvas>
+          <div class="chartWrap" style="height:140px;">
+            <canvas id="pieChart"></canvas>
+            <div id="pieNoData" class="noDataOverlay">
+              <div class="box">No values yet.<br><span class="sub">Pot / Foundation / Loans are all 0.</span></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -312,7 +342,7 @@
             Rules:
             <br>1) Borrower must pick a qualified surety.
             <br>2) 15-days rule is from SEASON start date.
-            <br>3) Surety must be qualified to borrow AND not surety for another  active loan.
+            <br>3) Surety must be qualified to borrow AND not surety for another active loan.
           </div>
 
           <hr style="border:0;border-top:1px solid rgba(255,255,255,.08);margin:14px 0;">
@@ -447,6 +477,7 @@ let latestSession = null;
 let contribTotalsByMember = {};
 let histChart = null;
 let pieChart = null;
+window.isAdmin = false;
 
 /* ===========================
    HELPERS
@@ -574,7 +605,7 @@ function refreshSuretyDropdown(){
 }
 
 /* ===========================
-   AUTH / ADMIN GATE
+   AUTH / ROLE GATE
 =========================== */
 async function enforceAdminGate(){
   const { data } = await sb.auth.getUser();
@@ -601,39 +632,49 @@ async function enforceAdminGate(){
   }
 
   if(!profile){
-    sideErr("profiles: no row for this user (create a profiles row + role='admin').");
+    sideErr("profiles: no row for this user (create a profiles row).");
     await sb.auth.signOut();
     document.getElementById("app").style.display = "none";
     document.getElementById("locked").style.display = "flex";
     return false;
   }
 
-  if(profile.role !== "admin"){
-    document.getElementById("locked").style.display = "none";
-    document.getElementById("app").style.display = "flex";
-    document.getElementById("who").textContent = user.email || "";
-    document.getElementById("role").textContent = profile.role;
-    document.getElementById("today").textContent = new Date().toLocaleDateString();
-    window.isAdmin = false;
-    document.getElementById("kInterestMini").parentElement.style.display = "none";
-    document.querySelectorAll("#app input, #app select, #app textarea, #app button.btn").forEach(el => {
-      const act = el.getAttribute("onclick") || "";
-      if(act.includes("addMember") || act.includes("addContribution") || act.includes("issueLoan") || act.includes("repayLoan") || act.includes("addFine") || act.includes("runPayout") || act.includes("addFoundationPayment") || act.includes("markFinePaid")){
-        el.disabled = true;
-      }
-      if(el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA"){
-        el.disabled = true;
-      }
-    });
-    return true;
-  }
+  // ✅ Allow members to login (read-only)
+  window.isAdmin = (profile.role === "admin");
 
   document.getElementById("locked").style.display = "none";
   document.getElementById("app").style.display = "flex";
-  document.getElementById("who").textContent = user.email || "admin";
-  document.getElementById("role").textContent = "admin";
+  document.getElementById("who").textContent = user.email || "";
+  document.getElementById("role").textContent = profile.role || "member";
   document.getElementById("today").textContent = new Date().toLocaleDateString();
-  window.isAdmin = true;
+
+  // ✅ Hide Total Interest for non-admin
+  if(!window.isAdmin){
+    const pill = document.getElementById("kInterestMini")?.parentElement;
+    if(pill) pill.style.display = "none";
+  }
+
+  // ✅ Read-only: disable all write actions for non-admin (no data add/edit)
+  if(!window.isAdmin){
+    document.querySelectorAll("#app button[onclick]").forEach(btn=>{
+      const act = (btn.getAttribute("onclick") || "");
+      if(
+        act.includes("addMember") ||
+        act.includes("addContribution") ||
+        act.includes("issueLoan") ||
+        act.includes("repayLoan") ||
+        act.includes("addFine") ||
+        act.includes("markFinePaid") ||
+        act.includes("runPayout") ||
+        act.includes("addFoundationPayment")
+      ){
+        btn.disabled = true;
+      }
+    });
+    // Disable form controls so member cannot submit anything
+    document.querySelectorAll("#app input, #app select, #app textarea").forEach(el=> el.disabled = true);
+  }
+
   return true;
 }
 
@@ -647,7 +688,7 @@ async function signIn(){
   if (error) return toast(error.message);
 
   const ok = await enforceAdminGate();
-  if (!ok) return toast("Access denied: admin only");
+  if (!ok) return toast("Login failed");
 
   await reloadAll();
   toast("Welcome");
@@ -729,7 +770,7 @@ async function reloadAll(){
 }
 
 /* ===========================
-   RENDER
+   RENDER (includes charts fix)
 =========================== */
 function renderAll(){
   const pot = members.reduce((s,x)=>s+(Number(x.contributed)||0),0);
@@ -819,44 +860,78 @@ function renderAll(){
     </tr>`;
   }).join("");
 
-  // Render histogram and pie charts
-  const topContributors = (members || []).slice().sort((a,b)=> (Number(b.contributed||0) - Number(a.contributed||0))).slice(0, 10);
-  const labels = topContributors.map(m => m.name || "");
-  const data = topContributors.map(m => Number(m.contributed) || 0);
-  if(histChart){ histChart.destroy(); }
-  const ctx1 = document.getElementById("histChart");
-  if(ctx1){
-    histChart = new Chart(ctx1, {
+  // ✅ CHARTS FIX (draw + show "no data" overlay instead of blank grid)
+  const topContributors = (members || [])
+    .slice()
+    .sort((a,b)=> (Number(b.contributed||0) - Number(a.contributed||0)))
+    .slice(0, 10);
+
+  const histLabels = topContributors.map(m => m.name || "");
+  const histData = topContributors.map(m => Number(m.contributed) || 0);
+  const hasHistData = histData.some(v => (Number(v) || 0) > 0);
+
+  const histOverlay = document.getElementById("histNoData");
+  if(histOverlay) histOverlay.style.display = hasHistData ? "none" : "flex";
+
+  if(histChart){ histChart.destroy(); histChart = null; }
+  const histCanvas = document.getElementById("histChart");
+  if(histCanvas){
+    histChart = new Chart(histCanvas, {
       type: "bar",
       data: {
-        labels: labels,
-        datasets: [{ label: "Contributions", data: data, backgroundColor: "rgba(125,211,252,0.6)" }]
+        labels: histLabels,
+        datasets: [{
+          label: "Contributions",
+          data: histData,
+          backgroundColor: "rgba(125,211,252,0.55)",
+          borderColor: "rgba(125,211,252,0.85)",
+          borderWidth: 1
+        }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { color: "#eaf0ff" }, grid: { color: "rgba(255,255,255,0.1)" } },
-          y: { ticks: { color: "#eaf0ff" }, grid: { color: "rgba(255,255,255,0.1)" } }
+          x: {
+            ticks: { color: "rgba(234,240,255,.85)", maxRotation: 0, autoSkip: true },
+            grid: { color: "rgba(255,255,255,.08)" }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: "rgba(234,240,255,.85)" },
+            grid: { color: "rgba(255,255,255,.08)" }
+          }
         }
       }
     });
   }
-  if(pieChart){ pieChart.destroy(); }
-  const ctx2 = document.getElementById("pieChart");
-  if(ctx2){
-    pieChart = new Chart(ctx2, {
+
+  const pieValues = [Number(pot)||0, Number(appState.foundation)||0, Number(outstanding)||0];
+  const hasPieData = pieValues.some(v => (Number(v) || 0) > 0);
+
+  const pieOverlay = document.getElementById("pieNoData");
+  if(pieOverlay) pieOverlay.style.display = hasPieData ? "none" : "flex";
+
+  if(pieChart){ pieChart.destroy(); pieChart = null; }
+  const pieCanvas = document.getElementById("pieChart");
+  if(pieCanvas){
+    pieChart = new Chart(pieCanvas, {
       type: "pie",
       data: {
         labels: ["Njangi Pot", "Foundation", "Loans"],
-        datasets: [{ data: [Number(pot) || 0, Number(appState.foundation) || 0, Number(outstanding) || 0], backgroundColor: ["#7dd3fc", "#a78bfa", "#34d399"] }]
+        datasets: [{
+          data: pieValues,
+          backgroundColor: ["rgba(125,211,252,0.65)","rgba(167,139,250,0.65)","rgba(52,211,153,0.65)"],
+          borderColor: "rgba(255,255,255,.10)",
+          borderWidth: 1
+        }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: "bottom", labels: { color: "#eaf0ff" } }
+          legend: { position: "bottom", labels: { color: "rgba(234,240,255,.85)" } }
         }
       }
     });
@@ -864,7 +939,7 @@ function renderAll(){
 }
 
 /* ===========================
-   WRITES
+   WRITES (unchanged)
 =========================== */
 async function addHistoryRow(type, member, amount, interestPercent=0, totalDue=null){
   const r = await sb.from("history").insert([{ type, member, amount, interest_percent:interestPercent, total_due:totalDue }]);
@@ -918,7 +993,7 @@ async function addContribution(){
 }
 
 /* ===========================
-   LOANS
+   LOANS (unchanged)
 =========================== */
 async function issueLoan(){
   const suretyMemberId = document.getElementById("lSuretyMember").value;
@@ -947,13 +1022,11 @@ async function issueLoan(){
 
   if(totalDue > foundation) return toast("Loan exceeds foundation");
 
-  // member loan_due
   let r = await sb.from("members")
     .update({loan_due:(Number(borrower.loan_due)||0)+totalDue})
     .eq("id",memberId);
   if(r.error) return toast(r.error.message);
 
-  // loans insert (borrowing record)
   r = await sb.from("loans").insert([{
     borrower_member_id: Number(memberId),
     borrower_name: borrowerName,
@@ -966,9 +1039,8 @@ async function issueLoan(){
   }]);
   if(r.error) return toast("loans insert: " + r.error.message);
 
-  // app_state: deduct ONLY the principal, interest is accounting-only
   r = await sb.from("app_state").update({
-    foundation: foundation - amt, // only principal deducted
+    foundation: foundation - amt,
     total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
     updated_at:new Date().toISOString()
   }).eq("id",1);
@@ -988,7 +1060,6 @@ async function repayLoan(){
   if(!memberIdRaw) return toast("Select borrower");
   if(!amt || amt <= 0) return toast("Enter amount");
 
-  // ✅ FIX ONLY: guarantee a valid numeric member_id (avoid NaN -> null)
   let memberIdNum = parseInt(memberIdRaw, 10);
   if(!Number.isFinite(memberIdNum)){
     const sel = document.getElementById("rMember");
@@ -1001,7 +1072,6 @@ async function repayLoan(){
   const m = members.find(x => Number(x.id) === Number(memberIdNum));
   if(!m) return toast("Member not found");
 
-  // Get latest ACTIVE loan due from loans table
   const active = await sb.from("loans")
     .select("id,total_due")
     .eq("borrower_member_id", Number(memberIdNum))
@@ -1016,22 +1086,18 @@ async function repayLoan(){
   const pay = Math.min(amt, due);
   const newDue = due - pay;
 
-  // members update
   let r = await sb.from("members").update({loan_due:newDue}).eq("id",memberIdNum);
   if(r.error) return toast(r.error.message);
 
-  // ✅ repayment insert now ALWAYS has valid member_id (NOT NULL)
   r = await sb.from("repayments").insert([{
     member_id: Number(memberIdNum),
     member_name: m.name,
-    amount: pay,        // ✅ REQUIRED (FIX)
-    amount_paid: pay,   // kept as-is
+    amount: pay,
+    amount_paid: pay,
     notes: "Loan repayment"
   }]);
-
   if(r.error) return toast("repayments insert: " + r.error.message);
 
-  // update active loan row
   const newStatus = (newDue <= 0) ? "cleared" : "active";
   const up = await sb.from("loans").update({
     total_due: newDue,
@@ -1040,7 +1106,6 @@ async function repayLoan(){
   }).eq("id", active.data.id);
   if(up.error) appendErr("loan update: " + up.error.message);
 
-  // app_state: add back to foundation
   const foundation = Number(appState.foundation || 0);
   r = await sb.from("app_state").update({
     foundation: foundation + pay,
@@ -1077,7 +1142,6 @@ async function markFinePaid(fineId){
   await reloadAll(); toast("Marked paid");
 }
 
-/* FOUNDATION PAYMENTS: insert row + update app_state.foundation */
 async function addFoundationPayment(){
   const memberId = document.getElementById("fpMember").value;
   const paid = Number(document.getElementById("fpPaid").value || 0);
@@ -1088,7 +1152,6 @@ async function addFoundationPayment(){
   if(!memberId) return toast("Select member");
   if(paid < 0 || pending < 0) return toast("Amounts must be >= 0");
 
-  // insert into foundation_payments ONLY foundation-related
   const r = await sb.from("foundation_payments").insert([{
     member_id: Number(memberId),
     amount_paid: paid,
@@ -1098,7 +1161,6 @@ async function addFoundationPayment(){
   }]);
   if(r.error) return toast(r.error.message);
 
-  // update foundation pot
   const newFoundation = Number(appState.foundation || 0) + paid;
   const up = await sb.from("app_state").update({
     foundation: newFoundation,
@@ -1142,7 +1204,6 @@ async function runPayout(){
   const borrowerSel = document.getElementById("lMember");
   const amtInput = document.getElementById("lAmount");
   if(borrowerSel) borrowerSel.addEventListener("change", refreshSuretyDropdown);
-
   if(amtInput) amtInput.addEventListener("input", refreshSuretyDropdown);
 })();
 </script>
