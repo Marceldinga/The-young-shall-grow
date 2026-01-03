@@ -907,9 +907,9 @@ async function issueLoan(){
   }]);
   if(r.error) return toast("loans insert: " + r.error.message);
 
-  // app_state: deduct foundation + add interest generated
+  // app_state: deduct ONLY the principal, interest is accounting-only
   r = await sb.from("app_state").update({
-    foundation: foundation - totalDue,
+    foundation: foundation - amt, // only principal deducted
     total_interest_generated: (Number(appState.total_interest_generated)||0) + interest,
     updated_at:new Date().toISOString()
   }).eq("id",1);
